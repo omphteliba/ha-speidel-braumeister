@@ -14,6 +14,9 @@ class SpeidelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors = {}
         if user_input is not None:
+            # Validate the username and password (optional, but recommended)
+            # ... (e.g., check if the credentials are valid)
+
             return self.async_create_entry(
                 title=user_input[CONF_USERNAME], data=user_input
             )
