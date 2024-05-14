@@ -19,7 +19,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 
-from .config_flow import SpeidelConfigFlow
+from .config_flow import SpeidelConfigFlow  # Import your config_flow module
 
 from .const import (
     DOMAIN,
@@ -32,28 +32,24 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# This is the important part - ensure your config_flow is registered
 async def async_setup(hass: HomeAssistant) -> bool:
     """Set up the Speidel Braumeister integration."""
     hass.data.setdefault(DOMAIN, {})
-    hass.config_entries.async_setup_entry(
-        hass,
-        config_entries.HANDLERS.get(DOMAIN, config_entries.HANDLERS.get(DOMAIN))
+    hass.config_entries.async_register_integration(
+        DOMAIN,
+        config_flow=SpeidelConfigFlow,
     )
-
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+# ... (The rest of your __init__.py code remains the same)
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> bool:
     """Set up the Speidel Braumeister integration."""
-    hass.config_entries.async_setup_entry(entry, async_setup_platform)
-
-    return True
-
-async def async_setup_platform(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    """Set up Speidel Braumeister platform."""
-    username = config_entry.data[CONF_USERNAME]
-    password = config_entry.data[CONF_PASSWORD]
-
-    coordinator = SpeidelDataCoordinator(hass, username, password)
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = SpeidelDataCoordinator(hass, entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     await coordinator.async_config_entry_first_refresh()
 
     if not coordinator.data:
@@ -63,9 +59,14 @@ async def async_setup_platform(hass: HomeAssistant, config_entry: ConfigEntry, a
         SpeidelSensor(coordinator, description) for description in SENSOR_TYPES
     )
 
+    return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the Speidel Braumeister integration."""
+    if hass.data.get(DOMAIN):
+        del hass.data[DOMAIN][entry.entry_id]
+
     return True
 
 
