@@ -32,18 +32,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# This is the important part - ensure your config_flow is registered
-async def async_setup(hass: HomeAssistant) -> bool:
-    """Set up the Speidel Braumeister integration."""
-    hass.data.setdefault(DOMAIN, {})
-    hass.config_entries.async_register_integration(
-        DOMAIN,
-        config_flow=SpeidelConfigFlow,
-    )
-    return True
-
-# ... (The rest of your __init__.py code remains the same)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> bool:
     """Set up the Speidel Braumeister integration."""
