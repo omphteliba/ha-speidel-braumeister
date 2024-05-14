@@ -19,8 +19,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 
-from .config_flow import SpeidelConfigFlow  # Import your config_flow module
-
 from .const import (
     DOMAIN,
     MANUFACTURER,
@@ -31,6 +29,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> bool:
     """Set up the Speidel Braumeister integration."""
