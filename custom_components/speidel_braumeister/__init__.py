@@ -19,6 +19,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 
+from .config_flow import SpeidelConfigFlow
+
 from .const import (
     DOMAIN,
     MANUFACTURER,
@@ -30,11 +32,26 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+async def async_setup(hass: HomeAssistant) -> bool:
+    """Set up the Speidel Braumeister integration."""
+    hass.data.setdefault(DOMAIN, {})
+    hass.config_entries.async_setup_entry(
+        hass,
+        config_entries.HANDLERS.get(DOMAIN, config_entries.HANDLERS.get(DOMAIN))
+    )
+
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the Speidel Braumeister integration."""
-    username = entry.data[CONF_USERNAME]
-    password = entry.data[CONF_PASSWORD]
+    hass.config_entries.async_setup_entry(entry, async_setup_platform)
+
+    return True
+
+async def async_setup_platform(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    """Set up Speidel Braumeister platform."""
+    username = config_entry.data[CONF_USERNAME]
+    password = config_entry.data[CONF_PASSWORD]
 
     coordinator = SpeidelDataCoordinator(hass, username, password)
     await coordinator.async_config_entry_first_refresh()
@@ -45,8 +62,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(
         SpeidelSensor(coordinator, description) for description in SENSOR_TYPES
     )
-
-    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -79,3 +94,52 @@ class SpeidelDataCoordinator(DataUpdateCoordinator):
             return response.json()
         except requests.exceptions.RequestException as error:
             raise UpdateFailed(f"Error fetching data from Speidel API: {error}") from error
+
+
+class SpeidelSensor(SensorEntity):
+    """Representation of a Speidel Braumeister sensor."""
+
+    def __init__(self, coordinator: SpeidelDataCoordinator, description: SensorEntityDescription) -> None:
+        """Initialize the sensor."""
+        super().__init__()
+        self.coordinator = coordinator
+        self.entity_description = description
+        self._attr_unique_id = f"{DOMAIN}_{description.key}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return {
+            "identifiers": {(DOMAIN, self.coordinator.username)},
+            "name": NAME,
+            "manufacturer": MANUFACTURER,
+        }
+
+    @property
+    def state(self) -> str:
+        """Return the state of the sensor."""
+        data = self.coordinator.data
+        if data:
+            if self.entity_description.key == "current_temperature":
+                return f"{data['currentTemperature']:.1f}"
+            elif self.entity_description.key == "target_temperature":
+                return f"{data['targetTemperature']:.1f}"
+            elif self.entity_description.key == "current_phase":
+                return data['currentPhase'].upper()
+            elif self.entity_description.key == "current_time":
+                return data['currentTime']
+            elif self.entity_description.key == "remaining_time":
+                return data['remainingTime']
+            else:
+                return data[self.entity_description.key]
+        else:
+            return None
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    async def async_update(self) -> None:
+        """Update the sensor state."""
+        await self.coordinator.async_request_refresh()
