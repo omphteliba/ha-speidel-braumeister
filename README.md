@@ -9,7 +9,7 @@ This integration allows you to monitor your Speidel Braumeister brewing system w
 2. **Add the repository to HACS:**
    - In Home Assistant, go to **Settings > Integrations > Add integration**.
    - Click **Custom integrations** and select **Add from repository**.
-   - Enter the URL of your GitHub repository: [YOUR_REPOSITORY_URL].
+   - Enter the URL of your GitHub repository: https://github.com/omphteliba/ha-speidel-braumeister .
 3. **Install the integration:**
    - Click **Install** in HACS.
 
