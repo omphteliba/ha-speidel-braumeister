@@ -5,7 +5,7 @@
 
 This integration allows you to monitor your Speidel Braumeister brewing system within Home Assistant.
 
-## Installation
+## Add Repository
 
 1. **Install HACS (Home Assistant Community Store):**
    - [Link to HACS installation instructions](https://github.com/hacs/integration/blob/master/docs/installation.md)
@@ -13,13 +13,12 @@ This integration allows you to monitor your Speidel Braumeister brewing system w
    - In Home Assistant, go to **HACS > Integrations > Three dots**.
    - Click **Custom repositories** and select **Add from repository**.
    - Enter the URL of your GitHub repository: https://github.com/omphteliba/ha-speidel-braumeister .
-   - Choose **integration** from **Category**
-3. **Install the integration:**
+   - Choose **Integration** from **Category**
    - Click **ADD** in HACS.
 
-## Configuration
+## Install Integration
 
-1. **Enter your Speidel credentials:**
+1. **Add Integration:**
    - In Home Assistant, go to **Settings > Devices & Services** and click on **ADD INTEGRATIONS**.
    - Search for **Speidel** and click on **Speidel Braumeister**.
    - Enter your Speidel username and password in the provided fields.
