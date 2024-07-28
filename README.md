@@ -1,4 +1,4 @@
-
+# Early Alpha, not working, WIP! #
 ![ha-speidel-braumeister_header](https://github.com/omphteliba/ha-speidel-braumeister/assets/196336/e0a90ea2-9633-41e9-b39c-fa792d79a1a9)
 
 # Home Assistant Speidel Braumeister Integration
