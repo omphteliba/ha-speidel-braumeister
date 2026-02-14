@@ -1,0 +1,115 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Speidel Braumeister Einrichtung",
+        "description": "Geben Sie Ihre My Speidel Zugangsdaten ein, um Ihre Braumeister zu verbinden.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
+      },
+      "machine": {
+        "title": "Gerätekonfiguration",
+        "description": "Geben Sie die Machine UUID Ihrer Braumeister ein.\n\n**So finden Sie die Machine UUID:**\n1. Melden Sie sich bei myspeidel.com an\n2. Klicken Sie mit der rechten Maustaste auf Ihre Braumeister-Seite und wählen Sie 'Untersuchen'\n3. Suchen Sie nach 'data-machine=' im HTML\n4. Kopieren Sie den vollständigen Wert (z.B. '0004A30B003D70F4.323')\n\nDie Integration versucht automatisch verschiedene UUID-Formate.",
+        "data": {
+          "name": "Gerätename",
+          "machine_uuid": "Machine UUID (Format: LONGUUID.SHORTID)",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)"
+        },
+        "data_description": {
+          "machine_uuid": "Finden Sie das 'data-machine' Attribut im HTML-Quelltext. Beispiel: 0004A30B003D70F4.323"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültiger Benutzername oder Passwort",
+      "cannot_connect": "Verbindung zur Speidel Cloud API fehlgeschlagen",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten"
+    },
+    "abort": {
+      "already_configured": "Diese Braumeister ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Speidel Braumeister Optionen",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall (Sekunden)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "connection_status": {
+        "name": "Verbindungsstatus"
+      },
+      "payment_required": {
+        "name": "Abonnement erforderlich"
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "target_temperature": {
+        "name": "Zieltemperatur"
+      },
+      "pump_status": {
+        "name": "Pumpenstatus"
+      },
+      "heating_status": {
+        "name": "Heizungsstatus"
+      },
+      "process_status": {
+        "name": "Prozessstatus"
+      },
+      "current_phase": {
+        "name": "Aktueller Schritt"
+      },
+      "remaining_time": {
+        "name": "Restzeit"
+      },
+      "brew_name": {
+        "name": "Sudname"
+      },
+      "device_type": {
+        "name": "Gerätetyp"
+      },
+      "device_mode": {
+        "name": "Gerätemodus"
+      },
+      "current_step": {
+        "name": "Aktueller Schritt"
+      },
+      "progress": {
+        "name": "Braufortschritt"
+      },
+      "last_online": {
+        "name": "Zuletzt online"
+      }
+    },
+    "switch": {
+      "pump": {
+        "name": "Pumpe"
+      },
+      "heating": {
+        "name": "Heizung"
+      }
+    },
+    "button": {
+      "start_process": {
+        "name": "Prozess starten"
+      },
+      "stop_process": {
+        "name": "Prozess stoppen"
+      },
+      "pause_process": {
+        "name": "Prozess pausieren"
+      },
+      "next_phase": {
+        "name": "Nächste Phase"
+      }
+    }
+  }
+}

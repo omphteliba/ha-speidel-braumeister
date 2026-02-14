@@ -1,0 +1,115 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Speidel Braumeister Setup",
+        "description": "Enter your My Speidel account credentials to connect to your Braumeister.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "machine": {
+        "title": "Machine Configuration",
+        "description": "Enter your Braumeister's Machine UUID.\n\n**How to find your Machine UUID:**\n1. Log in to myspeidel.com\n2. Right-click on your Braumeister page and select 'Inspect'\n3. Search for 'data-machine=' in the HTML\n4. Copy the full value (e.g., '0004A30B003D70F4.323')\n\nThe integration will try multiple UUID formats automatically.",
+        "data": {
+          "name": "Device Name",
+          "machine_uuid": "Machine UUID (try format: LONGUUID.SHORTID)",
+          "scan_interval": "Scan Interval (seconds)"
+        },
+        "data_description": {
+          "machine_uuid": "Find the 'data-machine' attribute in the HTML source. Example: 0004A30B003D70F4.323"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid username or password",
+      "cannot_connect": "Cannot connect to Speidel Cloud API",
+      "unknown": "An unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This Braumeister is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Speidel Braumeister Options",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "connection_status": {
+        "name": "Connection Status"
+      },
+      "payment_required": {
+        "name": "Subscription Required"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "target_temperature": {
+        "name": "Target Temperature"
+      },
+      "pump_status": {
+        "name": "Pump Status"
+      },
+      "heating_status": {
+        "name": "Heating Status"
+      },
+      "process_status": {
+        "name": "Process Status"
+      },
+      "current_phase": {
+        "name": "Current Phase"
+      },
+      "remaining_time": {
+        "name": "Remaining Time"
+      },
+      "brew_name": {
+        "name": "Brew Name"
+      },
+      "device_type": {
+        "name": "Device Type"
+      },
+      "device_mode": {
+        "name": "Device Mode"
+      },
+      "current_step": {
+        "name": "Current Step"
+      },
+      "progress": {
+        "name": "Brewing Progress"
+      },
+      "last_online": {
+        "name": "Last Online"
+      }
+    },
+    "switch": {
+      "pump": {
+        "name": "Pump"
+      },
+      "heating": {
+        "name": "Heating"
+      }
+    },
+    "button": {
+      "start_process": {
+        "name": "Start Process"
+      },
+      "stop_process": {
+        "name": "Stop Process"
+      },
+      "pause_process": {
+        "name": "Pause Process"
+      },
+      "next_phase": {
+        "name": "Next Phase"
+      }
+    }
+  }
+}

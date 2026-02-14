@@ -1,0 +1,54 @@
+# Services for Speidel Braumeister integration
+
+# Note: Control services are placeholders for future API functionality
+# Currently, the Speidel Cloud API only supports read operations
+
+# start_brewing:
+#   name: Start Brewing
+#   description: Start a brewing process on the Braumeister
+#   target:
+#     entity:
+#       integration: speidel_braumeister
+#       domain: button
+
+# stop_brewing:
+#   name: Stop Brewing
+#   description: Stop the current brewing process
+#   target:
+#     entity:
+#       integration: speidel_braumeister
+#       domain: button
+
+# set_temperature:
+#   name: Set Temperature
+#   description: Set the target temperature for the Braumeister
+#   target:
+#     entity:
+#       integration: speidel_braumeister
+#       domain: sensor
+#   fields:
+#     temperature:
+#       name: Temperature
+#       description: Target temperature in degrees Celsius
+#       required: true
+#       example: 65
+#       selector:
+#         number:
+#           min: 0
+#           max: 100
+#           unit_of_measurement: "°C"
+
+# add_comment:
+#   name: Add Comment
+#   description: Add a comment to the current brewing process
+#   target:
+#     entity:
+#       integration: speidel_braumeister
+#   fields:
+#     comment:
+#       name: Comment
+#       description: Comment text to add
+#       required: true
+#       example: "Added hop addition #2"
+#       selector:
+#         text:

@@ -1,11 +1,13 @@
 {
   "domain": "speidel_braumeister",
   "name": "Speidel Braumeister",
-  "version": "0.1.0",
-  "documentation": "https://github.com/omphteliba/ha-speidel-braumeister",
-  "requirements": [],
-  "dependencies": [],
-  "issue_tracker": "https://github.com/omphteliba/ha-speidel-braumeister/issues",
+  "codeowners": ["@omphteliba"],
   "config_flow": true,
-  "config_flow_title": "Speidel Braumeister"
+  "dependencies": [],
+  "documentation": "https://github.com/omphteliba/ha-speidel-braumeister",
+  "integration_type": "device",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/omphteliba/ha-speidel-braumeister/issues",
+  "requirements": [],
+  "version": "2.0.0"
 }
