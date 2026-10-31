@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
-from .device_protocol import from_bridge
+from .device_protocol import brew_name_from_step, from_bridge
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -215,6 +215,32 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("Braumeister Bridge reachable, but no fresh data for %s", device_id)
         return data
 
+    async def _add_web_texts(self, result: dict[str, Any]) -> None:
+        """Add the texts only the web interface has (step, mode, device type) to bridge data.
+
+        Optional: if the cloud is unreachable, the local values are kept as they are.
+        """
+        if not self.web_auth:
+            return
+        try:
+            info = await self.web_auth.get_device_info(self._machine_uuid)
+        except Exception as err:  # cloud down: local data is enough
+            _LOGGER.debug("No web device info for bridge data: %s", err)
+            return
+        if not info:
+            return
+        for key, source in (("device_type", "device_type"), ("device_name", "device_name"),
+                            ("device_mode", "device_mode"), ("current_step", "screen_title"),
+                            ("current_stage", "current_stage"), ("screen_function", "screen_function")):
+            if info.get(source) is not None:
+                result[key] = info[source]
+        if result.get("progress") is None and info.get("progress") is not None:
+            result["progress"] = info["progress"]
+        if result.get("process_status") in ("running", "finished"):
+            step_name = brew_name_from_step(result.get("current_step"))
+            if step_name:
+                result["brew_name"] = step_name
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the API."""
         _LOGGER.debug("Starting data update for machine %s", self._machine_uuid)
@@ -236,6 +262,13 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result.update(bridge_data)
             result["connection_status"] = "online"
             result["data_source"] = "bridge"
+            await self._add_web_texts(result)
+            _LOGGER.debug(
+                "Bridge data: state=%s temp=%s target=%s pump=%s heating=%s alarm=%s progress=%s brew=%s step=%s",
+                result.get("state_code"), result.get("temperature"), result.get("target_temperature"),
+                result.get("pump"), result.get("heating"), result.get("alarm"), result.get("progress"),
+                result.get("brew_name"), result.get("current_step"),
+            )
             self._update_last_online(result)
             result["last_online"] = self._last_online
             return self._clean_data(result)

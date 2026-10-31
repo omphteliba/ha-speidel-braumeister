@@ -167,3 +167,13 @@ def test_brew_name_from_step(dp, step, expected):
 def test_alarm_follows_beep(dp, state, indicator, expected):
     result = dp.parse_bm_stat(status(f"0X10:04XCX{state}X0X 69.0X0X81X4X0X5X0X67XA00SXpiX{indicator}X0X0X0"))
     assert result["alarm"] == expected
+
+
+@pytest.mark.parametrize(
+    ("state", "raw", "expected"),
+    [(2820, "60", 19), (2910, "67", 22), (3450, "318", 100), (101, "0", None)],
+)
+def test_progress_like_web_interface(dp, state, raw, expected):
+    # Values from a live brew next to the MySpeidel web interface (19 %, 22 %)
+    result = dp.parse_bm_stat(status(f"0X10:04XCX{state}X0X 69.0X0X81X4X0X5X0X{raw}XA00SXpiX000X0X0X0"))
+    assert result["progress"] == expected

@@ -101,8 +101,7 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
                 elif "-" in step:
                     return step.split("-")[-1].strip()
                 return step
-            phase = data.get("current_phase")
-            return str(phase).upper() if phase else "UNKNOWN"
+            return data.get("current_phase") or None
         elif key == "remaining_time":
             return data.get("remaining_time")
         elif key == "brew_name":

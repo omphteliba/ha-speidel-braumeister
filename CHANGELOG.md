@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Process status is now derived from the device state code (automatic program = running)
 - Target temperature `-1000`/`-10000` ("no target") is no longer reported as a negative temperature; `0` between program steps is shown as 0 °C like in the MySpeidel web interface
 - The alarm binary sensor had no English name
+- "Current phase" showed the text `UNKNOWN` instead of an unknown state
 - German: "Current phase" and "Current step" were both called "Aktueller Schritt"; the phase sensor is now "Aktuelle Phase"
 - Wrong recipe name after recipes were re-sorted and re-synced to the device: the device recipe list is now reloaded when it changes, and the name of the running recipe is taken from the web interface's step text
 - The main menu no longer shows the previous program's target temperature (the device keeps reporting it there)
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New **Braumeister Bridge** app (`braumeister_bridge/`, add this repository to the app store): receives the Braumeister's cloud traffic locally via a DNS entry for `api2.myspeidel.com`, forwards it to My Speidel and passes other port-80 traffic on (e.g. to `emulated_hue`). The integration reads from it first and falls back to the web interface
 - Recipe names come from the device's own recipe list when the bridge is used
+- With the bridge, the step text, mode and device type are still taken from the web interface when it is reachable; progress is calculated locally (field 12, 318 = 100 %)
 - Remaining time during rests and the boil, calculated from the step duration and elapsed time in the device status
 - Process status `finished` when the brew has ended
 - Alarm binary sensor now uses the device state code, so it is on while the device beeps for an alarm (mash-in temperature reached, rest end, remove lid, brew finished), the same rule MySpeidel's web display uses (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`. Hop additions are not detected yet

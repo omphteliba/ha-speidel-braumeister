@@ -25,12 +25,14 @@ Status fields (X-separated):
 
 from __future__ import annotations
 
+import math
 from typing import Any, Optional
 from urllib.parse import unquote
 
 NO_TARGET_TEMPERATURE = -1000
 STATE_MAIN_MENU = 101
 STATE_BREW_FINISHED = 3450
+PROGRESS_FULL = 318
 
 # An alarm is active while the device beeps, as in MySpeidel's own web display:
 # field 15, 2nd character: "1"/"2" = beep, "D" = remove lid (also beeps).
@@ -194,6 +196,15 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     # Field 9 holds the slot of the running program; outside a program it is
     # not meaningful (seen as 4 right after entering manual mode)
     result["recipe_slot"] = _int(fields, 9) if in_program else None
+
+    # Field 12: program progress, 318 = 100 % (MySpeidel: progress = a[12] / 318 * 100,
+    # rounded up to match the percentage the web interface shows)
+    progress_raw = _int(fields, 12)
+    result["progress"] = (
+        min(math.ceil(progress_raw * 100 / PROGRESS_FULL), 100)
+        if in_program and progress_raw is not None and progress_raw >= 0
+        else None
+    )
 
     flags = _field(fields, 14)
     result["pump"], result["heating"] = _actuators(flags)

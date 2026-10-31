@@ -222,6 +222,12 @@ class SpeidelWebAuth:
         
         return {}
 
+    async def get_device_info(self, machine_id: str) -> dict:
+        """Device info texts (step, mode, type) without the XHR status, for the bridge path."""
+        if not await self.ensure_logged_in():
+            return {}
+        return await self._fetch_device_info_json(self._get_id_variants(machine_id))
+
     async def _fetch_device_info_json(self, id_variants: list[str]) -> dict:
         """Fetch device info from JSON endpoint.
         
