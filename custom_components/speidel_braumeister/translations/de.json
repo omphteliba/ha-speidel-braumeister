@@ -56,10 +56,18 @@
         "name": "Zieltemperatur"
       },
       "pump_status": {
-        "name": "Pumpenstatus"
+        "name": "Pumpenstatus",
+        "state": {
+          "on": "Ein",
+          "off": "Aus"
+        }
       },
       "heating_status": {
-        "name": "Heizungsstatus"
+        "name": "Heizungsstatus",
+        "state": {
+          "on": "Ein",
+          "off": "Aus"
+        }
       },
       "process_status": {
         "name": "Prozessstatus"

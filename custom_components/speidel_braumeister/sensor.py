@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 
 from .const import (
+    ACTUATOR_STATES,
     DOMAIN,
     SENSOR_TYPES,
 )
@@ -75,21 +76,12 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
             temp = data.get("target_temperature")
             return round(temp, 1) if temp is not None else None
         elif key == "pump_status":
-            pump = data.get("pump", "unknown")
-            # Translate to German for consistency with web interface
-            if pump == "on":
-                return "Ein"
-            elif pump == "off":
-                return "Aus"
-            return pump
+            # Enum sensor: "on"/"off" are translated by Home Assistant, anything else is unknown
+            pump = data.get("pump")
+            return pump if pump in ACTUATOR_STATES else None
         elif key == "heating_status":
-            heating = data.get("heating", "unknown")
-            # Translate to German for consistency with web interface
-            if heating == "on":
-                return "Ein"
-            elif heating == "off":
-                return "Aus"
-            return heating
+            heating = data.get("heating")
+            return heating if heating in ACTUATOR_STATES else None
         elif key == "process_status":
             return data.get("process_status", "unknown")
         elif key == "current_phase":

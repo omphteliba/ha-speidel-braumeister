@@ -8,6 +8,9 @@ from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 # Integration domain
 DOMAIN: Final = "speidel_braumeister"
 
+# States of the pump/heating sensors; translated via strings.json ("unknown" -> no state)
+ACTUATOR_STATES: Final = ["on", "off"]
+
 # Manufacturer and device info
 MANUFACTURER: Final = "Speidel"
 NAME: Final = "Braumeister"
@@ -63,11 +66,15 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
         key="pump_status",
         translation_key="pump_status",
         icon="mdi:pump",
+        device_class="enum",
+        options=ACTUATOR_STATES,
     ),
     SensorEntityDescription(
         key="heating_status",
         translation_key="heating_status",
         icon="mdi:heating-coil",
+        device_class="enum",
+        options=ACTUATOR_STATES,
     ),
     SensorEntityDescription(
         key="process_status",

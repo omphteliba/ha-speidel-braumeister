@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Pump and heating sensors are now enum sensors with the states `on`/`off`**, translated by Home Assistant (English On/Off, German Ein/Aus). Before, they always showed the German words "Ein"/"Aus". Automations that compare the state with "Ein"/"Aus" must use `on`/`off` instead
 - Requires Home Assistant 2025.1 or newer (`hacs.json`), matching the Pydantic v2 requirement
 - `hacs.json` reduced to the keys HACS accepts; `issue_tracker` added to the manifest
 
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remaining time always showed 80 minutes and the process status was always "running": the field used is the step duration, not the remaining time. Remaining time is now calculated during rests and the boil and left empty otherwise
 - Process status is now derived from the device state code (automatic program = running)
 - Target temperature `-1000`/`-10000` ("no target") is no longer reported as a negative temperature
+- The alarm binary sensor had no English name
 - The main menu no longer shows the previous program's target temperature (the device keeps reporting it there)
 - A running brew was shown as idle because the web interface reports the mode "wartet" even during a program. The coordinator now trusts the device state code
 - Boiling (state 3xxx) now also counts as a running program

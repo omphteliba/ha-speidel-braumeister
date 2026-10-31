@@ -56,10 +56,18 @@
         "name": "Target Temperature"
       },
       "pump_status": {
-        "name": "Pump Status"
+        "name": "Pump Status",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "heating_status": {
-        "name": "Heating Status"
+        "name": "Heating Status",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "process_status": {
         "name": "Process Status"
