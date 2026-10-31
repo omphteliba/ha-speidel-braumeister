@@ -27,6 +27,7 @@ Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die M
 | Aktueller Schritt | Vollständiger Schrittname (z. B. "Stone IPA – Einmaischen") |
 | Braufortschritt | Fortschrittsprozentsatz des aktuellen Brauvorgangs |
 | Zuletzt online | Letzte Zeit, zu der das Gerät online war |
+| Rezepte auf dem Gerät | Anzahl der Rezepte auf dem Braumeister; jedes Rezept (Einmaischen, Rasten, Kochzeit, Hopfengaben) steht im Attribut `recipes` |
 
 ### Binäre Sensoren
 

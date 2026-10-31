@@ -27,6 +27,7 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 | Current Step | Full step name (e.g., "Stone IPA – Einmaischen") |
 | Brewing Progress | Progress percentage of the current brew |
 | Last Online | Last time the device was online |
+| Device Recipes | Number of recipes stored on the Braumeister; each recipe (mash-in, rests, boil time, hop additions) is listed in the `recipes` attribute |
 
 ### Binary Sensors
 

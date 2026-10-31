@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - New **Braumeister Bridge** app (`braumeister_bridge/`, add this repository to the app store): receives the Braumeister's cloud traffic locally via a DNS entry for `api2.myspeidel.com`, forwards it to My Speidel and passes other port-80 traffic on (e.g. to `emulated_hue`). The integration reads from it first and falls back to the web interface
+- New sensor **Device Recipes** ("Rezepte auf dem Gerät"): number of recipe slots on the device, with every recipe (mash-in, rests, boil, hop additions) as attributes. Works with and without the bridge; the last known list is kept while the device is off
 - Recipe names come from the device's own recipe list when the bridge is used
 - With the bridge, the step text, mode and device type are still taken from the web interface when it is reachable; progress is calculated locally (field 12, 318 = 100 %)
 - Remaining time during rests and the boil, calculated from the step duration and elapsed time in the device status

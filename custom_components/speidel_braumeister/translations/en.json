@@ -111,6 +111,9 @@
       },
       "last_online": {
         "name": "Last Online"
+      },
+      "device_recipes": {
+        "name": "Device Recipes"
       }
     },
     "switch": {

@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
-from .device_protocol import brew_name_from_step, from_bridge
+from .device_protocol import brew_name_from_step, from_bridge, recipes_from_bridge
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +48,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_online: Optional[datetime] = None
         # Store last known good data for device info
         self._last_device_info: dict[str, Any] = {}
+        # Last known recipe slots on the device, shown also while it is off
+        self._recipes: list[dict[str, Any]] = []
 
     @callback
     def update_from_mqtt(self, data: dict[str, Any]) -> None:
@@ -98,6 +100,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "device_type": self._last_device_info.get("device_type"),
             "device_name": self._last_device_info.get("device_name"),
             "device_mode": self._last_device_info.get("device_mode"),
+            "device_recipe_details": self._recipes,
             "last_online": self._last_online,
         }
 
@@ -112,9 +115,15 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if data.get("device_mode"):
             self._last_device_info["device_mode"] = data.get("device_mode")
 
+    def _remember_recipes(self, recipes: Optional[list[dict[str, Any]]]) -> None:
+        """Keep the latest non-empty recipe list."""
+        if recipes:
+            self._recipes = recipes
+
     def _clean_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Clean and validate data, removing invalid/stale values."""
         cleaned = data.copy()
+        cleaned["device_recipe_details"] = self._recipes
         
         # Clean temperature values
         temp_valid = self._is_valid_temp(data.get("temperature"))
@@ -210,6 +219,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except (ClientError, asyncio.TimeoutError, ValueError) as err:
             _LOGGER.debug("Braumeister Bridge not reachable: %s", err)
             return None
+        self._remember_recipes(recipes_from_bridge(status, device_id))
         data = from_bridge(status, device_id, BRIDGE_MAX_AGE)
         if data is None:
             _LOGGER.debug("Braumeister Bridge reachable, but no fresh data for %s", device_id)
@@ -264,10 +274,10 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result["data_source"] = "bridge"
             await self._add_web_texts(result)
             _LOGGER.debug(
-                "Bridge data: state=%s temp=%s target=%s pump=%s heating=%s alarm=%s progress=%s brew=%s step=%s",
+                "Bridge data: state=%s temp=%s target=%s pump=%s heating=%s alarm=%s progress=%s brew=%s step=%s recipes=%s",
                 result.get("state_code"), result.get("temperature"), result.get("target_temperature"),
                 result.get("pump"), result.get("heating"), result.get("alarm"), result.get("progress"),
-                result.get("brew_name"), result.get("current_step"),
+                result.get("brew_name"), result.get("current_step"), len(self._recipes),
             )
             self._update_last_online(result)
             result["last_online"] = self._last_online
@@ -289,6 +299,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result['pump'] = xhr_data.get('pump', 'unknown')
                     result['process_status'] = xhr_data.get('process_status', 'unknown')
                     result['state_code'] = xhr_data.get('state_code')
+                    self._remember_recipes(xhr_data.get('device_recipe_details'))
                     result['alarm'] = xhr_data.get('alarm')
                     result['connection_status'] = 'online'
                     result['brew_name'] = xhr_data.get('brew_name')

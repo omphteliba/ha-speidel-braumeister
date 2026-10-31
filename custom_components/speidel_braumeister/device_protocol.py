@@ -113,16 +113,46 @@ def brew_name_from_step(step: Optional[str]) -> Optional[str]:
     return None
 
 
+def parse_recipe_line(line: str) -> Optional[dict[str, Any]]:
+    """Decode one recipe slot line, e.g. ``0X40X44X20X…X0.Weizen``.
+
+    20 numbers: slot, mash-in °C, 5 rests as (°C, minutes), boil minutes, boil °C,
+    6 hop additions (minutes before the end of the boil). Unused rests have 0 minutes,
+    unused hop additions are 0. Other lines (e.g. the rz header) give None.
+    """
+    head, _, name = line.split(";")[0].strip().partition(".")
+    values = head.split("X")
+    if not name or len(values) != 20 or not all(v.lstrip("-").isdigit() for v in values):
+        return None
+    v = [int(x) for x in values]
+    return {
+        "slot": v[0],
+        "name": name.strip(),
+        "mash_in_temperature": v[1],
+        "rests": [{"temperature": v[i], "minutes": v[i + 1]} for i in range(2, 12, 2) if v[i + 1] > 0],
+        "boil_minutes": v[12],
+        "boil_temperature": v[13],
+        "hop_additions": [m for m in v[14:20] if m > 0],
+    }
+
+
+def parse_recipes(text: str) -> list[dict[str, Any]]:
+    """All recipe slots in an ``rz`` payload or a getDeviceRecipes response, sorted by slot."""
+    recipes = [r for line in text.replace("\r\n", "\n").split("\n") if (r := parse_recipe_line(line))]
+    return sorted(recipes, key=lambda r: r["slot"])
+
+
 def parse_rz(payload: str) -> dict[int, str]:
     """Parse an ``rz`` payload (recipe slots) into {slot: name}."""
-    recipes: dict[int, str] = {}
-    for line in payload.replace("\r\n", "\n").split("\n")[1:]:
-        line = line.split(";")[0]
-        head, _, name = line.partition(".")
-        slot = head.split("X")[0]
-        if name and slot.isdigit():
-            recipes[int(slot)] = name.strip()
-    return recipes
+    return {r["slot"]: r["name"] for r in parse_recipes(payload)}
+
+
+def recipes_from_bridge(status: dict[str, Any], device_id: str) -> Optional[list[dict[str, Any]]]:
+    """This device's recipe slots from the bridge, also when the device is currently off."""
+    for device in status.get("devices", []):
+        if device.get("device_id", "").lower() == device_id.lower() and device.get("rz"):
+            return parse_recipes(device["rz"])
+    return None
 
 
 def from_bridge(status: dict[str, Any], device_id: str, max_age: float) -> dict[str, Any] | None:
@@ -136,10 +166,12 @@ def from_bridge(status: dict[str, Any], device_id: str, max_age: float) -> dict[
         parsed = parse_bm_stat(device["bm_stat"])
         if not parsed:
             return None
-        recipes = parse_rz(device["rz"]) if device.get("rz") else {}
+        details = parse_recipes(device["rz"]) if device.get("rz") else []
+        recipes = {r["slot"]: r["name"] for r in details}
         slot = parsed.get("recipe_slot")
         parsed["brew_name"] = recipes.get(slot) if slot is not None else None
         parsed["device_recipes"] = recipes
+        parsed["device_recipe_details"] = details
         return parsed
     return None
 

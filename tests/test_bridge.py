@@ -78,7 +78,7 @@ async def test_dns_forwards_other_names(bridge_module):
 
 
 async def make_bridge(bridge_module, cloud_url, passthrough_url=""):
-    options = {**bridge_module.DEFAULTS, "cloud_url": cloud_url, "passthrough_url": passthrough_url}
+    options = {**bridge_module.DEFAULTS, "cloud_url": cloud_url, "passthrough_url": passthrough_url, "state_file": ""}
     bridge = bridge_module.Bridge(options)
     await bridge.start_session()
     port80, api = bridge_module.build_apps(bridge)
@@ -240,3 +240,20 @@ async def test_cloud_answer_never_compressed(bridge_module):
             await cloud.close()
             await bridge.close_session()
     assert seen == ["identity"]
+
+
+def test_recipes_saved_and_restored(bridge_module, tmp_path):
+    state = tmp_path / "recipes.json"
+    options = {**bridge_module.DEFAULTS, "state_file": str(state)}
+    rz = (f"rz=V1.1.27%20Sep%2012%202018;{DEVICE};1793380000;5\r\n"
+          "0X40X44X20X52X20X63X35X73X35X78X10X90X103X90X15X0X0X0X0.Weizen;0;0").encode()
+    bridge = bridge_module.Bridge(options)
+    bridge.record("/braumeister/connect", rz, "192.0.2.29")
+    first = state.stat().st_mtime_ns
+    # Same recipes with a new timestamp: no rewrite
+    bridge.record("/braumeister/connect", rz.replace(b"1793380000", b"1793380099"), "192.0.2.29")
+    assert state.stat().st_mtime_ns == first
+
+    restored = bridge_module.Bridge(options)
+    assert "Weizen" in restored.devices[DEVICE]["rz"]
+    assert "bm_stat" not in restored.devices[DEVICE]

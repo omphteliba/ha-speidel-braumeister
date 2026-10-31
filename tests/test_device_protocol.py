@@ -178,3 +178,39 @@ def test_progress_like_web_interface(dp, state, raw, expected):
     # Values from a live brew next to the MySpeidel web interface (19 %, 22 %)
     result = dp.parse_bm_stat(status(f"0X10:04XCX{state}X0X 69.0X0X81X4X0X5X0X{raw}XA00SXpiX000X0X0X0"))
     assert result["progress"] == expected
+
+
+RZ = (
+    "V1.1.27 Sep 12 2018;1234567890ABCDEF;1793380000;5\r\n"
+    "0X40X44X20X52X20X63X35X73X35X78X10X90X103X90X15X0X0X0X0.Weizen\r\n"
+    "2X40X40X1X40X0X40X0X40X0X40X0X20X103X10X15X11X0X0X0.test 10 minute;00000000;00000000"
+)
+
+
+def test_parse_recipes_from_rz(dp):
+    recipes = dp.parse_recipes(RZ)
+    assert [r["slot"] for r in recipes] == [0, 2]
+    assert recipes[0] == {
+        "slot": 0, "name": "Weizen", "mash_in_temperature": 40,
+        "rests": [{"temperature": 44, "minutes": 20}, {"temperature": 52, "minutes": 20},
+                  {"temperature": 63, "minutes": 35}, {"temperature": 73, "minutes": 35},
+                  {"temperature": 78, "minutes": 10}],
+        "boil_minutes": 90, "boil_temperature": 103, "hop_additions": [90, 15],
+    }
+    # Unused rests are reported as "40X0" by the device: 0 minutes = no rest
+    assert recipes[1]["rests"] == [{"temperature": 40, "minutes": 1}]
+    assert recipes[1]["hop_additions"] == [10, 15, 11]
+
+
+def test_parse_recipe_line_matches_fixture(dp):
+    recipe = json.loads((FIXTURES / "recipe_test_10_minute.json").read_text(encoding="utf-8"))
+    parsed = dp.parse_recipe_line(recipe["raw"])
+    assert parsed["boil_minutes"] == recipe["boil_minutes"]
+    assert parsed["hop_additions"] == recipe["hop_additions_minutes_before_end"]
+    assert dp.parse_recipe_line("V1.1.27 Sep 12 2018;1234567890ABCDEF;1;5") is None
+
+
+def test_recipes_from_bridge_without_fresh_status(dp):
+    status = {"now": 99999.0, "devices": [{"device_id": "1234567890ABCDEF", "rz": RZ, "rz_received": 1.0}]}
+    assert [r["name"] for r in dp.recipes_from_bridge(status, "1234567890abcdef")] == ["Weizen", "test 10 minute"]
+    assert dp.recipes_from_bridge(status, "FFFF") is None

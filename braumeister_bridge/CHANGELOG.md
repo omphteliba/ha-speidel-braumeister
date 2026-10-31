@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- The recipe list of each device is saved in the app's data folder and restored after a
+  restart, so the integration can show the recipes also while the Braumeister is off.
+
 ## 0.1.3
 
 - **Fix:** answers from the cloud reached the device gzip-compressed, because aiohttp asked

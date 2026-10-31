@@ -134,6 +134,11 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
         translation_key="last_online",
         icon="mdi:clock-outline",
     ),
+    SensorEntityDescription(
+        key="device_recipes",
+        translation_key="device_recipes",
+        icon="mdi:book-open-variant",
+    ),
 )
 
 # Binary sensor types using BinarySensorEntityDescription

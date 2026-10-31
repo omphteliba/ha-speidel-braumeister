@@ -111,6 +111,9 @@
       },
       "last_online": {
         "name": "Zuletzt online"
+      },
+      "device_recipes": {
+        "name": "Rezepte auf dem Gerät"
       }
     },
     "switch": {

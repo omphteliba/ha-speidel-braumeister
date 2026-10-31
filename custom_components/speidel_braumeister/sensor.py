@@ -118,6 +118,10 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
             return data.get("current_step")
         elif key == "progress":
             return data.get("progress")
+        elif key == "device_recipes":
+            # Number of recipe slots on the device; the recipes are attributes
+            recipes = data.get("device_recipe_details")
+            return len(recipes) if recipes else None
         elif key == "last_online":
             return data.get("last_online")
 
@@ -146,6 +150,9 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
             
             return attrs
         
+        elif key == "device_recipes":
+            return {"recipes": data.get("device_recipe_details") or []}
+
         elif key == "process_status":
             return {
                 "remaining_seconds": data.get("remaining_seconds"),

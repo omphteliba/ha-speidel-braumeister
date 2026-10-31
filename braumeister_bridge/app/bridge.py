@@ -46,6 +46,8 @@ DEFAULTS: dict[str, Any] = {
     "log_level": "info",
     # Where device requests are forwarded; empty = http://<cloud_host> (for tests)
     "cloud_url": "",
+    # Recipe lists are kept here so they survive restarts (empty = do not store)
+    "state_file": "/data/recipes.json",
 }
 
 LOCAL_ANSWER = b"Start\r\nOK\r\nDone\r\n"
@@ -160,6 +162,30 @@ class Bridge:
         self.cloud_host = options["cloud_host"].lower()
         self.devices: dict[str, dict[str, Any]] = {}
         self.session: ClientSession | None = None
+        self.state_file = Path(options["state_file"]) if options.get("state_file") else None
+        self.load_recipes()
+
+    def load_recipes(self) -> None:
+        """Restore the last recipe list (rz) of every device."""
+        if not self.state_file or not self.state_file.exists():
+            return
+        try:
+            stored = json.loads(self.state_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as err:
+            _LOGGER.warning("Could not read %s: %s", self.state_file, err)
+            return
+        for device_id, data in stored.items():
+            self.devices[device_id] = {"device_id": device_id, "rz": data["rz"], "rz_received": data["rz_received"]}
+        _LOGGER.info("Restored recipe lists of %d device(s)", len(stored))
+
+    def save_recipes(self) -> None:
+        if not self.state_file:
+            return
+        stored = {d: {"rz": v["rz"], "rz_received": v["rz_received"]} for d, v in self.devices.items() if v.get("rz")}
+        try:
+            self.state_file.write_text(json.dumps(stored), encoding="utf-8")
+        except OSError as err:
+            _LOGGER.warning("Could not write %s: %s", self.state_file, err)
 
     async def start_session(self, _app: web.Application | None = None) -> None:
         self.session = ClientSession(timeout=ClientTimeout(total=8), auto_decompress=False)
@@ -274,12 +300,24 @@ class Bridge:
             return
         device_id = parts[1]
         device = self.devices.setdefault(device_id, {"device_id": device_id})
+        changed = device.get(kind) != payload
         device[kind] = payload
         device[f"{kind}_received"] = time.time()
         device["remote"] = remote
         _LOGGER.debug("%s from %s (%s)", kind, device_id, remote)
         if kind == "bm_stat" and len(parts) > 3:
             self.log_state_change(device, parts[3])
+        # The recipe list changes only on a sync; the rest of the message (timestamp, signature) every time
+        if kind == "rz" and changed and self._recipes_part(payload) != self._recipes_part(device.get("rz_saved", "")):
+            device["rz_saved"] = payload
+            self.save_recipes()
+            _LOGGER.info("Recipe list of %s changed, saved", device_id)
+
+    @staticmethod
+    def _recipes_part(payload: str) -> str:
+        """The recipe lines of an rz payload, without header, timestamp and signature."""
+        lines = payload.replace("\r\n", "\n").split("\n")[1:]
+        return "\n".join(line.split(";")[0] for line in lines)
 
     @staticmethod
     def log_state_change(device: dict[str, Any], status: str) -> None:
