@@ -44,10 +44,19 @@
   "entity": {
     "sensor": {
       "connection_status": {
-        "name": "Connection Status"
+        "name": "Connection Status",
+        "state": {
+          "online": "Online",
+          "offline": "Offline",
+          "invalid_uuid": "Invalid UUID"
+        }
       },
       "payment_required": {
-        "name": "Subscription Required"
+        "name": "Subscription Required",
+        "state": {
+          "yes": "Yes",
+          "no": "No"
+        }
       },
       "temperature": {
         "name": "Temperature"
@@ -70,7 +79,14 @@
         }
       },
       "process_status": {
-        "name": "Process Status"
+        "name": "Process Status",
+        "state": {
+          "idle": "Idle",
+          "running": "Running",
+          "paused": "Paused",
+          "finished": "Finished",
+          "aborted": "Aborted"
+        }
       },
       "current_phase": {
         "name": "Current Phase"

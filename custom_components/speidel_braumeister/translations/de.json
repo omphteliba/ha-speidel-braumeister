@@ -44,10 +44,19 @@
   "entity": {
     "sensor": {
       "connection_status": {
-        "name": "Verbindungsstatus"
+        "name": "Verbindungsstatus",
+        "state": {
+          "online": "Online",
+          "offline": "Offline",
+          "invalid_uuid": "Ungültige UUID"
+        }
       },
       "payment_required": {
-        "name": "Abonnement erforderlich"
+        "name": "Abonnement erforderlich",
+        "state": {
+          "yes": "Ja",
+          "no": "Nein"
+        }
       },
       "temperature": {
         "name": "Temperatur"
@@ -70,10 +79,17 @@
         }
       },
       "process_status": {
-        "name": "Prozessstatus"
+        "name": "Prozessstatus",
+        "state": {
+          "idle": "Bereit",
+          "running": "Läuft",
+          "paused": "Pausiert",
+          "finished": "Beendet",
+          "aborted": "Abgebrochen"
+        }
       },
       "current_phase": {
-        "name": "Aktueller Schritt"
+        "name": "Aktuelle Phase"
       },
       "remaining_time": {
         "name": "Restzeit"

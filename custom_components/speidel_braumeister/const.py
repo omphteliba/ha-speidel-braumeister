@@ -8,8 +8,11 @@ from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 # Integration domain
 DOMAIN: Final = "speidel_braumeister"
 
-# States of the pump/heating sensors; translated via strings.json ("unknown" -> no state)
+# Enum sensor states, translated via strings.json (anything else -> no state / unknown)
 ACTUATOR_STATES: Final = ["on", "off"]
+CONNECTION_STATES: Final = ["online", "offline", "invalid_uuid"]
+PAYMENT_STATES: Final = ["yes", "no"]
+PROCESS_STATES: Final = ["idle", "running", "paused", "finished", "aborted"]
 
 # Manufacturer and device info
 MANUFACTURER: Final = "Speidel"
@@ -40,11 +43,15 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
         key="connection_status",
         translation_key="connection_status",
         icon="mdi:connection",
+        device_class="enum",
+        options=CONNECTION_STATES,
     ),
     SensorEntityDescription(
         key="payment_required",
         translation_key="payment_required",
         icon="mdi:credit-card-outline",
+        device_class="enum",
+        options=PAYMENT_STATES,
     ),
     SensorEntityDescription(
         key="temperature",
@@ -80,6 +87,8 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
         key="process_status",
         translation_key="process_status",
         icon="mdi:information-outline",
+        device_class="enum",
+        options=PROCESS_STATES,
     ),
     SensorEntityDescription(
         key="current_phase",

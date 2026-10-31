@@ -38,3 +38,9 @@ def test_german_has_same_keys_as_english():
 @pytest.mark.parametrize(("lang", "on", "off"), [("en", "On", "Off"), ("de", "Ein", "Aus")])
 def test_actuator_states_translated(sensor, lang, on, off):
     assert load(lang)["entity"]["sensor"][sensor]["state"] == {"on": on, "off": off}
+
+
+@pytest.mark.parametrize("lang", ["en", "de"])
+def test_sensor_names_unique(lang):
+    names = [s["name"] for s in load(lang)["entity"]["sensor"].values()]
+    assert len(names) == len(set(names)), names

@@ -9,11 +9,19 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 
 from .const import (
     ACTUATOR_STATES,
+    CONNECTION_STATES,
+    PROCESS_STATES,
     DOMAIN,
     SENSOR_TYPES,
 )
 from .coordinator import SpeidelBraumeisterDataCoordinator
 from .entity import SpeidelBraumeisterEntity
+
+
+def _enum(value: Any, options: list[str]) -> str | None:
+    """State of an enum sensor; values outside the options show as unknown."""
+    value = getattr(value, "value", value)  # str enums from models.py
+    return value if value in options else None
 
 
 async def async_setup_entry(
@@ -65,10 +73,9 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
         key = self.entity_description.key
         
         if key == "connection_status":
-            return data.get("connection_status", "unknown")
+            return _enum(data.get("connection_status"), CONNECTION_STATES)
         elif key == "payment_required":
-            # Return Yes if payment required, No otherwise
-            return "Yes" if data.get("payment_required", False) else "No"
+            return "yes" if data.get("payment_required", False) else "no"
         elif key == "temperature":
             temp = data.get("temperature")
             return round(temp, 1) if temp is not None else None
@@ -83,7 +90,7 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
             heating = data.get("heating")
             return heating if heating in ACTUATOR_STATES else None
         elif key == "process_status":
-            return data.get("process_status", "unknown")
+            return _enum(data.get("process_status"), PROCESS_STATES)
         elif key == "current_phase":
             # Use current_step if available, otherwise fall back to current_phase
             step = data.get("current_step")

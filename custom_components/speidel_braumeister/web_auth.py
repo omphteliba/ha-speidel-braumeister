@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import aiohttp
 from aiohttp import ClientError, ClientTimeout
 
-from .device_protocol import parse_bm_stat
+from .device_protocol import brew_name_from_step, parse_bm_stat
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ class SpeidelWebAuth:
         self._device_recipes: dict[int, str] = {}  # device slot -> name
         self._account_recipes: dict[int, dict] = {}  # account recipe_id -> {name, date, style}
         self._recipe_mapping: dict[int, int] = {}  # device slot -> account recipe_id (matched by name)
+        self._recipe_count: Optional[int] = None  # bm_stat field 8, changes when recipes are synced
         self._device_name: Optional[str] = None
         self._device_type: Optional[str] = None  # e.g., "Braumeister 20 Liter"
         self._last_online: Optional[str] = None
@@ -417,6 +418,15 @@ class SpeidelWebAuth:
 
             result = {'raw': data_string, 'connection_status': 'online', **parsed}
 
+            # Recipes were re-synced to the device: reload the slot list on the next poll
+            recipe_count = result['recipe_count']
+            if recipe_count is not None and recipe_count != self._recipe_count:
+                if self._recipe_count is not None:
+                    _LOGGER.info("Device recipes changed (%s -> %s), reloading", self._recipe_count, recipe_count)
+                    self._device_recipes = {}
+                    self._recipe_mapping = {}
+                self._recipe_count = recipe_count
+
             recipe_slot = result['recipe_slot']
             current_temp = result['temperature']
             
@@ -450,7 +460,14 @@ class SpeidelWebAuth:
                 result['progress'] = self._device_info.get('progress')
                 result['current_stage'] = self._device_info.get('current_stage')
                 result['screen_function'] = self._device_info.get('screen_function')
-            
+
+            # The step text names the running recipe; field 9 does not always match
+            # the slot in the device recipe list loaded at startup
+            if result['process_status'] in ('running', 'finished'):
+                step_name = brew_name_from_step(result.get('current_step'))
+                if step_name:
+                    result['brew_name'] = step_name
+
             _LOGGER.info("Parsed: temp=%.1f°C, target=%s, state=%s, alarm=%s, pump=%s, heating=%s, recipe=%s (slot %s), step=%s, mode=%s",
                         current_temp or 0, result['target_temperature'], result['state_code'], result['alarm'],
                         result['pump'], result['heating'], result.get('brew_name', 'unknown'), recipe_slot,

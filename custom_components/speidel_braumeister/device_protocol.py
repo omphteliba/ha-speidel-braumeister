@@ -20,7 +20,7 @@ Status fields (X-separated):
   [9]  = recipe slot of the running program
   [13] = screen/message code (EMSR, APHT, ADUS, A000, ...)
   [14] = actuator flags: "P"/"H" = pump/heater on; "p"/"q" and "h"/"i" = off
-  [15] = alarm indicator: middle char "1" = alarm, "D" = remove lid
+  [15] = interrupt, beep, edit mode: 2nd char "1"/"2" = beeping alarm, "D" = remove lid
 """
 
 from __future__ import annotations
@@ -32,19 +32,16 @@ NO_TARGET_TEMPERATURE = -1000
 STATE_MAIN_MENU = 101
 STATE_BREW_FINISHED = 3450
 
-# State codes in which the device shows an alarm and waits for the user.
-# Only codes actually observed are listed; extend when new ones are seen.
+# An alarm is active while the device beeps, as in MySpeidel's own web display:
+# field 15, 2nd character: "1"/"2" = beep, "D" = remove lid (also beeps).
+# The state code only names the alarm; unknown codes give a generic "alarm".
+BEEP_INDICATORS = {"1", "2"}
+LID_INDICATOR = "D"
 ALARM_STATES = {
     2510: "mash_in_temperature_reached",
     2610: "mash_in_temperature_reached",
     2910: "rest_end_reached",
-    2960: "rest_end_reached",
     3450: "brew_finished",
-}
-
-# Alarm indicator in field 15 (middle character), independent of the state code
-ALARM_INDICATORS = {
-    "D": "remove_lid",
 }
 
 # Automatic program: 2xxx = mashing, 3xxx = boiling
@@ -92,6 +89,25 @@ def _actuators(flags: Optional[str]) -> tuple[str, str]:
     if len(flags) > 2:
         return "unknown", "unknown"
     return PUMP_FLAGS.get(flags[0:1], "unknown"), HEATER_FLAGS.get(flags[1:2], "unknown")
+
+
+STEP_SEPARATORS = (" – ", " - ")
+STEP_PREFIXES_WITHOUT_RECIPE = {"automatik", "automatic", "manuell", "manual mode"}
+
+
+def brew_name_from_step(step: Optional[str]) -> Optional[str]:
+    """Recipe name from the web interface's step text, e.g. "Weizen – 1. Rast" -> "Weizen".
+
+    The web interface shows the account recipe name of the running program; it is
+    more reliable than looking up field 9 in the device's recipe list.
+    """
+    if not step:
+        return None
+    for separator in STEP_SEPARATORS:
+        if separator in step:
+            name = step.split(separator, 1)[0].strip()
+            return None if name.lower() in STEP_PREFIXES_WITHOUT_RECIPE else name or None
+    return None
 
 
 def parse_rz(payload: str) -> dict[int, str]:
@@ -183,10 +199,13 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     result["pump"], result["heating"] = _actuators(flags)
 
     indicator = _field(fields, 15)
-    result["alarm"] = (
-        ALARM_STATES.get(state_code)
-        or (ALARM_INDICATORS.get(indicator[1]) if indicator and len(indicator) > 1 else None)
-    )
+    beep = indicator[1] if indicator and len(indicator) > 1 else None
+    if beep == LID_INDICATOR:
+        result["alarm"] = "remove_lid"
+    elif beep in BEEP_INDICATORS:
+        result["alarm"] = ALARM_STATES.get(state_code, "alarm")
+    else:
+        result["alarm"] = None
 
     if state_code is None:
         result["process_status"] = "unknown"

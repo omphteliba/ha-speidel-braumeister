@@ -82,10 +82,10 @@ Payload is 19 fields separated by `X`:
 | `2310` | `A000` | Alternates with 2300 (*hypothesis:* pump pause) |
 | `2410` | `A000` | Heating to mash-in (pump + heater on) |
 | `2510` | `A00S` | **Alarm:** mash-in temperature reached; web step text "… – Einmaischen Temp. erreicht" |
-| `2610` | `A00S` | **Alarm:** mash-in temperature reached, waiting for the user to add the malt |
+| `2610` | `A00S` | Mash-in temperature reached, waiting for the user to add the malt (seen without beep) |
 | `2810` | `A000` | Heating to the next rest (pump + heater on) |
 | `2820` | `A00S` | Holding a rest |
-| `2960` | `A00S` | **Alarm** (*hypothesis:* rest end reached / remove malt pipe). Target `0`, pump and heater off, web step text already "Hopfen kochen" |
+| `2930`, `2960` | `A00S` | After rest end, waiting for the user (*hypothesis:* remove malt pipe / start boil). Target `0`, pump and heater off, no beep. `2930` followed `2910` once the alarm was confirmed |
 | `2030` | `ADUS` | Program start screen ("Automatik – <recipe> starten") |
 | `2910` | `A00S` | **Alarm:** rest end reached ("Rastende erreicht"), field 15 `010` |
 | `3010` | `A00S` | Heating to boil (target 103.0 °C). From 99 °C field 15 is `0D0` = **alarm "Deckel entfernen"** |
@@ -93,7 +93,8 @@ Payload is 19 fields separated by `X`:
 | `3450` | `A00S` | **Alarm:** brew finished ("Brauvorgang beendet"), pump and heater off, field 15 `010` |
 
 The thousands digit is the program phase: `2xxx` = mashing, `3xxx` = boiling; both count as a
-running program. The alarm states are mapped in `device_protocol.ALARM_STATES`. Codes from
+running program. An alarm is active while field 15 signals a beep (`1`/`2`) or the lid (`D`), as in
+MySpeidel's own display; `device_protocol.ALARM_STATES` only names it by state code. Codes from
 `2410` on come from two live brews where the web interface was polled every 30 s, so short
 states can be missed (e.g. the moment of an abort).
 

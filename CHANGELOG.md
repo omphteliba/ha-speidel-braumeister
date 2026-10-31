@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Pump and heating sensors are now enum sensors with the states `on`/`off`**, translated by Home Assistant (English On/Off, German Ein/Aus). Before, they always showed the German words "Ein"/"Aus". Automations that compare the state with "Ein"/"Aus" must use `on`/`off` instead
+- Connection status, subscription required and process status are enum sensors with translated states as well (e.g. process status `running` shows as "Läuft" in German). "Subscription required" changed from `Yes`/`No` to `yes`/`no`
 - Requires Home Assistant 2025.1 or newer (`hacs.json`), matching the Pydantic v2 requirement
 - `hacs.json` reduced to the keys HACS accepts; `issue_tracker` added to the manifest
 
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Process status is now derived from the device state code (automatic program = running)
 - Target temperature `-1000`/`-10000` ("no target") is no longer reported as a negative temperature
 - The alarm binary sensor had no English name
+- German: "Current phase" and "Current step" were both called "Aktueller Schritt"; the phase sensor is now "Aktuelle Phase"
+- Wrong recipe name after recipes were re-sorted and re-synced to the device: the device recipe list is now reloaded when it changes, and the name of the running recipe is taken from the web interface's step text
 - The main menu no longer shows the previous program's target temperature (the device keeps reporting it there)
 - A running brew was shown as idle because the web interface reports the mode "wartet" even during a program. The coordinator now trusts the device state code
 - Boiling (state 3xxx) now also counts as a running program
@@ -28,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recipe names come from the device's own recipe list when the bridge is used
 - Remaining time during rests and the boil, calculated from the step duration and elapsed time in the device status
 - Process status `finished` when the brew has ended
-- Alarm binary sensor now uses the device state code, so it triggers for mash-in temperature reached, rest end, remove lid and brew finished (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`. Hop additions are not detected yet
+- Alarm binary sensor now uses the device state code, so it is on while the device beeps for an alarm (mash-in temperature reached, rest end, remove lid, brew finished), the same rule MySpeidel's web display uses (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`. Hop additions are not detected yet
 - With debug logging enabled, the integration logs once at startup what the documented cloud timeseries API returns
 - `docs/DEVICE_PROTOCOL.md`: the device's own protocol to the cloud, reverse-engineered from a packet capture
 - `device_protocol.py`: shared parser for the device status message, used by both XHR clients

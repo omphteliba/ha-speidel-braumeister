@@ -33,10 +33,10 @@ def test_all_samples_parse(dp, samples):
         (2030, "running", None),
         (2410, "running", None),
         (2510, "running", "mash_in_temperature_reached"),
-        (2610, "running", "mash_in_temperature_reached"),
+        (2610, "running", None),  # waiting for malt, no beep in the samples
         (2820, "running", None),
         (2910, "running", "rest_end_reached"),
-        (2960, "running", "rest_end_reached"),
+        (2960, "running", None),  # waiting after rest end, no beep
         (3070, "running", None),
         (3450, "finished", "brew_finished"),
     ],
@@ -137,3 +137,33 @@ def test_recipe_fixture_matches_raw_line():
     assert values[13] == recipe["boil_temperature_c"]
     assert [v for v in values[14:20] if v] == recipe["hop_additions_minutes_before_end"]
     assert name == recipe["name"] and len(name) <= 14
+
+
+@pytest.mark.parametrize(
+    ("step", "expected"),
+    [
+        ("test 10 minuten – 1. Rast", "test 10 minuten"),
+        ("test 10 minuten - Rastende erreicht", "test 10 minuten"),
+        ("Weizen – Einmaischen Temp. erreicht", "Weizen"),
+        ("Automatik – test 10 minuten starten", None),
+        ("Hauptmenü", None),
+        (None, None),
+    ],
+)
+def test_brew_name_from_step(dp, step, expected):
+    assert dp.brew_name_from_step(step) == expected
+
+
+@pytest.mark.parametrize(
+    ("state", "indicator", "expected"),
+    [
+        (2910, "010", "rest_end_reached"),
+        (2930, "000", None),
+        (3010, "0D0", "remove_lid"),
+        (3070, "020", "alarm"),
+        (2510, "010", "mash_in_temperature_reached"),
+    ],
+)
+def test_alarm_follows_beep(dp, state, indicator, expected):
+    result = dp.parse_bm_stat(status(f"0X10:04XCX{state}X0X 69.0X0X81X4X0X5X0X67XA00SXpiX{indicator}X0X0X0"))
+    assert result["alarm"] == expected
