@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - With the bridge, the step text, mode and device type are still taken from the web interface when it is reachable; progress is calculated locally (field 12, 318 = 100 %)
 - Remaining time during rests and the boil, calculated from the step duration and elapsed time in the device status
 - Process status `finished` when the brew has ended
-- Alarm binary sensor now uses the device state code, so it is on while the device beeps for an alarm (mash-in temperature reached, rest end, remove lid, brew finished), the same rule MySpeidel's web display uses (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`. Hop additions are not detected yet
+- Alarm binary sensor now uses the device state code, so it is on while the device beeps for an alarm (mash-in temperature reached, rest end, remove lid, hop addition, brew finished), the same rule MySpeidel's web display uses (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`.
 - With debug logging enabled, the integration logs once at startup what the documented cloud timeseries API returns
 - `docs/DEVICE_PROTOCOL.md`: the device's own protocol to the cloud, reverse-engineered from a packet capture
 - `device_protocol.py`: shared parser for the device status message, used by both XHR clients

@@ -32,7 +32,7 @@ Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die M
 
 | Binärer Sensor | Beschreibung |
 |-----------------|-------------|
-| Alarm | Wird `an`, wenn der Braumeister einen Alarm zeigt und auf Sie wartet: Einmaischtemperatur erreicht, Rastende erreicht, Deckel entfernen oder Brauvorgang beendet. Das Attribut `alarm_type` zeigt, welcher |
+| Alarm | Wird `an`, wenn der Braumeister einen Alarm zeigt und auf Sie wartet: Einmaischtemperatur erreicht, Rastende erreicht, Deckel entfernen, Hopfengabe oder Brauvorgang beendet. Das Attribut `alarm_type` zeigt, welcher |
 
 ### Rezeptinformationen
 

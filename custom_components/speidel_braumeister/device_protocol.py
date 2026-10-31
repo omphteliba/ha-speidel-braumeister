@@ -43,6 +43,7 @@ ALARM_STATES = {
     2510: "mash_in_temperature_reached",
     2610: "mash_in_temperature_reached",
     2910: "rest_end_reached",
+    3080: "hop_addition",
     3450: "brew_finished",
 }
 

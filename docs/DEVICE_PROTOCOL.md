@@ -83,6 +83,8 @@ Payload is 19 fields separated by `X`:
 | `2410` | `A000` | Heating to mash-in (pump + heater on) |
 | `2510` | `A00S` | **Alarm:** mash-in temperature reached; web step text "… – Einmaischen Temp. erreicht" |
 | `2610` | `A00S` | Mash-in temperature reached, waiting for the user to add the malt (seen without beep) |
+| `2015` | | Program selected, before the start screen `2030` |
+| `2705` | | Briefly after mash-in temperature reached, before the first rest (*hypothesis:* "Malz eingefüllt?" confirmed) |
 | `2810` | `A000` | Heating to the next rest (pump + heater on) |
 | `2820` | `A00S` | Holding a rest |
 | `2930`, `2960` | `A00S` | After rest end, waiting for the user (*hypothesis:* remove malt pipe). Target `0`, pump and heater off, no beep. Follows `2910` once the alarm is confirmed; after the next confirmation the device goes to `3010` |
@@ -90,6 +92,7 @@ Payload is 19 fields separated by `X`:
 | `2910` | `A00S` | **Alarm:** rest end reached ("Rastende erreicht"), field 15 `010` |
 | `3010` | `A00S` | Heating to boil (target 103.0 °C). The pump flag changes from `P` to `q` at about 88 °C (pump switched off for the boil). From 99 °C field 15 is `0D0` = **alarm "Deckel entfernen"** until confirmed |
 | `3070` | `A00S` | Boiling; field 7 counts the boil time. Field 11 changes from `0` to `-1` at the hop addition. Hop additions set earlier than the boil time (e.g. 11 and 10 min before the end of a 5-min boil) are skipped: field 11 is `-1` right at the start of the boil, without a beep |
+| `3080` | `A00S` | **Alarm:** hop addition ("Hopfen zugeben"), field 15 `010`. The boil timer keeps running; after confirmation back to `3070`. Field 11 counts the hop additions and is `-1` when all are done |
 | `3450` | `A00S` | **Alarm:** brew finished ("Brauvorgang beendet"), pump and heater off, field 15 `010` |
 | `0` | | Briefly (about 5 s) between confirming "brew finished" and the main menu `101` |
 
@@ -99,8 +102,9 @@ MySpeidel's own display; `device_protocol.ALARM_STATES` only names it by state c
 `2410` on come from two live brews where the web interface was polled every 30 s, so short
 states can be missed (e.g. the moment of an abort).
 
-After an abort the device goes straight back to `101`. Hop additions did not show up as a
-state or alarm indicator; the beep is probably shorter than the 30 s polling interval.
+After an abort the device goes straight back to `101`. Hop additions are state `3080` with a
+beep (seen second-by-second via the Braumeister Bridge; the 30 s web polling missed them).
+Field 15 can also be `00Z` for a few seconds during a rest or the boil (meaning unknown).
 
 The heater flag is often `i` near the target temperature and while holding a rest; MySpeidel's display
 shows it as inactive. Field 13 `A00S` is not an alarm marker: it holds the labels of the display buttons.

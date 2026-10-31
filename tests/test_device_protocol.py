@@ -161,6 +161,7 @@ def test_brew_name_from_step(dp, step, expected):
         (2930, "000", None),
         (3010, "0D0", "remove_lid"),
         (3070, "020", "alarm"),
+        (3080, "010", "hop_addition"),
         (2510, "010", "mash_in_temperature_reached"),
     ],
 )

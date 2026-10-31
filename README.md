@@ -32,7 +32,7 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 
 | Binary Sensors | Description |
 |-----------------|-------------|
-| Alarm | Turns `on` when the Braumeister shows an alarm and waits for you: mash-in temperature reached, rest end reached, remove lid, or brew finished. The attribute `alarm_type` tells which one |
+| Alarm | Turns `on` when the Braumeister shows an alarm and waits for you: mash-in temperature reached, rest end reached, remove lid, hop addition, or brew finished. The attribute `alarm_type` tells which one |
 
 ### Recipe Information
 
