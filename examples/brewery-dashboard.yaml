@@ -1,0 +1,209 @@
+# Brewery dashboard for the Speidel Braumeister integration
+#
+# Requires these HACS frontend cards: Mushroom, ApexCharts card, Bar Card, card-mod.
+#
+# Entity IDs: this file uses the IDs of an English installation with the device named
+# "Braumeister". If yours differ (e.g. sensor.braumeister_temperatur in German, or a _2
+# suffix with several devices), find and replace them – see README, "Example Dashboard".
+#   sensor.braumeister_temperature        sensor.braumeister_target_temperature
+#   sensor.braumeister_pump_status        sensor.braumeister_heating_status
+#   sensor.braumeister_process_status     sensor.braumeister_current_phase
+#   sensor.braumeister_current_step       sensor.braumeister_remaining_time
+#   sensor.braumeister_brew_name          sensor.braumeister_brewing_progress
+#   sensor.braumeister_device_mode        sensor.braumeister_connection_status
+#   sensor.braumeister_last_online        sensor.braumeister_device_recipes
+#   binary_sensor.braumeister_alarm
+title: Brewery
+views:
+  - title: Brewery
+    path: brewery
+    icon: mdi:glass-mug-variant
+    type: sections
+    max_columns: 3
+    sections:
+      # ------------------------------------------------------------------ Now
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: >-
+              {% if states('sensor.braumeister_process_status') in ['running', 'finished'] %}🍺 {{ states('sensor.braumeister_brew_name') }}{% else %}🍺 Brewery{% endif %}
+            subtitle: >-
+              {% set step = states('sensor.braumeister_current_step') %}
+              {{ step if step not in ['unknown', 'unavailable'] else 'Braumeister ' ~ states('sensor.braumeister_connection_status') }}
+
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.braumeister_alarm
+                state: "on"
+            card:
+              type: custom:mushroom-template-card
+              primary: >-
+                {% set texts = {
+                  'mash_in_temperature_reached': 'Mash-in temperature reached – add the malt',
+                  'rest_end_reached': 'Rest end reached',
+                  'remove_lid': 'Remove the lid',
+                  'hop_addition': 'Add hops',
+                  'brew_finished': 'Brew finished'} %}
+                {{ texts.get(state_attr('binary_sensor.braumeister_alarm', 'alarm_type'), 'Alarm') }}
+              secondary: Confirm on the Braumeister
+              icon: mdi:bell-ring
+              icon_color: red
+              layout: horizontal
+              card_mod:
+                style: |
+                  ha-card {
+                    background: rgba(239, 68, 68, 0.18);
+                    animation: brew-alarm 1.4s ease-in-out infinite;
+                  }
+                  @keyframes brew-alarm { 50% { background: rgba(239, 68, 68, 0.45); } }
+
+          - type: gauge
+            entity: sensor.braumeister_temperature
+            name: Temperature
+            min: 0
+            max: 105
+            needle: true
+            segments:
+              - from: 0
+                color: "#3b82f6"
+              - from: 40
+                color: "#22c55e"
+              - from: 70
+                color: "#f59e0b"
+              - from: 95
+                color: "#ef4444"
+
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              - type: template
+                icon: mdi:target
+                content: >-
+                  {% set t = states('sensor.braumeister_target_temperature') %}
+                  Target {{ t | float | round(1) ~ ' °C' if t | is_number else '–' }}
+              - type: template
+                icon: mdi:pump
+                icon_color: "{{ 'blue' if is_state('sensor.braumeister_pump_status', 'on') else 'grey' }}"
+                content: "{{ 'Pump on' if is_state('sensor.braumeister_pump_status', 'on') else 'Pump off' }}"
+              - type: template
+                icon: mdi:heating-coil
+                icon_color: "{{ 'red' if is_state('sensor.braumeister_heating_status', 'on') else 'grey' }}"
+                content: "{{ 'Heating' if is_state('sensor.braumeister_heating_status', 'on') else 'Heater off' }}"
+              - type: template
+                icon: mdi:timer-sand
+                content: >-
+                  {% set r = states('sensor.braumeister_remaining_time') %}
+                  {{ r ~ ' min left' if r | is_number else 'no timer' }}
+
+          - type: custom:bar-card
+            entity: sensor.braumeister_brewing_progress
+            name: Progress
+            min: 0
+            max: 100
+            height: 32px
+            positions:
+              icon: "off"
+              indicator: "off"
+            severity:
+              - from: 0
+                to: 99
+                color: "#f59e0b"
+              - from: 99
+                to: 100
+                color: "#22c55e"
+
+          - type: entities
+            title: Device
+            show_header_toggle: false
+            entities:
+              - entity: sensor.braumeister_process_status
+                name: Process
+              - entity: sensor.braumeister_current_phase
+                name: Phase
+              - entity: sensor.braumeister_device_mode
+                name: Mode
+              - entity: sensor.braumeister_connection_status
+                name: Connection
+              - entity: sensor.braumeister_last_online
+                name: Last online
+
+      # -------------------------------------------------------------- History
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: History
+          - type: custom:apexcharts-card
+            graph_span: 4h
+            header:
+              show: true
+              title: Temperature
+              show_states: true
+              colorize_states: true
+            yaxis:
+              - min: 0
+                max: 105
+                decimals: 0
+            series:
+              - entity: sensor.braumeister_temperature
+                name: Actual
+                color: "#f59e0b"
+                stroke_width: 3
+                group_by:
+                  func: last
+                  duration: 1min
+              - entity: sensor.braumeister_target_temperature
+                name: Target
+                color: "#94a3b8"
+                curve: stepline
+                stroke_width: 2
+                group_by:
+                  func: last
+                  duration: 1min
+          - type: history-graph
+            title: Pump, heater & alarm
+            hours_to_show: 4
+            entities:
+              - entity: sensor.braumeister_pump_status
+                name: Pump
+              - entity: sensor.braumeister_heating_status
+                name: Heater
+              - entity: binary_sensor.braumeister_alarm
+                name: Alarm
+
+      # -------------------------------------------------------------- Recipes
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Recipes
+          - type: markdown
+            title: Current recipe
+            content: >-
+              {% set recipes = state_attr('sensor.braumeister_device_recipes', 'recipes') or [] %}
+              {% set slot = state_attr('sensor.braumeister_brew_name', 'recipe_slot') %}
+              {% set current = recipes | selectattr('slot', 'eq', slot) | list %}
+              {% if slot is none or not current %}
+              _No program running._
+              {% else %}{% set r = current[0] %}
+              ### {{ r.name }}
+              | Step | °C | min |
+              |---|---:|---:|
+              | Mash-in | {{ r.mash_in_temperature }} | |
+              {% for rest in r.rests %}| Rest {{ loop.index }} | {{ rest.temperature }} | {{ rest.minutes }} |
+              {% endfor %}| Boil | {{ r.boil_temperature }} | {{ r.boil_minutes }} |
+
+              {% if r.hop_additions %}🌿 **Hop additions:** {{ r.hop_additions | join(', ') }} min before the end{% else %}No hop additions{% endif %}
+              {% endif %}
+          - type: markdown
+            title: On the Braumeister
+            content: >-
+              {% set recipes = state_attr('sensor.braumeister_device_recipes', 'recipes') or [] %}
+              {% for r in recipes %}
+              **{{ r.slot + 1 }}. {{ r.name }}**<br>
+              <small>Mash-in {{ r.mash_in_temperature }} °C ·
+              {% for rest in r.rests %}{{ rest.temperature }} °C/{{ rest.minutes }} min · {% endfor %}
+              Boil {{ r.boil_minutes }} min{% if r.hop_additions %} · Hops {{ r.hop_additions | join('/') }}{% endif %}</small>
+
+              {% else %}
+              _No recipes known._
+              {% endfor %}

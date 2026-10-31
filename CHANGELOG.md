@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
+
 ## [3.0.0] - 2026-10-31
 
 Highlights: **alarms that actually work**, and the optional **Braumeister Bridge** app that

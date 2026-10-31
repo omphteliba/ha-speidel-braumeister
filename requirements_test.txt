@@ -2,3 +2,4 @@ aiohttp
 pytest
 pytest-asyncio
 ruff
+pyyaml

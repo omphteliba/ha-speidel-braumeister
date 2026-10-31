@@ -114,6 +114,16 @@ Da diese Integration nicht im Standard-HACS-Store enthalten ist, müssen Sie sie
    - **Passwort**: Ihr My Speidel-Kontopasswort
 5. Geben Sie Ihre Machine UUID ein (siehe unten, wie Sie diese finden)
 
+## Beispiel-Dashboard
+
+[`examples/brewery-dashboard.yaml`](examples/brewery-dashboard.yaml) ist ein fertiges Brauerei-Dashboard: Temperatur-Tacho, Chips für Pumpe/Heizung/Restzeit, Fortschrittsbalken, ein pulsierendes Alarm-Banner mit dem Alarmtext, die Temperaturkurve mit Zielwert sowie das aktuelle Rezept und alle Rezepte auf dem Gerät. Die Texte im Dashboard sind englisch.
+
+Benötigt werden diese HACS-Frontend-Karten: **Mushroom**, **ApexCharts card**, **Bar Card** und **card-mod**.
+
+1. Einstellungen → Dashboards → Dashboard hinzufügen → Neues Dashboard von Grund auf.
+2. Öffnen, ⋮ → Dashboard bearbeiten → ⋮ → Rohkonfigurationseditor, und die Datei einfügen.
+3. Die Datei nutzt die Entitäts-IDs einer englischen Installation mit dem Gerätenamen „Braumeister“ (z. B. `sensor.braumeister_temperature`). Heißen Ihre anders – deutsche Namen wie `sensor.braumeister_temperatur` oder ein Zusatz `_2` bei mehreren Geräten –, ersetzen Sie sie; die Liste steht am Anfang der Datei.
+
 ## Lokaler Modus: Braumeister Bridge (optional)
 
 Der Braumeister schickt seinen Status etwa jede Sekunde per unverschlüsseltem HTTP an die My-Speidel-Cloud. Die App **Braumeister Bridge** empfängt diese Daten direkt in Home Assistant und reicht sie an My Speidel weiter – App und Weboberfläche funktionieren also weiter:
