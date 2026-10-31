@@ -260,6 +260,27 @@ class Bridge:
         device[f"{kind}_received"] = time.time()
         device["remote"] = remote
         _LOGGER.debug("%s from %s (%s)", kind, device_id, remote)
+        if kind == "bm_stat" and len(parts) > 3:
+            self.log_state_change(device, parts[3])
+
+    @staticmethod
+    def log_state_change(device: dict[str, Any], status: str) -> None:
+        """Log every change of state code, actuator flags or alarm indicator (fields 3, 14, 15).
+
+        The device sends about once per second; this keeps short events such as a
+        hop-addition beep visible in the log even though the integration polls less often.
+        """
+        fields = status.split("X")
+        if len(fields) < 16:
+            return
+        key = (fields[3], fields[14], fields[15])
+        if device.get("last_state") != key:
+            _LOGGER.info(
+                "state %s flags %s indicator %s (temp %s, target %s, step %s/%s s, rest %s, hop %s)",
+                fields[3], fields[14], fields[15], fields[5].strip(), fields[4], fields[7], fields[6],
+                fields[10], fields[11],
+            )
+            device["last_state"] = key
 
     # -- local API ----------------------------------------------------------
 

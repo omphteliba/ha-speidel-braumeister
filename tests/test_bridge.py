@@ -162,3 +162,15 @@ async def test_no_passthrough_configured(bridge_module):
         await port80.close()
         await api.close()
         await bridge.close_session()
+
+
+def test_state_changes_logged_once(bridge_module, caplog):
+    device = {}
+    status = "0X10:04XCX3070X1030X 101.5X1200X100X4X0X5X0X256XA00SXqHX{}X0X0X0"
+    with caplog.at_level("INFO", logger="braumeister_bridge"):
+        bridge_module.Bridge.log_state_change(device, status.format("000"))
+        bridge_module.Bridge.log_state_change(device, status.format("000"))
+        bridge_module.Bridge.log_state_change(device, status.format("020"))
+    lines = [r.getMessage() for r in caplog.records]
+    assert len(lines) == 2
+    assert "indicator 020" in lines[1]
