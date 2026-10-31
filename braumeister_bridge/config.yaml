@@ -15,6 +15,9 @@ options:
   forward_to_cloud: true
   upstream_dns: ""
   dns_port: 53
+  cloud_dns:
+    - 1.1.1.1
+    - 1.0.0.1
   http_port: 80
   passthrough_url: ""
   api_port: 8642
@@ -24,7 +27,9 @@ schema:
   cloud_host: str
   forward_to_cloud: bool
   upstream_dns: str?
-  dns_port: port
+  dns_port: int(0,65535)
+  cloud_dns:
+    - str
   http_port: port
   passthrough_url: str?
   api_port: port

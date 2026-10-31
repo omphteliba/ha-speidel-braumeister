@@ -57,3 +57,23 @@ App option: `passthrough_url: http://127.0.0.1:8300`
 | `passthrough_url` | empty | Where other requests on port 80 go, e.g. `http://127.0.0.1:8300`. |
 | `api_port` | `8642` | Local status API for the integration (only reachable from the host). |
 | `log_level` | `info` | `debug` logs every message. |
+
+
+## Cloud DNS and AdGuard rewrites
+
+The built-in DNS remains enabled on `dns_port: 53` by default. For an existing
+AdGuard (or other DNS) rewrite of `api2.myspeidel.com` to the HA host, set
+`dns_port: 0` to disable only the bridge's DNS listener. The device must actually
+use that DNS server; some routers use a separate resolver on guest Wi-Fi.
+
+In both setups, cloud forwarding resolves through `cloud_dns` (default
+`1.1.1.1`, `1.0.0.1`) rather than the host resolver. Allow outbound DNS to these
+resolvers, or configure reachable resolvers without the local rewrite. Non-public
+answers are rejected to prevent a forwarding loop; failure retains the existing
+local response behavior. `upstream_dns` still serves the built-in DNS forwarder
+for other names. HTTP passthrough still uses the host resolver, so local targets
+continue to work. Cloud redirects are not followed.
+
+Cloud requests ask for identity encoding; gzip and both zlib-wrapped and raw
+HTTP deflate responses are decoded if the server compresses anyway. Recipe
+persistence and the device command-response format are unchanged.

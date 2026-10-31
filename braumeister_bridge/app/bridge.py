@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import asyncio
 import gzip
+import ipaddress
+import zlib
 import json
 import logging
 import os
@@ -28,7 +30,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote_plus
 
-from aiohttp import ClientSession, ClientTimeout, web
+from aiohttp import AsyncResolver, ClientSession, ClientTimeout, TCPConnector, web
+from aiohttp.abc import AbstractResolver
 
 _LOGGER = logging.getLogger("braumeister_bridge")
 
@@ -39,6 +42,7 @@ DEFAULTS: dict[str, Any] = {
     "forward_to_cloud": True,
     "upstream_dns": "",
     "dns_port": 53,
+    "cloud_dns": ["1.1.1.1", "1.0.0.1"],
     "http_port": 80,
     "passthrough_url": "",
     "api_port": 8642,
@@ -156,12 +160,32 @@ class DnsProtocol(asyncio.DatagramProtocol):
 # HTTP
 # ---------------------------------------------------------------------------
 
+class PublicCloudResolver(AbstractResolver):
+    """Resolve cloud names outside AdGuard and reject local/loopback answers."""
+
+    def __init__(self, nameservers):
+        if not nameservers:
+            raise ValueError("cloud_dns must specify a resolver without DNS rewrites")
+        self.delegate = AsyncResolver(nameservers=nameservers)
+
+    async def resolve(self, host, port=0, family=socket.AF_INET):
+        records = await self.delegate.resolve(host, port, family)
+        if not records or any(not ipaddress.ip_address(r["host"]).is_global for r in records):
+            raise OSError("Cloud DNS returned a non-public address; forwarding blocked")
+        return records
+
+    async def close(self):
+        await self.delegate.close()
+
+
 class Bridge:
     def __init__(self, options: dict[str, Any]) -> None:
         self.options = options
         self.cloud_host = options["cloud_host"].lower()
         self.devices: dict[str, dict[str, Any]] = {}
         self.session: ClientSession | None = None
+        self.cloud_session: ClientSession | None = None
+        self.cloud_resolver = None
         self.state_file = Path(options["state_file"]) if options.get("state_file") else None
         self.load_recipes()
 
@@ -188,9 +212,20 @@ class Bridge:
             _LOGGER.warning("Could not write %s: %s", self.state_file, err)
 
     async def start_session(self, _app: web.Application | None = None) -> None:
+        # cloud_url is an internal loopback-test override, not an app option.
+        if self.options["forward_to_cloud"] and not self.options["cloud_url"]:
+            self.cloud_resolver = PublicCloudResolver(self.options["cloud_dns"])
+            self.cloud_session = ClientSession(
+                connector=TCPConnector(resolver=self.cloud_resolver, family=socket.AF_INET, ttl_dns_cache=60),
+                timeout=ClientTimeout(total=8), auto_decompress=False,
+            )
         self.session = ClientSession(timeout=ClientTimeout(total=8), auto_decompress=False)
 
     async def close_session(self, _app: web.Application | None = None) -> None:
+        if self.cloud_session:
+            await self.cloud_session.close()
+        if self.cloud_resolver:
+            await self.cloud_resolver.close()
         if self.session:
             await self.session.close()
 
@@ -240,7 +275,7 @@ class Bridge:
         return response
 
     async def forward_to_cloud(self, request: web.Request, body: bytes) -> tuple[int, dict[str, str], bytes]:
-        # Resolved by the host's resolver, not by the bridge's own DNS server
+        # Dedicated public resolver avoids network-wide rewrites back to this bridge.
         headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_BY_HOP}
         base = self.options["cloud_url"] or f"http://{self.options['cloud_host']}"
         url = base.rstrip("/") + request.path_qs
@@ -248,10 +283,20 @@ class Bridge:
         # The device cannot decode compressed answers and never asks for them, but
         # aiohttp would add "Accept-Encoding: gzip" on its own. Ask for plain text.
         headers["Accept-Encoding"] = "identity"
-        async with self.session.request(request.method, url, data=body, headers=headers) as resp:
+        async with (self.cloud_session or self.session).request(
+            request.method, url, data=body, headers=headers, allow_redirects=False
+        ) as resp:
             answer = await resp.read()
-            if resp.headers.get("Content-Encoding", "").lower() in ("gzip", "x-gzip"):
+            encoding = resp.headers.get("Content-Encoding", "").strip().lower()
+            if encoding in ("gzip", "x-gzip"):
                 answer = gzip.decompress(answer)  # compressed anyway: unpack for the device
+            elif encoding == "deflate":
+                try:
+                    answer = zlib.decompress(answer)
+                except zlib.error:
+                    answer = zlib.decompress(answer, -zlib.MAX_WBITS)
+            elif encoding not in ("", "identity"):
+                raise ValueError("Unsupported cloud content encoding")
             out = {"Content-Type": resp.headers.get("Content-Type", "text/plain; charset=UTF-8")}
             return resp.status, out, answer
 
