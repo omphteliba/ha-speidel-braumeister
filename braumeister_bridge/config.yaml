@@ -1,0 +1,33 @@
+name: Braumeister Bridge
+version: "0.1.0"
+slug: braumeister_bridge
+description: Receives the Speidel Braumeister's cloud traffic locally (DNS + port 80) for the Speidel Braumeister integration
+url: https://github.com/omphteliba/ha-speidel-braumeister
+arch:
+  - aarch64
+  - amd64
+  - armv7
+init: false
+startup: services
+boot: auto
+host_network: true
+options:
+  bridge_ip: ""
+  cloud_host: api2.myspeidel.com
+  forward_to_cloud: true
+  upstream_dns: ""
+  dns_port: 53
+  http_port: 80
+  passthrough_url: ""
+  api_port: 8642
+  log_level: info
+schema:
+  bridge_ip: str?
+  cloud_host: str
+  forward_to_cloud: bool
+  upstream_dns: str?
+  dns_port: port
+  http_port: port
+  passthrough_url: str?
+  api_port: port
+  log_level: list(debug|info|warning|error)

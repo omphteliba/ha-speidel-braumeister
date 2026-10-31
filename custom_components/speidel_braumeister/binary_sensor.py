@@ -62,8 +62,22 @@ class SpeidelBraumeisterBinarySensor(SpeidelBraumeisterEntity, BinarySensorEntit
         key = self.entity_description.key
 
         if key == "alarm":
-            # Check if current phase is an alarm state
+            # Prefer the device state code (see device_protocol.ALARM_STATES)
+            if data.get("state_code") is not None:
+                return data.get("alarm") is not None
+            # Fallback: check if current phase is an alarm state
             current_phase = data.get("current_phase", "")
             return current_phase in ALARM_PHASES
 
         return False
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return which alarm is active and the raw device state."""
+        data = self.coordinator.data
+        if not data or self.entity_description.key != "alarm":
+            return None
+        return {
+            "alarm_type": data.get("alarm"),
+            "state_code": data.get("state_code"),
+        }

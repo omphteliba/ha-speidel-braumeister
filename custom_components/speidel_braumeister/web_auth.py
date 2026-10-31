@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import aiohttp
 from aiohttp import ClientError, ClientTimeout
 
-from .status_parser import parse_actuator_status
+from .device_protocol import parse_bm_stat
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -410,42 +410,15 @@ class SpeidelWebAuth:
 
     def _parse_xhr_response(self, data_string: str) -> dict[str, Any]:
         """Parse the XHR response string."""
-        result = {'raw': data_string, 'connection_status': 'online'}
-        
         try:
-            parts = data_string.split(';')
-            
-            if len(parts) < 4:
+            parsed = parse_bm_stat(data_string)
+            if not parsed:
                 return {}
-            
-            result['firmware'] = parts[0]
-            result['device_uuid'] = parts[1]
-            result['session_id'] = parts[2]
-            
-            encoded = parts[3]
-            data_parts = encoded.split('X')
-            
-            def safe_float(idx: int) -> Optional[float]:
-                if idx < len(data_parts):
-                    try:
-                        val = data_parts[idx].strip()
-                        return float(val) if val else None
-                    except (ValueError, IndexError):
-                        pass
-                return None
-            
-            def safe_int(idx: int) -> Optional[int]:
-                if idx < len(data_parts):
-                    try:
-                        val = data_parts[idx].strip()
-                        return int(float(val)) if val else None
-                    except (ValueError, IndexError):
-                        pass
-                return None
-            
-            # Device recipe slot (position 0)
-            recipe_slot = safe_int(0)
-            result['recipe_slot'] = recipe_slot
+
+            result = {'raw': data_string, 'connection_status': 'online', **parsed}
+
+            recipe_slot = result['recipe_slot']
+            current_temp = result['temperature']
             
             # Look up recipe name from device recipes
             if recipe_slot is not None and recipe_slot in self._device_recipes:
@@ -461,37 +434,6 @@ class SpeidelWebAuth:
                     result['recipe_account_id'] = matched_info['account_id']
                     result['recipe_date'] = matched_info['date']
                     result['recipe_style'] = matched_info['style']
-            
-            # Time display
-            if len(data_parts) > 1:
-                result['time_display'] = data_parts[1]
-            
-            # Current temperature (position 5)
-            current_temp = safe_float(5)
-            result['temperature'] = current_temp
-            
-            # Target temperature (position 4, divided by 10)
-            target_raw = safe_float(4)
-            if target_raw is not None:
-                result['target_temperature'] = target_raw / 10
-            
-            # Remaining time in seconds (position 6)
-            remaining_seconds = safe_int(6)
-            if remaining_seconds is not None:
-                result['remaining_time'] = remaining_seconds // 60
-                result['remaining_seconds'] = remaining_seconds
-            
-            # Pump/heater indicators are case-sensitive characters at field 14.
-            result.update(parse_actuator_status(data_parts))
-
-            # Process status
-            if current_temp is not None:
-                if remaining_seconds and remaining_seconds > 0:
-                    result['process_status'] = 'running'
-                else:
-                    result['process_status'] = 'idle'
-            else:
-                result['process_status'] = 'unknown'
             
             # Device info from JSON endpoint
             if self._device_name:
@@ -509,9 +451,11 @@ class SpeidelWebAuth:
                 result['current_stage'] = self._device_info.get('current_stage')
                 result['screen_function'] = self._device_info.get('screen_function')
             
-            _LOGGER.info("Parsed: temp=%.1f°C, recipe=%s (slot %s), step=%s, mode=%s", 
-                        current_temp or 0, result.get('brew_name', 'unknown'), recipe_slot,
+            _LOGGER.info("Parsed: temp=%.1f°C, target=%s, state=%s, alarm=%s, pump=%s, heating=%s, recipe=%s (slot %s), step=%s, mode=%s",
+                        current_temp or 0, result['target_temperature'], result['state_code'], result['alarm'],
+                        result['pump'], result['heating'], result.get('brew_name', 'unknown'), recipe_slot,
                         result.get('current_step', 'unknown'), result.get('device_mode', 'unknown'))
+            _LOGGER.debug("Raw bm_stat: %s", data_string)
             
             return result
             

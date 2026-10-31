@@ -1,14 +1,18 @@
 """Data coordinator for the Speidel Braumeister integration."""
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
-from .const import DEFAULT_SCAN_INTERVAL
+from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
+from .device_protocol import from_bridge
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -156,7 +160,12 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         is_idle_phase = current_phase in idle_phases
         is_idle_mode = device_mode in idle_modes
-        is_idle = is_idle_phase or is_idle_mode
+        if data.get("state_code") is not None:
+            # The device's own state code is authoritative. The web interface's
+            # device_mode stays "wartet" even while a program is running.
+            is_idle = process_status not in ("running", "finished")
+        else:
+            is_idle = is_idle_phase or is_idle_mode
         
         # If phase/mode indicates idle, clear ONLY brew-specific data
         # Keep pump/heating states as they can be controlled manually
@@ -187,6 +196,25 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         return cleaned
 
+    async def _fetch_bridge(self) -> Optional[dict[str, Any]]:
+        """Latest status from the Braumeister Bridge app, or None if unavailable."""
+        device_id = self._machine_uuid.split(".")[0]
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(
+                BRIDGE_STATUS_URL, params={"device": device_id}, timeout=ClientTimeout(total=2)
+            ) as response:
+                if response.status != 200:
+                    return None
+                status = await response.json()
+        except (ClientError, asyncio.TimeoutError, ValueError) as err:
+            _LOGGER.debug("Braumeister Bridge not reachable: %s", err)
+            return None
+        data = from_bridge(status, device_id, BRIDGE_MAX_AGE)
+        if data is None:
+            _LOGGER.debug("Braumeister Bridge reachable, but no fresh data for %s", device_id)
+        return data
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the API."""
         _LOGGER.debug("Starting data update for machine %s", self._machine_uuid)
@@ -201,7 +229,18 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._update_last_online(result)
             return self._clean_data(result)
         
-        # PRIORITY 1: XHR Polling
+        # PRIORITY 1: local Braumeister Bridge app (if installed and receiving)
+        bridge_data = await self._fetch_bridge()
+        if bridge_data:
+            _LOGGER.debug("Got data via Braumeister Bridge")
+            result.update(bridge_data)
+            result["connection_status"] = "online"
+            result["data_source"] = "bridge"
+            self._update_last_online(result)
+            result["last_online"] = self._last_online
+            return self._clean_data(result)
+
+        # PRIORITY 2: XHR Polling
         if self.web_auth:
             try:
                 xhr_data = await self.web_auth.get_device_status(self._machine_uuid)
@@ -216,6 +255,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result['heating'] = xhr_data.get('heating', 'unknown')
                     result['pump'] = xhr_data.get('pump', 'unknown')
                     result['process_status'] = xhr_data.get('process_status', 'unknown')
+                    result['state_code'] = xhr_data.get('state_code')
+                    result['alarm'] = xhr_data.get('alarm')
                     result['connection_status'] = 'online'
                     result['brew_name'] = xhr_data.get('brew_name')
                     result['recipe_slot'] = xhr_data.get('recipe_slot')

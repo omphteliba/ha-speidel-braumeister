@@ -218,6 +218,8 @@ Diese Integration ist unter der [MIT-Lizenz](LICENSE) lizenziert.
 
 Danke an die gesamte Home Assistant Community für die Unterstützung und Inspiration!
 
+Dieses Projekt wurde mit KI-Unterstützung entwickelt: die erste Version (bis v2.0.3) mit GLM 5.3 von Z.AI, spätere Änderungen mit Claude von Anthropic. KI-unterstützte Commits sind mit einer `Assisted-by:`-Zeile gekennzeichnet.
+
 [hacs-badge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
 [hacs]: https://hacs.xyz
 [release-badge]: https://img.shields.io/github/v/release/omphteliba/ha-speidel-braumeister?style=for-the-badge

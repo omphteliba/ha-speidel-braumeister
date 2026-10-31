@@ -5,20 +5,7 @@ method that the web interface uses. This approach bypasses the need for
 MQTT subscription and provides direct access to device status.
 
 Key endpoint: /braumeister/getDeviceStatusControl/{device_uuid}.{machine_id}
-Response format: firmware;device_uuid;session_id;X-separated-data;hash1;hash2
-
-Data positions (X-separated):
-  [0] = mode/state
-  [1] = time display (HH:MM)
-  [2] = status character
-  [3] = unknown
-  [4] = unknown (not target temp)
-  [5] = current temperature (°C)
-  [6] = remaining time in seconds
-  [7] = counter
-  [8] = unknown (not actuator flags)
-  [14] = case-sensitive pump/heater indicators (P/p/q and H/h/i)
-  ...
+Response format: the device's bm_stat message, parsed by device_protocol.py
 """
 
 import logging
@@ -29,7 +16,7 @@ from datetime import datetime, timedelta
 import aiohttp
 from aiohttp import ClientError, ClientTimeout
 
-from .status_parser import parse_actuator_status
+from .device_protocol import parse_bm_stat
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -325,106 +312,26 @@ class SpeidelXHRClient:
         return variants
 
     def _parse_xhr_response(self, data_string: str) -> dict[str, Any]:
-        """Parse the XHR response string.
-        
-        Format: firmware;device_uuid;session_id;X-separated-data;hash1;hash2
-        
-        Data positions (X-separated):
-          [0] = mode/state
-          [1] = time display (HH:MM format)
-          [2] = status character
-          [3] = unknown
-          [4] = unknown
-          [5] = current temperature (°C)
-          [6] = remaining time in seconds
-          [7] = counter
-          [8] = unknown (not actuator flags)
-          [14] = case-sensitive pump/heater indicators (P/p/q and H/h/i)
-          ...
+        """Parse the XHR response string (the device's bm_stat message).
+
+        See device_protocol.py for the field layout.
         """
-        result = {
-            'raw': data_string,
-            'connection_status': 'online',
-        }
-        
         try:
-            parts = data_string.split(';')
-            
-            if len(parts) < 4:
+            parsed = parse_bm_stat(data_string)
+            if not parsed:
                 _LOGGER.warning("XHR response has fewer than 4 parts: %s", data_string[:100])
                 return {}
-            
-            result['firmware'] = parts[0]
-            result['device_uuid'] = parts[1]
-            result['session_id'] = parts[2]
-            
-            # Parse X-separated data
-            encoded = parts[3]
-            data_parts = encoded.split('X')
-            
-            # Extract values based on known positions
-            def safe_float(idx: int) -> Optional[float]:
-                if idx < len(data_parts):
-                    try:
-                        val = data_parts[idx].strip()
-                        # Handle values with leading spaces
-                        val = val.strip()
-                        return float(val) if val else None
-                    except (ValueError, IndexError):
-                        pass
-                return None
-            
-            def safe_int(idx: int) -> Optional[int]:
-                if idx < len(data_parts):
-                    try:
-                        val = data_parts[idx].strip()
-                        return int(float(val)) if val else None
-                    except (ValueError, IndexError):
-                        pass
-                return None
-            
-            # Mode
-            result['mode'] = safe_int(0)
-            
-            # Time display (position 1) - format HH:MM
-            if len(data_parts) > 1:
-                result['time_display'] = data_parts[1]
-            
-            # Current temperature (position 5)
-            current_temp = safe_float(5)
-            result['temperature'] = current_temp
-            
-            # Target temperature - we need to find where this is
-            # Based on analysis, position 4 is NOT target temp
-            # Target temp might come from a different endpoint or calculation
-            # For now, leave as None unless we can determine it
-            result['target_temperature'] = None
-            
-            # Remaining time in seconds (position 6)
-            remaining_seconds = safe_int(6)
-            if remaining_seconds is not None:
-                result['remaining_time'] = remaining_seconds // 60  # Convert to minutes
-                result['remaining_seconds'] = remaining_seconds
-            
-            # Counter (position 7)
-            result['counter'] = safe_int(7)
-            
-            # Pump/heater indicators are case-sensitive characters at field 14.
-            result.update(parse_actuator_status(data_parts))
 
-            # Try to determine process status based on available data
-            if current_temp is not None:
-                if remaining_seconds and remaining_seconds > 0:
-                    result['process_status'] = 'running'
-                else:
-                    result['process_status'] = 'idle'
-            else:
-                result['process_status'] = 'unknown'
-            
-            _LOGGER.debug("Parsed XHR response: temp=%.1f°C, time=%dmin, pump=%s, heating=%s",
-                         current_temp or 0, result.get('remaining_time', 0),
-                         result['pump'], result['heating'])
-            
+            result = {
+                'raw': data_string,
+                'connection_status': 'online',
+                **parsed,
+            }
+
+            _LOGGER.debug("Parsed XHR response: temp=%s°C, target=%s°C, state=%s, pump=%s, heating=%s",
+                         result['temperature'], result['target_temperature'],
+                         result['state_code'], result['pump'], result['heating'])
+
             return result
             
         except Exception as err:

@@ -228,6 +228,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - Speidel for the Braumeister brewing system and Cloud API
 - The Home Assistant community for inspiration and support
 
+This project was developed with AI assistance: the first version (up to v2.0.3) with GLM 5.3 by Z.AI, later changes with Claude by Anthropic. AI-assisted commits are marked with an `Assisted-by:` trailer.
+
 [hacs]: https://github.com/custom-components/hacs
 [hacs-badge]: https://img.shields.io/badge/HACS-Default-blue.svg
 [release]: https://github.com/omphteliba/ha-speidel-braumeister/releases

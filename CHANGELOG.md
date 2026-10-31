@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Pump and heating state were read from the wrong XHR status fields (a seconds counter and a recipe counter). They are now taken from the actuator flags (`P`/`p`, `H`/`h`)
+- Remaining time always showed 80 minutes and the process status was always "running": the field used is the step duration, not the remaining time. Remaining time is now calculated during rests and the boil and left empty otherwise
+- Process status is now derived from the device state code (automatic program = running)
+- Target temperature `-1000`/`-10000` ("no target") is no longer reported as a negative temperature
+- The main menu no longer shows the previous program's target temperature (the device keeps reporting it there)
+- A running brew was shown as idle because the web interface reports the mode "wartet" even during a program. The coordinator now trusts the device state code
+- Boiling (state 3xxx) now also counts as a running program
+- The recipe slot (and with it the brew name) was always 0 / the first recipe; it is now read from the correct field and only during a program
+
+### Added
+- New **Braumeister Bridge** app (`braumeister_bridge/`, add this repository to the app store): receives the Braumeister's cloud traffic locally via a DNS entry for `api2.myspeidel.com`, forwards it to My Speidel and passes other port-80 traffic on (e.g. to `emulated_hue`). The integration reads from it first and falls back to the web interface
+- Recipe names come from the device's own recipe list when the bridge is used
+- Remaining time during rests and the boil, calculated from the step duration and elapsed time in the device status
+- Process status `finished` when the brew has ended
+- Alarm binary sensor now uses the device state code, so it triggers for mash-in temperature reached, rest end, remove lid and brew finished (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`. Hop additions are not detected yet
+- With debug logging enabled, the integration logs once at startup what the documented cloud timeseries API returns
+- `docs/DEVICE_PROTOCOL.md`: the device's own protocol to the cloud, reverse-engineered from a packet capture
+- `device_protocol.py`: shared parser for the device status message, used by both XHR clients
+
 ## [2.0.3] - 2026-03-03
 
 ### Fixed

@@ -1,3 +1,6 @@
 /.claude
 CLAUDE.md
 *.log
+captures/
+__pycache__/
+*.pyc

@@ -96,6 +96,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Fetch initial data - NOW web_auth is available
     await coordinator.async_config_entry_first_refresh()
 
+    # Diagnostic: log what the documented cloud timeseries API returns
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        entry.async_create_background_task(
+            hass, api.probe_timeseries(machine_uuid), "speidel_timeseries_probe"
+        )
+
     # Store coordinator in hass.data
     hass.data[DOMAIN][entry.entry_id] = coordinator
 

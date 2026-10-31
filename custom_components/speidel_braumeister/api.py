@@ -6,11 +6,13 @@ Refactored to use Pydantic v2 models for type-safe data handling.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
+from urllib.parse import quote, urlencode
 
 import aiohttp
 from aiohttp import ClientError, ClientTimeout
+from yarl import URL
 
 from .const import API_BASE_URL, WEB_API_BASE_URL
 from .models import (
@@ -415,6 +417,74 @@ class SpeidelBraumeisterAPI:
     # =========================================================================
     # HELPER METHODS
     # =========================================================================
+
+    # =========================================================================
+    # TIMESERIES PROBE (diagnostic, see docs/DEVICE_PROTOCOL.md)
+    # =========================================================================
+
+    async def _probe_get(self, endpoint: str, params: Optional[dict] = None) -> Any:
+        """GET an endpoint and log status and body, never raising."""
+        await self.ensure_authenticated()
+        session = await self._get_session()
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {self._token}",
+        }
+        # The API rejects unencoded reserved characters (e.g. ':' in timestamps)
+        url = f"{API_BASE_URL}{endpoint}"
+        if params:
+            url += "?" + urlencode(params, quote_via=quote)
+        try:
+            async with session.get(URL(url, encoded=True), headers=headers) as response:
+                text = await response.text()
+                _LOGGER.info(
+                    "TIMESERIES PROBE %s %s -> %d, %d bytes: %s",
+                    endpoint, params or "", response.status, len(text), text[:1500],
+                )
+                if response.status == 200:
+                    try:
+                        return await response.json(content_type=None)
+                    except ValueError:
+                        return None
+        except Exception as err:  # diagnostic only
+            _LOGGER.info("TIMESERIES PROBE %s failed: %s", endpoint, err)
+        return None
+
+    async def probe_timeseries(self, machine_uuid: str) -> None:
+        """Log what the documented timeseries endpoints return for this account.
+
+        Runs once at setup. The endpoints are documented at
+        https://api.cloud.myspeidel.com/v1.0/api-docs and need a subscription.
+        """
+        now = datetime.now(timezone.utc)
+        fmt = "%Y-%m-%dT%H:%M:%S.000Z"
+        recent = {"from": (now - timedelta(days=1)).strftime(fmt), "to": now.strftime(fmt)}
+        history = {"from": (now - timedelta(days=365)).strftime(fmt), "to": now.strftime(fmt)}
+
+        processes = await self._probe_get("/account/timeseries/process")
+
+        uuids = self._get_uuid_variants(machine_uuid)
+        # Machine UUIDs referenced by the account's processes, if any
+        items = processes if isinstance(processes, list) else (
+            (processes or {}).get("collection") or [] if isinstance(processes, dict) else []
+        )
+        for item in items[:20]:
+            if isinstance(item, dict):
+                for key in ("machine_uuid", "machineUuid", "machine", "machine_id"):
+                    val = item.get(key)
+                    if isinstance(val, dict):
+                        val = val.get("uuid")
+                    if isinstance(val, str) and val not in uuids:
+                        uuids.append(val)
+
+        for uuid in uuids:
+            await self._probe_get(f"/machine/{uuid}/timeseries/process")
+            await self._probe_get(f"/machine/{uuid}/timeseries/process", history)
+            await self._probe_get(f"/machine/{uuid}/timeseries/phase", recent)
+            await self._probe_get(f"/machine/{uuid}/timeseries/sensor", {**recent, "granularity": 100})
+            await self._probe_get(f"/machine/{uuid}/timeseries/actor", {**recent, "granularity": 100})
+
+        _LOGGER.info("TIMESERIES PROBE done for %s (tried %s)", machine_uuid, uuids)
 
     def _get_uuid_variants(self, machine_uuid: str) -> list[str]:
         """Get UUID format variants to try.

@@ -1,0 +1,14 @@
+{
+  "description": "Short test recipe used for live brew tests (slot 2). Raw line as written to the device by My Speidel ($rz command), captured 2026-10-30. See docs/DEVICE_PROTOCOL.md, section rz.",
+  "raw": "2X40X40X1X0X0X0X0X0X0X0X0X20X103X10X11X11X0X0X0.test 10 minute",
+  "slot": 2,
+  "name": "test 10 minute",
+  "name_in_account": "test 10 minuten",
+  "mash_in_temperature_c": 40,
+  "rests": [
+    {"temperature_c": 40, "minutes": 1}
+  ],
+  "boil_minutes": 20,
+  "boil_temperature_c": 103,
+  "hop_additions_minutes_before_end": [10, 11, 11]
+}
