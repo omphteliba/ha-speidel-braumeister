@@ -134,6 +134,9 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
         
         key = self.entity_description.key
         
+        if key == "connection_status":
+            return {"data_source": data.get("data_source", "cloud"), "bridge_age": data.get("bridge_age")}
+
         if key == "brew_name":
             # Add recipe matching attributes
             attrs = {

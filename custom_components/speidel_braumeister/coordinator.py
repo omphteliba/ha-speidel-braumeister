@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
+from .bridge_client import read_bridge
 from .request_policy import PollingError, RetryLater, error_delay, jitter
 from .const import DEFAULT_SCAN_INTERVAL
 from .polling import polling_state, DEFAULT_ONLINE_INTERVAL, DEFAULT_ACTIVE_INTERVAL, MQTT_MAX_AGE
@@ -43,6 +44,9 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "online": min(scan_interval, online_interval),
             "active": min(scan_interval, online_interval, active_interval),
         }
+        self._bridge_probe_due = 0.0
+        self._cloud_poll_due = 0.0
+        self._bridge_seen = False
         self._failure_count = 0
         self._retry_not_before = 0.0
         self._mqtt_received_at = None
@@ -171,7 +175,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         is_idle_phase = current_phase in idle_phases
         is_idle_mode = device_mode in idle_modes
-        is_idle = is_idle_phase or is_idle_mode
+        is_idle = (process_status not in ("running", "paused", "finished")) if data.get("state_code") is not None else (is_idle_phase or is_idle_mode)
         
         # If phase/mode indicates idle, clear ONLY brew-specific data
         # Keep pump/heating states as they can be controlled manually
@@ -192,7 +196,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         
         # If process_status is "running" but no brewing indicators, set to idle
-        if process_status == "running" and not has_brewing_indicators:
+        if process_status == "running" and not has_brewing_indicators and data.get("state_code") is None:
             cleaned["process_status"] = "idle"
             cleaned["brew_name"] = None
             cleaned["remaining_time"] = None
@@ -208,11 +212,36 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.update_interval = timedelta(seconds=seconds)
         _LOGGER.debug("Adaptive polling: state=%s, next interval=%ss", state, seconds)
 
+    async def _fetch_bridge(self):
+        from homeassistant.helpers.aiohttp_client import async_get_clientsession
+        return await read_bridge(async_get_clientsession(self.hass), self._machine_uuid)
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Honor cooldown even for update_entity; never sleep in HA's loop."""
+        # Local requests are independent of cloud cooldowns.
+        now = monotonic()
+        if now >= self._bridge_probe_due:
+            local = await self._fetch_bridge()
+            self._bridge_probe_due = monotonic() + (1 if self._bridge_seen else 10)
+            if local:
+                self._bridge_seen = True
+                self._bridge_probe_due = 0.0
+                for key in ("device_type", "device_name"):
+                    local.setdefault(key, self._last_device_info.get(key))
+                self._update_last_online(local)
+                local["last_online"] = self._last_online
+                self.update_interval = timedelta(seconds=1)
+                return self._clean_data(local)
+        remaining = max(self._retry_not_before, self._cloud_poll_due) - monotonic()
+        if remaining > 0 and self._bridge_seen:
+            self.update_interval = timedelta(seconds=min(1, remaining))
+            if self._retry_not_before <= monotonic() and self.data and self.data.get("data_source") != "bridge":
+                return self.data
+            # Never mark old bridge telemetry fresh while waiting for cloud.
+            raise UpdateFailed("No fresh bridge data; cloud polling is waiting")
         remaining = self._retry_not_before - monotonic()
         if remaining > 0:
-            self.update_interval = timedelta(seconds=min(remaining, 86400))
+            self.update_interval = timedelta(seconds=min(remaining, 10))
             raise UpdateFailed("MySpeidel polling pause is still active")
         try:
             result = await self._fetch_data()
@@ -223,12 +252,15 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 delay = max(delay, err.deadline - monotonic())
             delay = jitter(delay)
             self._retry_not_before = monotonic() + delay
-            self.update_interval = timedelta(seconds=min(delay, 86400))
+            self.update_interval = timedelta(seconds=min(delay, 1 if self._bridge_seen else 10))
             raise UpdateFailed(f"MySpeidel refresh failed; retry in {delay:.0f}s") from err
         # A successful response (including device offline) ends error backoff.
         self._failure_count = 0
         self._retry_not_before = 0.0
         self._set_poll_interval(result)
+        self._cloud_poll_due = monotonic() + self.update_interval.total_seconds()
+        if self._bridge_seen:
+            self.update_interval = timedelta(seconds=1)
         return result
 
     async def _fetch_data(self) -> dict[str, Any]:

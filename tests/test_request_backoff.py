@@ -101,6 +101,9 @@ class BackoffTests(unittest.IsolatedAsyncioTestCase):
         mock = patch.object(coordinator, 'jitter', side_effect=lambda seconds: seconds)
         mock.start()
         self.addCleanup(mock.stop)
+        probe = patch.object(coordinator.SpeidelBraumeisterDataCoordinator, "_fetch_bridge", new_callable=AsyncMock, return_value=None)
+        probe.start()
+        self.addCleanup(probe.stop)
         self.obj = coordinator.SpeidelBraumeisterDataCoordinator(None, None, 'TEST')
 
     async def test_errors_back_off_manual_calls_do_not_extend_and_success_resets(self):

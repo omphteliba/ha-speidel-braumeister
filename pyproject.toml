@@ -1,0 +1,14 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+extend-exclude = ["captures"]
+
+[tool.ruff.lint]
+# Start with real errors only; style rules (W, I, UP) follow in a separate cleanup
+select = ["E", "F"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

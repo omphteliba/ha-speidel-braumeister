@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
+from .bridge_client import read_bridge
 from .api import SpeidelBraumeisterAPI
 from .const import (
     DOMAIN,
@@ -57,6 +58,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     session = async_get_clientsession(hass)
     api = SpeidelBraumeisterAPI(username, password, session)
 
+    local_ready = await read_bridge(session, machine_uuid) if machine_uuid else None
+
     # Authenticate with cloud API
     try:
         auth_result = await api.authenticate()
@@ -69,11 +72,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("No subscription found - using XHR polling for real-time data")
     except Exception as err:
         _LOGGER.error("Failed to authenticate with cloud API: %s", err)
-        return False
+        if not local_ready:
+            return False
+        _LOGGER.warning("Starting with local bridge data despite cloud authentication failure")
 
     # Web authentication for XHR polling (PRIMARY data source)
     web_auth = SpeidelWebAuth(username, password, session)
-    web_login_success = await web_auth.login()
+    try:
+        web_login_success = await web_auth.login()
+    except Exception:
+        if not local_ready:
+            raise
+        web_login_success = False
     
     if web_login_success:
         _LOGGER.info("Web interface login successful - XHR polling available")

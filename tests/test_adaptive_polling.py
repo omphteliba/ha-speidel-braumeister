@@ -23,6 +23,7 @@ class CoordinatorBase:
     def __init__(self, *args, update_interval=None, **kwargs):
         self.update_interval = update_interval
         self.data = None
+        self.hass = args[0] if args else None
     def async_set_updated_data(self, data):
         self.data = data
 
@@ -134,6 +135,9 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         mock = patch.object(coordinator, "jitter", side_effect=lambda seconds: seconds)
         mock.start()
         self.addCleanup(mock.stop)
+        probe = patch.object(coordinator.SpeidelBraumeisterDataCoordinator, "_fetch_bridge", new_callable=AsyncMock, return_value=None)
+        probe.start()
+        self.addCleanup(probe.stop)
 
     def make(self, active=5):
         obj = coordinator.SpeidelBraumeisterDataCoordinator(None, types.SimpleNamespace(), "TEST", active_interval=active)
@@ -156,7 +160,8 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(obj.update_interval.total_seconds(), 3)
         obj._fetch_data.side_effect = RuntimeError("offline")
         with self.assertRaises(RuntimeError): await obj._async_update_data()
-        self.assertEqual(obj.update_interval.total_seconds(), 30)
+        self.assertEqual(obj.update_interval.total_seconds(), 10)
+        self.assertGreater(obj._retry_not_before, 0)
 
     async def test_mqtt_freshness_and_xhr_fallback(self):
         obj = self.make()
