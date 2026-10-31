@@ -20,6 +20,8 @@ import asyncio
 import json
 import ipaddress
 import logging
+import gzip
+import zlib
 import os
 import socket
 import struct
@@ -242,11 +244,31 @@ class Bridge:
         base = self.options["cloud_url"] or f"http://{self.options['cloud_host']}"
         url = base.rstrip("/") + request.path_qs
         headers["Host"] = self.options["cloud_host"]
+        # The legacy WLAN module cannot consume compressed cloud commands.
+        headers = {k: v for k, v in headers.items() if k.lower() != "accept-encoding"}
+        headers["Accept-Encoding"] = "identity"
         async with (self.cloud_session or self.session).request(
             request.method, url, data=body, headers=headers, allow_redirects=False
         ) as resp:
             answer = await resp.read()
             out = {k: v for k, v in resp.headers.items() if k.lower() not in HOP_BY_HOP}
+            # Some servers compress even when identity was requested. Decode in
+            # reverse application order, without interpreting command bytes.
+            encodings = [v.strip().lower() for v in resp.headers.get("Content-Encoding", "").split(",") if v.strip()]
+            for encoding in reversed(encodings):
+                if encoding in ("gzip", "x-gzip"):
+                    answer = gzip.decompress(answer)
+                elif encoding == "deflate":
+                    try:
+                        answer = zlib.decompress(answer)
+                    except zlib.error:
+                        answer = zlib.decompress(answer, -zlib.MAX_WBITS)
+                elif encoding != "identity":
+                    raise ValueError(f"Unsupported cloud Content-Encoding: {encoding}")
+            if encodings:
+                out = {k: v for k, v in out.items() if k.lower() not in {
+                    "content-encoding", "content-length", "etag", "content-md5", "digest",
+                }}
             return resp.status, out, answer
 
     async def passthrough(self, request: web.Request) -> web.StreamResponse:

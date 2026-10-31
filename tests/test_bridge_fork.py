@@ -46,9 +46,9 @@ async def test_cloud_bytes_headers_and_no_redirect_following(bridge_module):
         response = await port80.post('/braumeister/connect?x=1', data=BM_STAT, headers=DEVICE_HEADERS,
                                     allow_redirects=False, auto_decompress=False)
         assert response.status == 302
-        assert response.headers['Content-Encoding'] == 'gzip'
+        assert 'Content-Encoding' not in response.headers
         assert response.headers['Retry-After'] == '60'
-        assert await response.read() == body
+        assert await response.read() == gzip.decompress(body)
         assert received == [('POST', '/braumeister/connect?x=1', BM_STAT)]
     finally:
         await port80.close()

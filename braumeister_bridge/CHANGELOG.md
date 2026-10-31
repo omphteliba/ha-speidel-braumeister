@@ -1,3 +1,10 @@
+## 0.1.4 (DanielP-1337 fork)
+
+- Request uncompressed cloud responses for the legacy WLAN module.
+- Decode gzip and deflate responses if the server still compresses; remove
+  stale encoding and representation headers. Keep command bytes unchanged.
+- Leave chunked transfer and the unrelated HTTP passthrough unchanged.
+
 # 0.1.2 (DanielP-1337 fork)
 
 - Add dedicated cloud DNS resolution for AdGuard rewrite deployments.
