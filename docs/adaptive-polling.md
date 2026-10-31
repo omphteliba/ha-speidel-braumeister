@@ -63,3 +63,9 @@ These tests are not a full Home Assistant runtime/scheduler test and do not esta
 Hardware checklist: check idle at 10 s, manual/brewing at 5 s, stop/return to main menu at 10 s, device offline at 30 s, then reconnect. Check a real hop-addition signal and its clearing. Test 3 s only after 5 s is stable. In debug logs the coordinator reports `Adaptive polling: state=..., next interval=...` after each update.
 
 Reference: https://contributors.home-assistant.io/core/integrations/fetching-data/
+
+## Server protection
+
+See [polling backoff](polling-backoff.md) for error backoff, Retry-After, jitter,
+and optional manual/power-on refresh. Successful offline requests retain the
+configured base interval.

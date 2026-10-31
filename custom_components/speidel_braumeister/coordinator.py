@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
+from .request_policy import PollingError, RetryLater, error_delay, jitter
 from .const import DEFAULT_SCAN_INTERVAL
 from .polling import polling_state, DEFAULT_ONLINE_INTERVAL, DEFAULT_ACTIVE_INTERVAL, MQTT_MAX_AGE
 
@@ -42,6 +43,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "online": min(scan_interval, online_interval),
             "active": min(scan_interval, online_interval, active_interval),
         }
+        self._failure_count = 0
+        self._retry_not_before = 0.0
         self._mqtt_received_at = None
         self._api = api
         self._machine_uuid = machine_uuid
@@ -201,17 +204,30 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _set_poll_interval(self, data: dict[str, Any]) -> None:
         state = polling_state(data)
-        seconds = self._poll_intervals[state]
+        seconds = jitter(self._poll_intervals[state])
         self.update_interval = timedelta(seconds=seconds)
         _LOGGER.debug("Adaptive polling: state=%s, next interval=%ss", state, seconds)
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Choose the next interval after every result, including failures."""
+        """Honor cooldown even for update_entity; never sleep in HA's loop."""
+        remaining = self._retry_not_before - monotonic()
+        if remaining > 0:
+            self.update_interval = timedelta(seconds=min(remaining, 86400))
+            raise UpdateFailed("MySpeidel polling pause is still active")
         try:
             result = await self._fetch_data()
-        except Exception:
-            self._set_poll_interval({})
-            raise
+        except Exception as err:
+            self._failure_count += 1
+            delay = error_delay(self._poll_intervals["offline"], self._failure_count)
+            if isinstance(err, RetryLater):
+                delay = max(delay, err.deadline - monotonic())
+            delay = jitter(delay)
+            self._retry_not_before = monotonic() + delay
+            self.update_interval = timedelta(seconds=min(delay, 86400))
+            raise UpdateFailed(f"MySpeidel refresh failed; retry in {delay:.0f}s") from err
+        # A successful response (including device offline) ends error backoff.
+        self._failure_count = 0
+        self._retry_not_before = 0.0
         self._set_poll_interval(result)
         return result
 
@@ -272,8 +288,10 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result = self._get_offline_result()
                 return result
                     
+            except PollingError:
+                raise
             except Exception as err:
-                _LOGGER.debug("XHR polling error: %s", err)
+                raise UpdateFailed("XHR polling failed") from err
         
         # PRIORITY 2: Cloud API
         try:
@@ -319,6 +337,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result["device_type"] = api_dict.get("device_type")
             return result
 
+        except PollingError:
+            raise
         except SpeidelPaymentRequiredError:
             _LOGGER.debug("Payment required - device may be offline")
             return self._get_offline_result()
@@ -329,11 +349,10 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             
         except SpeidelApiError as err:
             _LOGGER.debug("API error (device may be offline): %s", err)
-            return self._get_offline_result()
+            raise UpdateFailed("Cloud API request failed") from err
             
         except Exception as err:
-            _LOGGER.debug("Unexpected error (device may be offline): %s", err)
-            return self._get_offline_result()
+            raise UpdateFailed("Cloud API request failed") from err
 
     @property
     def machine_uuid(self) -> str:

@@ -130,6 +130,11 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
 
 class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        mock = patch.object(coordinator, "jitter", side_effect=lambda seconds: seconds)
+        mock.start()
+        self.addCleanup(mock.stop)
+
     def make(self, active=5):
         obj = coordinator.SpeidelBraumeisterDataCoordinator(None, types.SimpleNamespace(), "TEST", active_interval=active)
         obj.web_auth = types.SimpleNamespace(get_device_status=AsyncMock())

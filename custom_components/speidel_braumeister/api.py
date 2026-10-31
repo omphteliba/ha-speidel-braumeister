@@ -28,6 +28,8 @@ from .models import (
 )
 from .xhr_client import SpeidelXHRClient
 
+from .request_policy import RequestPolicy, PollingError
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -101,6 +103,7 @@ class SpeidelBraumeisterAPI:
             password: My Speidel account password
             session: Optional aiohttp session (will create one if not provided)
         """
+        self._request_policy = RequestPolicy()
         self._username = username
         self._password = password
         self._session = session
@@ -178,7 +181,7 @@ class SpeidelBraumeisterAPI:
         form_data.add_field("pass", self._password)
         
         try:
-            async with session.post(url, data=form_data) as response:
+            async with self._request_policy.request(session.post, url, data=form_data) as response:
                 if response.status == 401:
                     raise SpeidelAuthError("Invalid credentials")
                 
@@ -247,7 +250,7 @@ class SpeidelBraumeisterAPI:
         _LOGGER.debug("API request: %s %s", method, url)
         
         try:
-            async with session.get(url, headers=headers, params=params) as response:
+            async with self._request_policy.request(session.get, url, headers=headers, params=params) as response:
                 return await self._handle_response(response, endpoint)
                 
         except ClientError as err:
@@ -378,6 +381,8 @@ class SpeidelBraumeisterAPI:
                     _LOGGER.info("Got data via XHR: temp=%s", result.temperature)
                     return result
                     
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("XHR polling error: %s", err)
         
@@ -391,6 +396,8 @@ class SpeidelBraumeisterAPI:
                     _LOGGER.info("Got data via Web API: temp=%s", result.temperature)
                     return result
                     
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("Web API error: %s", err)
         
@@ -404,6 +411,8 @@ class SpeidelBraumeisterAPI:
         except SpeidelPaymentRequiredError:
             _LOGGER.warning("Cloud API requires subscription")
             self._payment_required = True
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("Cloud API error: %s", err)
         
@@ -545,7 +554,7 @@ class SpeidelBraumeisterAPI:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with self._request_policy.request(session.get, url, headers=headers) as response:
                     if response.status == 200:
                         return await response.json()
                     if response.status != 404:
