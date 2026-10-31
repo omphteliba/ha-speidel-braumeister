@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 import aiohttp
 from aiohttp import ClientError, ClientTimeout
 
+from .status_parser import parse_actuator_status
+
 _LOGGER = logging.getLogger(__name__)
 
 WEB_BASE_URL = "https://www.myspeidel.com"
@@ -479,22 +481,9 @@ class SpeidelWebAuth:
                 result['remaining_time'] = remaining_seconds // 60
                 result['remaining_seconds'] = remaining_seconds
             
-            # Status flags
-            # Heating is at position 8, bit 0
-            # Pump is at position 7, bit 1 (different position!)
-            heating_flag = safe_int(8)
-            pump_flag = safe_int(7)
-            
-            if heating_flag is not None:
-                result['heating'] = 'on' if heating_flag & 0x01 else 'off'
-            else:
-                result['heating'] = 'unknown'
-            
-            if pump_flag is not None:
-                result['pump'] = 'on' if pump_flag & 0x02 else 'off'
-            else:
-                result['pump'] = 'unknown'
-            
+            # Pump/heater indicators are case-sensitive characters at field 14.
+            result.update(parse_actuator_status(data_parts))
+
             # Process status
             if current_temp is not None:
                 if remaining_seconds and remaining_seconds > 0:
