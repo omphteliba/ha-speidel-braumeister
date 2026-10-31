@@ -14,6 +14,8 @@ from aiohttp import ClientError, ClientTimeout
 
 from .device_protocol import brew_name_from_step, parse_bm_stat, parse_recipes
 
+from .request_policy import PollingError, RequestPolicy
+
 _LOGGER = logging.getLogger(__name__)
 
 WEB_BASE_URL = "https://www.myspeidel.com"
@@ -30,6 +32,7 @@ class SpeidelWebAuth:
         session: Optional[aiohttp.ClientSession] = None,
     ) -> None:
         """Initialize the web auth client."""
+        self.request_policy = RequestPolicy()
         self._username = username
         self._password = password
         self._session = session
@@ -80,10 +83,10 @@ class SpeidelWebAuth:
                 'Accept-Language': 'en-US,en;q=0.9,de;q=0.8',
             }
             
-            async with session.get(WEB_BASE_URL, headers=headers) as response:
+            async with self.request_policy.request(session.get, WEB_BASE_URL, headers=headers) as response:
                 _LOGGER.debug("Homepage status: %s", response.status)
                 
-            async with session.get(LOGIN_URL, headers=headers) as response:
+            async with self.request_policy.request(session.get, LOGIN_URL, headers=headers) as response:
                 html = await response.text()
                 csrf_match = re.search(r'<input[^>]*name="(_token)"[^>]*value="([^"]+)"', html)
                 csrf_token = csrf_match.group(2) if csrf_match else None
@@ -101,7 +104,7 @@ class SpeidelWebAuth:
                 'Referer': LOGIN_URL,
             }
             
-            async with session.post(LOGIN_URL, data=form_data, headers=headers, allow_redirects=True) as response:
+            async with self.request_policy.request(session.post, LOGIN_URL, data=form_data, headers=headers, allow_redirects=True) as response:
                 html = await response.text()
                 
                 cookies = {c.key: c.value for c in session.cookie_jar}
@@ -128,6 +131,8 @@ class SpeidelWebAuth:
                     _LOGGER.error("No session cookie received - login failed")
                     return False
                     
+        except PollingError:
+            raise
         except ClientError as err:
             _LOGGER.error("Login error: %s", err)
             return False
@@ -196,7 +201,7 @@ class SpeidelWebAuth:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with self.request_policy.request(session.get, url, headers=headers) as response:
                     if response.status != 200:
                         continue
                     
@@ -205,7 +210,7 @@ class SpeidelWebAuth:
                     if text.startswith('<!'):
                         self._logged_in = False
                         if await self.login():
-                            async with session.get(url, headers=headers) as retry_response:
+                            async with self.request_policy.request(session.get, url, headers=headers) as retry_response:
                                 text = await retry_response.text()
                                 if text.startswith('<!'):
                                     continue
@@ -251,7 +256,7 @@ class SpeidelWebAuth:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with self.request_policy.request(session.get, url, headers=headers) as response:
                     if response.status == 200:
                         text = await response.text()
                         if text.startswith('{'):
@@ -287,6 +292,8 @@ class SpeidelWebAuth:
                                         data.get('deviceMode'), data.get('screenTitle'))
                             
                             return self._device_info
+            except PollingError:
+                raise
             except Exception as err:
                 _LOGGER.debug("Error fetching device info JSON: %s", err)
         
@@ -304,12 +311,14 @@ class SpeidelWebAuth:
         }
         
         try:
-            async with session.get(url, headers=headers) as response:
+            async with self.request_policy.request(session.get, url, headers=headers) as response:
                 if response.status == 200:
                     text = await response.text()
                     self._device_recipes = self._parse_device_recipes(text)
                     self._device_recipe_details = parse_recipes(text)
                     _LOGGER.info("Loaded %d device recipes", len(self._device_recipes))
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("Error fetching device recipes: %s", err)
 
@@ -324,11 +333,13 @@ class SpeidelWebAuth:
         }
         
         try:
-            async with session.get(url, headers=headers) as response:
+            async with self.request_policy.request(session.get, url, headers=headers) as response:
                 if response.status == 200:
                     html = await response.text()
                     self._account_recipes = self._parse_account_recipes_html(html)
                     _LOGGER.info("Loaded %d account recipes", len(self._account_recipes))
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("Error fetching account recipes: %s", err)
 
@@ -356,6 +367,8 @@ class SpeidelWebAuth:
                                 recipes[slot] = recipe_name
                             except ValueError:
                                 pass
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.error("Error parsing device recipes: %s", err)
         
@@ -398,6 +411,8 @@ class SpeidelWebAuth:
                     'style': style,
                 }
                 
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.error("Error parsing account recipes: %s", err)
         
@@ -485,6 +500,8 @@ class SpeidelWebAuth:
             
             return result
             
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.error("Error parsing XHR response: %s", err)
             return {}

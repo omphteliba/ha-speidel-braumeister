@@ -5,6 +5,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
@@ -21,6 +22,7 @@ from .const import (
 from .coordinator import SpeidelBraumeisterDataCoordinator
 from .mqtt_client import SpeidelMQTTClient
 from .web_auth import SpeidelWebAuth
+from .request_policy import PollingError, RequestPolicy
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +52,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create API client for cloud API
     session = async_get_clientsession(hass)
     api = SpeidelBraumeisterAPI(username, password, session)
+    # Keep a cooldown across HA setup retries, and share it across cloud clients.
+    policy_key = f"{entry.entry_id}_request_policy"
+    api.request_policy = hass.data[DOMAIN].setdefault(policy_key, RequestPolicy())
 
     # Authenticate with cloud API
     try:
@@ -61,13 +66,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("Subscription found - ID: %s, End: %s", api.subscription_id, api.subscription_end)
         else:
             _LOGGER.info("No subscription found - using XHR polling for real-time data")
+    except PollingError as err:
+        raise ConfigEntryNotReady(str(err)) from err
     except Exception as err:
         _LOGGER.error("Failed to authenticate with cloud API: %s", err)
         return False
 
     # Web authentication for XHR polling (PRIMARY data source)
     web_auth = SpeidelWebAuth(username, password, session)
-    web_login_success = await web_auth.login()
+    web_auth.request_policy = api.request_policy
+    try:
+        web_login_success = await web_auth.login()
+    except PollingError as err:
+        raise ConfigEntryNotReady(str(err)) from err
     
     if web_login_success:
         _LOGGER.info("Web interface login successful - XHR polling available")

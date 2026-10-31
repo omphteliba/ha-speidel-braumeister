@@ -11,6 +11,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
+from .request_policy import PollingError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
 from .device_protocol import brew_name_from_step, from_bridge, recipes_from_bridge
 
@@ -324,6 +325,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result = self._get_offline_result()
                 return result
                     
+            except PollingError as err:
+                raise UpdateFailed(str(err)) from err
             except Exception as err:
                 _LOGGER.debug("XHR polling error: %s", err)
         
@@ -371,6 +374,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result["device_type"] = api_dict.get("device_type")
             return result
 
+        except PollingError as err:
+            raise UpdateFailed(str(err)) from err
         except SpeidelPaymentRequiredError:
             _LOGGER.debug("Payment required - device may be offline")
             return self._get_offline_result()
