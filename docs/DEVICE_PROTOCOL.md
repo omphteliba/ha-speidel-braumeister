@@ -85,12 +85,13 @@ Payload is 19 fields separated by `X`:
 | `2610` | `A00S` | Mash-in temperature reached, waiting for the user to add the malt (seen without beep) |
 | `2810` | `A000` | Heating to the next rest (pump + heater on) |
 | `2820` | `A00S` | Holding a rest |
-| `2930`, `2960` | `A00S` | After rest end, waiting for the user (*hypothesis:* remove malt pipe / start boil). Target `0`, pump and heater off, no beep. `2930` followed `2910` once the alarm was confirmed |
+| `2930`, `2960` | `A00S` | After rest end, waiting for the user (*hypothesis:* remove malt pipe). Target `0`, pump and heater off, no beep. Follows `2910` once the alarm is confirmed; after the next confirmation the device goes to `3010` |
 | `2030` | `ADUS` | Program start screen ("Automatik – <recipe> starten") |
 | `2910` | `A00S` | **Alarm:** rest end reached ("Rastende erreicht"), field 15 `010` |
-| `3010` | `A00S` | Heating to boil (target 103.0 °C). From 99 °C field 15 is `0D0` = **alarm "Deckel entfernen"** |
-| `3070` | `A00S` | Boiling; field 7 counts the boil time, field 11 changed from `0` to `-1` at a hop addition |
+| `3010` | `A00S` | Heating to boil (target 103.0 °C). The pump flag changes from `P` to `q` at about 88 °C (pump switched off for the boil). From 99 °C field 15 is `0D0` = **alarm "Deckel entfernen"** until confirmed |
+| `3070` | `A00S` | Boiling; field 7 counts the boil time. Field 11 changes from `0` to `-1` at the hop addition. Hop additions set earlier than the boil time (e.g. 11 and 10 min before the end of a 5-min boil) are skipped: field 11 is `-1` right at the start of the boil, without a beep |
 | `3450` | `A00S` | **Alarm:** brew finished ("Brauvorgang beendet"), pump and heater off, field 15 `010` |
+| `0` | | Briefly (about 5 s) between confirming "brew finished" and the main menu `101` |
 
 The thousands digit is the program phase: `2xxx` = mashing, `3xxx` = boiling; both count as a
 running program. An alarm is active while field 15 signals a beep (`1`/`2`) or the lid (`D`), as in
