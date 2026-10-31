@@ -174,3 +174,34 @@ def test_state_changes_logged_once(bridge_module, caplog):
     lines = [r.getMessage() for r in caplog.records]
     assert len(lines) == 2
     assert "indicator 020" in lines[1]
+
+
+async def test_long_recipe_command_passed_through(bridge_module, caplog):
+    answer = (
+        "Start\r\n$rz=0X40X40X1X0X0X0X0X0X0X0X0X10X103X5X2X0X0X0X0.test 10 minuten\r\nOK\r\nDone\r\n"
+    )
+
+    async def fake_cloud(request):
+        await request.read()
+        resp = web.StreamResponse(headers={"Content-Type": "text/plain; charset=UTF-8"})
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        await resp.write(answer.encode())
+        await resp.write_eof()
+        return resp
+
+    cloud_app = web.Application()
+    cloud_app.router.add_post("/braumeister/connect", fake_cloud)
+    cloud = TestServer(cloud_app)
+    await cloud.start_server()
+    bridge, port80, api = await make_bridge(bridge_module, str(cloud.make_url("")))
+    try:
+        with caplog.at_level("INFO", logger="braumeister_bridge"):
+            resp = await port80.post("/braumeister/connect", data=BM_STAT, headers=DEVICE_HEADERS)
+        assert await resp.read() == answer.encode()
+        assert any("$rz=0X40" in r.getMessage() for r in caplog.records)
+    finally:
+        await port80.close()
+        await api.close()
+        await cloud.close()
+        await bridge.close_session()

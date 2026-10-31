@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Log every command the cloud sends to the device (`$k`, `$rz`, `$d`, ...), e.g. to follow a
+  recipe sync.
+
 ## 0.1.1
 
 - Log every change of state code, pump/heater flags and alarm indicator, so short

@@ -193,6 +193,10 @@ class Bridge:
         if device:
             device["last_response"] = answer.decode("latin-1", "replace")
             device["last_response_source"] = source
+        # Commands from the cloud ($k key press, $rz recipe, $d delete, ...)
+        commands = [line for line in answer.decode("latin-1", "replace").splitlines() if line.startswith("$")]
+        if commands:
+            _LOGGER.info("Cloud command(s) to %s (HTTP %s): %s", request.remote, status, " | ".join(commands))
 
         response = web.StreamResponse(status=status, headers=headers)
         response.enable_chunked_encoding()  # the real server answers chunked
