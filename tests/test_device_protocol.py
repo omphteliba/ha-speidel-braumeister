@@ -57,7 +57,7 @@ def test_remove_lid_alarm_from_indicator(dp, samples):
 @pytest.mark.parametrize(
     ("flags", "pump", "heating"),
     [("ph", "off", "off"), ("Ph", "on", "off"), ("pH", "off", "on"), ("PH", "on", "on"),
-     ("qH", "unknown", "on"), ("Pi", "on", "unknown")],
+     ("qH", "off", "on"), ("Pi", "on", "off"), ("qi", "off", "off"), ("PHx", "unknown", "unknown")],
 )
 def test_actuator_flags(dp, flags, pump, heating):
     result = dp.parse_bm_stat(status(f"0X21:00XCX4006X380X 30.0X4800X5X5X0X0X0X0XAPHTX{flags}X000X0X0X0"))

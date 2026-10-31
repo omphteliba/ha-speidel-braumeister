@@ -19,7 +19,7 @@ Status fields (X-separated):
   [8]  = probably number of synced recipe slots
   [9]  = recipe slot of the running program
   [13] = screen/message code (EMSR, APHT, ADUS, A000, ...)
-  [14] = actuator flags: "P"/"p" = pump on/off, "H"/"h" = heater on/off
+  [14] = actuator flags: "P"/"H" = pump/heater on; "p"/"q" and "h"/"i" = off
   [15] = alarm indicator: middle char "1" = alarm, "D" = remove lid
 """
 
@@ -80,11 +80,18 @@ def _float(fields: list[str], idx: int) -> Optional[float]:
         return None
 
 
-def _flag(flags: Optional[str], idx: int, letter: str) -> str:
-    """Decode one actuator flag: upper case = on, lower case = off."""
-    if not flags or idx >= len(flags) or flags[idx].lower() != letter:
-        return "unknown"
-    return "on" if flags[idx].isupper() else "off"
+# Field 14 as read by MySpeidel's bm_controll.min.js: P/H are shown as active,
+# q/i as inactive, p/h unmarked. Inactive maps to off in the on/off model.
+PUMP_FLAGS = {"P": "on", "p": "off", "q": "off"}
+HEATER_FLAGS = {"H": "on", "h": "off", "i": "off"}
+
+
+def _actuators(flags: Optional[str]) -> tuple[str, str]:
+    """Decode the pump and heater indicators of field 14."""
+    flags = flags or ""
+    if len(flags) > 2:
+        return "unknown", "unknown"
+    return PUMP_FLAGS.get(flags[0:1], "unknown"), HEATER_FLAGS.get(flags[1:2], "unknown")
 
 
 def parse_rz(payload: str) -> dict[int, str]:
@@ -173,8 +180,7 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     result["recipe_slot"] = _int(fields, 9) if in_program else None
 
     flags = _field(fields, 14)
-    result["pump"] = _flag(flags, 0, "p")
-    result["heating"] = _flag(flags, 1, "h")
+    result["pump"], result["heating"] = _actuators(flags)
 
     indicator = _field(fields, 15)
     result["alarm"] = (

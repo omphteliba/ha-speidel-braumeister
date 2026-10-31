@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Pump and heating state were read from the wrong XHR status fields (a seconds counter and a recipe counter). They are now taken from the actuator flags (`P`/`p`, `H`/`h`)
+- Pump and heating state were read from the wrong XHR status fields (a seconds counter and a recipe counter). They are now taken from the actuator flags in field 14 (`P`/`H` on; `p`/`q`, `h`/`i` off), as in MySpeidel's own web display (thanks to DanielP-1337, PR #8)
 - Remaining time always showed 80 minutes and the process status was always "running": the field used is the step duration, not the remaining time. Remaining time is now calculated during rests and the boil and left empty otherwise
 - Process status is now derived from the device state code (automatic program = running)
 - Target temperature `-1000`/`-10000` ("no target") is no longer reported as a negative temperature

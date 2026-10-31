@@ -65,7 +65,7 @@ Payload is 19 fields separated by `X`:
 | 11 | `0`, `-1` | *Hypothesis:* hop addition state; changed from `0` to `-1` at the hop addition 10 min before the end of the boil |
 | 12 | `0`…`318` | Unknown, counts up during a program (about 3 per minute while boiling) |
 | 13 | `EMSR`, `APHT`, `ADUS`, `A000`, `A00F`, `A00S` | Screen/message code (see below) |
-| 14 | `ph`, `Ph`, `pH`, `PH`, `qh`, `Pi`, `pi` | **Actuator flags**: 1st char `P` = pump on, `p` = off; 2nd char `H` = heater on, `h` = off. `q` at the start of a program and during the whole boil (*hypothesis:* pump in interval/vent mode; the firmware has the texts "Pumpe wird entlüftet" and "Pumpenabschaltung"). Parsed as `unknown`. The heater flag can also be `i`, see below |
+| 14 | `ph`, `Ph`, `pH`, `PH`, `qh`, `qH`, `Pi`, `pi` | **Actuator flags**, as read by MySpeidel's own web display (`parseStatus`/`updateScreen` in `bm_controll.min.js`): 1st char pump, 2nd char heater. `P`/`H` = active, `q`/`i` = shown as inactive, `p`/`h` = unmarked. The parser maps `q`/`i` to off. `q` appears during the boil, `i` near the target temperature |
 | 15 | `000`, `010`, `0D0`, `00T`, `120` | **Alarm indicator** (middle character): `1` = alarm (mash-in temperature reached, rest end, brew finished), `D` = remove lid (from 99 °C while heating to boil). `00T` while editing the manual-mode target temperature, `120` together with `A00F` |
 | 16–18 | `0` | Unknown |
 
@@ -100,9 +100,8 @@ states can be missed (e.g. the moment of an abort).
 After an abort the device goes straight back to `101`. Hop additions did not show up as a
 state or alarm indicator; the beep is probably shorter than the 30 s polling interval.
 
-The heater flag is often `i` (`Pi`, `pi`) near the target temperature and while holding a
-rest, and also at rest end with the target at `0`. Its meaning is unclear, so the parser
-reports it as `unknown`. Field 13 `A00S` is not an alarm marker: it also appears while holding a rest and while heating to boil.
+The heater flag is often `i` near the target temperature and while holding a rest; MySpeidel's display
+shows it as inactive. Field 13 `A00S` is not an alarm marker: it holds the labels of the display buttons.
 
 ### `rz` — recipe slots (sent on connect / after changes)
 
