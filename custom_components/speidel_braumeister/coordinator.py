@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
+from .request_policy import PollingError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
 from .cloud_timeseries import from_timeseries
 from .device_protocol import brew_name_from_step, from_bridge, recipes_from_bridge
@@ -364,6 +365,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result = self._get_offline_result()
                 return result
                     
+            except PollingError as err:
+                raise UpdateFailed(str(err)) from err
             except Exception as err:
                 _LOGGER.debug("XHR polling error: %s", err)
         
@@ -420,6 +423,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result["device_type"] = api_dict.get("device_type")
             return result
 
+        except PollingError as err:
+            raise UpdateFailed(str(err)) from err
         except SpeidelPaymentRequiredError:
             _LOGGER.debug("Payment required - device may be offline")
             return self._get_offline_result()
@@ -446,6 +451,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
         try:
             series = await self._api.get_timeseries(self._machine_uuid)
+        except PollingError as err:
+            raise UpdateFailed(str(err)) from err
         except SpeidelPaymentRequiredError:
             self.cloud_series = {"status": {"process": 402}}
             self._cloud_retry_at = time.monotonic() + 3600

@@ -28,6 +28,8 @@ from .models import (
 )
 from .xhr_client import SpeidelXHRClient
 
+from .request_policy import PollingError, RequestPolicy
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -101,6 +103,7 @@ class SpeidelBraumeisterAPI:
             password: My Speidel account password
             session: Optional aiohttp session (will create one if not provided)
         """
+        self.request_policy = RequestPolicy()
         self._username = username
         self._password = password
         self._session = session
@@ -143,6 +146,7 @@ class SpeidelBraumeisterAPI:
                 self._password,
                 self._session,
             )
+        self._xhr_client.request_policy = self.request_policy
         return self._xhr_client
 
     async def close(self) -> None:
@@ -178,7 +182,7 @@ class SpeidelBraumeisterAPI:
         form_data.add_field("pass", self._password)
         
         try:
-            async with session.post(url, data=form_data) as response:
+            async with self.request_policy.request(session.post, url, data=form_data) as response:
                 if response.status == 401:
                     raise SpeidelAuthError("Invalid credentials")
                 
@@ -247,7 +251,7 @@ class SpeidelBraumeisterAPI:
         _LOGGER.debug("API request: %s %s", method, url)
         
         try:
-            async with session.get(url, headers=headers, params=params) as response:
+            async with self.request_policy.request(session.get, url, headers=headers, params=params) as response:
                 return await self._handle_response(response, endpoint)
                 
         except ClientError as err:
@@ -378,6 +382,8 @@ class SpeidelBraumeisterAPI:
                     _LOGGER.info("Got data via XHR: temp=%s", result.temperature)
                     return result
                     
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("XHR polling error: %s", err)
         
@@ -391,6 +397,8 @@ class SpeidelBraumeisterAPI:
                     _LOGGER.info("Got data via Web API: temp=%s", result.temperature)
                     return result
                     
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("Web API error: %s", err)
         
@@ -404,6 +412,8 @@ class SpeidelBraumeisterAPI:
         except SpeidelPaymentRequiredError:
             _LOGGER.warning("Cloud API requires subscription")
             self._payment_required = True
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.warning("Cloud API error: %s", err)
         
@@ -425,7 +435,7 @@ class SpeidelBraumeisterAPI:
     ) -> tuple[Optional[int], Any, str]:
         """GET an API v1.0 endpoint. Returns (HTTP status, JSON or None, body text).
 
-        Never raises: the status is None on a transport error.
+        Polling errors propagate to stop fallback requests in this refresh.
         """
         await self.ensure_authenticated()
         session = await self._get_session()
@@ -438,7 +448,7 @@ class SpeidelBraumeisterAPI:
         if params:
             url += "?" + urlencode(params, quote_via=quote)
         try:
-            async with session.get(
+            async with self.request_policy.request(session.get,
                 URL(url, encoded=True), headers=headers, timeout=ClientTimeout(total=15)
             ) as response:
                 text = await response.text()
@@ -449,11 +459,13 @@ class SpeidelBraumeisterAPI:
                     except ValueError:
                         pass
                 return response.status, data, text
+        except PollingError:
+            raise
         except Exception as err:  # noqa: BLE001 - callers only need "no answer"
             return None, None, str(err)
 
     async def _probe_get(self, endpoint: str, params: Optional[dict] = None) -> Any:
-        """GET an endpoint and log status and body, never raising."""
+        """GET an endpoint and log status/body; polling errors propagate."""
         status, data, text = await self._get_json(endpoint, params)
         if status is None:
             _LOGGER.info("TIMESERIES PROBE %s failed: %s", endpoint, text)
@@ -659,7 +671,7 @@ class SpeidelBraumeisterAPI:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with self.request_policy.request(session.get, url, headers=headers) as response:
                     if response.status == 200:
                         return await response.json()
                     if response.status != 404:
