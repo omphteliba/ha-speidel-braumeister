@@ -35,6 +35,36 @@ Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die M
 |-----------------|-------------|
 | Alarm | Wird `an`, wenn der Braumeister einen Alarm zeigt und auf Sie wartet: Einmaischtemperatur erreicht, Rastende erreicht, Deckel entfernen, Hopfengabe oder Brauvorgang beendet. Das Attribut `alarm_type` zeigt, welcher |
 
+#### Alarme
+
+Der Alarm ist `an`, solange der Braumeister piept und auf Sie wartet – dieselbe Regel wie in der My-Speidel-Weboberfläche. Das Attribut `alarm_type` sagt, welcher:
+
+| `alarm_type` | Braumeister zeigt |
+|---|---|
+| `mash_in_temperature_reached` | Einmaischtemperatur erreicht – Malz einfüllen |
+| `rest_end_reached` | Rastende erreicht |
+| `remove_lid` | Deckel entfernen (kurz vor dem Kochen) |
+| `hop_addition` | Hopfen zugeben |
+| `brew_finished` | Brauvorgang beendet |
+
+Beispiel-Automation – eine Push-Nachricht bei jedem Alarm:
+
+```yaml
+automation:
+  - alias: Braumeister-Alarm
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.braumeister_alarm
+        to: "on"
+    actions:
+      - action: notify.notify
+        data:
+          title: Braumeister
+          message: "{{ state_attr('binary_sensor.braumeister_alarm', 'alarm_type') | replace('_', ' ') }}"
+```
+
+Kurze Alarme wie Hopfengaben können bei der standardmäßigen 30-Sekunden-Abfrage über die Weboberfläche untergehen. Mit der [Braumeister Bridge](#lokaler-modus-braumeister-bridge-optional) meldet sich das Gerät jede Sekunde.
+
 ### Rezeptinformationen
 
 Der Sensor "Brauname" enthält zusätzliche Attribute:
@@ -83,6 +113,23 @@ Da diese Integration nicht im Standard-HACS-Store enthalten ist, müssen Sie sie
    - **Benutzername**: Ihr My Speidel-Kontobenutzername
    - **Passwort**: Ihr My Speidel-Kontopasswort
 5. Geben Sie Ihre Machine UUID ein (siehe unten, wie Sie diese finden)
+
+## Lokaler Modus: Braumeister Bridge (optional)
+
+Der Braumeister schickt seinen Status etwa jede Sekunde per unverschlüsseltem HTTP an die My-Speidel-Cloud. Die App **Braumeister Bridge** empfängt diese Daten direkt in Home Assistant und reicht sie an My Speidel weiter – App und Weboberfläche funktionieren also weiter:
+
+- Status jede Sekunde statt alle 30 s, kurze Alarme (Hopfengaben) gehen nicht verloren
+- Temperatur, Pumpe, Heizung und Alarme funktionieren auch bei Cloud-Ausfall
+- die Rezeptliste des Geräts bleibt erhalten, auch wenn es aus ist
+
+**Einrichtung** (nur Home Assistant OS / Supervised):
+
+1. Einstellungen → Apps → App-Store → ⋮ → Repositories → `https://github.com/omphteliba/ha-speidel-braumeister` hinzufügen
+2. **Braumeister Bridge** installieren und starten.
+3. In den WLAN-Einstellungen des Braumeisters den **DNS-Server** auf die IP Ihres Home Assistant setzen. Nur der Braumeister nutzt ihn.
+4. Braumeister aus- und einschalten. Die Integration nutzt die Bridge automatisch (Debug-Log: `Got data via Braumeister Bridge`).
+
+Der Braumeister verbindet sich immer auf Port 80. Nutzt auf Ihrem Home-Assistant-Host schon ein anderer Dienst Port 80 (z. B. `emulated_hue`), siehe die [Dokumentation der App](braumeister_bridge/DOCS.md). Details zum Protokoll: [docs/DEVICE_PROTOCOL.md](docs/DEVICE_PROTOCOL.md).
 
 ## Finden Ihrer Machine UUID
 
@@ -144,9 +191,10 @@ Sie benötigen ein **My Speidel-Konto** mit Ihrem registrierten Braumeister. Die
 
 Die Integration verwendet mehrere Datenquellen für maximale Zuverlässigkeit:
 
-1. **XHR-Polling (Primär)** - Gleiche Methode wie vom My Speidel Web Interface verwendet
-2. **Device Info JSON** - Zusätzliche Metadaten (Gerätetyp, Modus, Schritt, Fortschritt)
-3. **Cloud API (Fallback)** - Historische Daten (erfordert möglicherweise Abonnement)
+1. **Braumeister Bridge (optional)** - Lokale Daten direkt vom Gerät, wenn die App installiert ist und Daten empfängt
+2. **XHR-Polling** - Gleiche Methode wie vom My Speidel Web Interface verwendet
+3. **Device Info JSON** - Zusätzliche Metadaten (Gerätetyp, Modus, Schritt, Fortschritt)
+4. **Cloud API (Fallback)** - Historische Daten (erfordert möglicherweise Abonnement)
 
 ### XHR-Polling
 

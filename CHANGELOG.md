@@ -7,37 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Pump and heating sensors are now enum sensors with the states `on`/`off`**, translated by Home Assistant (English On/Off, German Ein/Aus). Before, they always showed the German words "Ein"/"Aus". Automations that compare the state with "Ein"/"Aus" must use `on`/`off` instead
-- Connection status, subscription required and process status are enum sensors with translated states as well (e.g. process status `running` shows as "Läuft" in German). "Subscription required" changed from `Yes`/`No` to `yes`/`no`
-- Requires Home Assistant 2025.1 or newer (`hacs.json`), matching the Pydantic v2 requirement
-- `hacs.json` reduced to the keys HACS accepts; `issue_tracker` added to the manifest
+## [3.0.0] - 2026-10-31
 
-### Fixed
-- Pump and heating state were read from the wrong XHR status fields (a seconds counter and a recipe counter). They are now taken from the actuator flags in field 14 (`P`/`H` on; `p`/`q`, `h`/`i` off), as in MySpeidel's own web display (thanks to DanielP-1337, PR #8)
-- Remaining time always showed 80 minutes and the process status was always "running": the field used is the step duration, not the remaining time. Remaining time is now calculated during rests and the boil and left empty otherwise
-- Process status is now derived from the device state code (automatic program = running)
-- Target temperature `-1000`/`-10000` ("no target") is no longer reported as a negative temperature; `0` between program steps is shown as 0 °C like in the MySpeidel web interface
-- The alarm binary sensor had no English name
-- "Current phase" showed the text `UNKNOWN` instead of an unknown state
-- German: "Current phase" and "Current step" were both called "Aktueller Schritt"; the phase sensor is now "Aktuelle Phase"
-- Wrong recipe name after recipes were re-sorted and re-synced to the device: the device recipe list is now reloaded when it changes, and the name of the running recipe is taken from the web interface's step text
-- The main menu no longer shows the previous program's target temperature (the device keeps reporting it there)
-- A running brew was shown as idle because the web interface reports the mode "wartet" even during a program. The coordinator now trusts the device state code
-- Boiling (state 3xxx) now also counts as a running program
-- The recipe slot (and with it the brew name) was always 0 / the first recipe; it is now read from the correct field and only during a program
+Highlights: **alarms that actually work**, and the optional **Braumeister Bridge** app that
+receives the device's data locally, every second.
+
+### Breaking changes
+- **Pump and heating sensors are enum sensors with the states `on`/`off`**, translated by Home Assistant (On/Off, Ein/Aus). They used to always show the German words "Ein"/"Aus". Automations comparing the state with "Ein"/"Aus" must use `on`/`off`
+- Connection status, subscription required and process status are enum sensors with translated states as well. "Subscription required" changed from `Yes`/`No` to `yes`/`no`
+- Requires Home Assistant 2025.1 or newer
+
+### Alarms
+- The **alarm binary sensor** is on while the Braumeister beeps and waits for you – the same rule the My Speidel web display uses. Before, it never triggered via XHR polling
+- Recognized alarms (attribute `alarm_type`): mash-in temperature reached, rest end reached, remove lid, hop addition, brew finished. All verified in live brews
+- Attribute `state_code` with the raw device state
+
+### Braumeister Bridge app (new, optional)
+- `braumeister_bridge/`: add this repository to the app store. Answers DNS for `api2.myspeidel.com`, receives the device's messages on port 80, forwards them to My Speidel (app, web interface and recipe sync keep working) and passes other port-80 traffic on (e.g. to `emulated_hue`)
+- The integration reads from the bridge first and falls back to the web interface; step text, mode and device type are still taken from the web interface when reachable
+- Status every second instead of every 30 s; temperature, pump, heater and alarms keep working without the cloud
+- Recipe lists are kept across restarts and while the device is off
+- See `braumeister_bridge/DOCS.md` and the README section "Local Mode"
 
 ### Added
-- New **Braumeister Bridge** app (`braumeister_bridge/`, add this repository to the app store): receives the Braumeister's cloud traffic locally via a DNS entry for `api2.myspeidel.com`, forwards it to My Speidel and passes other port-80 traffic on (e.g. to `emulated_hue`). The integration reads from it first and falls back to the web interface
-- New sensor **Device Recipes** ("Rezepte auf dem Gerät"): number of recipe slots on the device, with every recipe (mash-in, rests, boil, hop additions) as attributes. Works with and without the bridge; the last known list is kept while the device is off
-- Recipe names come from the device's own recipe list when the bridge is used
-- With the bridge, the step text, mode and device type are still taken from the web interface when it is reachable; progress is calculated locally (field 12, 318 = 100 %)
-- Remaining time during rests and the boil, calculated from the step duration and elapsed time in the device status
+- Sensor **Device Recipes** ("Rezepte auf dem Gerät"): number of recipes on the device, every recipe (mash-in, rests, boil, hop additions) as attributes
+- Remaining time during rests and the boil
+- Progress calculated from the device status (318 = 100 %), like the web interface
 - Process status `finished` when the brew has ended
-- Alarm binary sensor now uses the device state code, so it is on while the device beeps for an alarm (mash-in temperature reached, rest end, remove lid, hop addition, brew finished), the same rule MySpeidel's web display uses (it never triggered via XHR polling before). New attributes `alarm_type` and `state_code`.
-- With debug logging enabled, the integration logs once at startup what the documented cloud timeseries API returns
-- `docs/DEVICE_PROTOCOL.md`: the device's own protocol to the cloud, reverse-engineered from a packet capture
-- `device_protocol.py`: shared parser for the device status message, used by both XHR clients
+- `docs/DEVICE_PROTOCOL.md`: the device protocol, reverse-engineered from packet captures, firmware strings and MySpeidel's web display
+- Tests (pytest, 78 tests), ruff, hassfest/HACS validation and app checks in GitHub Actions
+- With debug logging, the integration logs once at startup what the documented cloud timeseries API returns
+
+### Fixed
+- Pump and heating were read from the wrong status fields (a seconds counter and a recipe counter); now from the actuator flags, as in MySpeidel's own display (thanks to DanielP-1337, PR #8)
+- Remaining time always showed 80 minutes and the process status was always "running"
+- A running brew was shown as idle (the web interface reports "wartet" even during a program); boiling now also counts as running
+- Wrong recipe name: the recipe slot was read from the wrong field, and the recipe list was not reloaded after a re-sync
+- Target temperature: no negative values for "no target", no stale target in the main menu; 0 °C between steps like the web interface
+- "Current phase" showed the text `UNKNOWN`; in German it had the same name as "Current step"
+- The alarm binary sensor had no English name
+- `hacs.json` and manifest fixed for HACS validation
 
 ## [2.0.3] - 2026-03-03
 

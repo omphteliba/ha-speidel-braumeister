@@ -35,6 +35,36 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 |-----------------|-------------|
 | Alarm | Turns `on` when the Braumeister shows an alarm and waits for you: mash-in temperature reached, rest end reached, remove lid, hop addition, or brew finished. The attribute `alarm_type` tells which one |
 
+#### Alarms
+
+The alarm is `on` while the Braumeister beeps and waits for you, the same rule the My Speidel web display uses. The `alarm_type` attribute names it:
+
+| `alarm_type` | Braumeister shows |
+|---|---|
+| `mash_in_temperature_reached` | Mash-in temperature reached – add the malt |
+| `rest_end_reached` | Rest end reached |
+| `remove_lid` | Remove the lid (just before the boil) |
+| `hop_addition` | Add hops |
+| `brew_finished` | Brew finished |
+
+Example automation – a push message for every alarm:
+
+```yaml
+automation:
+  - alias: Braumeister alarm
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.braumeister_alarm
+        to: "on"
+    actions:
+      - action: notify.notify
+        data:
+          title: Braumeister
+          message: "{{ state_attr('binary_sensor.braumeister_alarm', 'alarm_type') | replace('_', ' ') }}"
+```
+
+Short alarms such as hop additions can be missed with the default 30-second web polling. With the [Braumeister Bridge](#local-mode-braumeister-bridge-optional) the device reports every second.
+
 ### Recipe Information
 
 The Brew Name sensor includes additional attributes:
@@ -83,6 +113,23 @@ Since this integration is not in the default HACS store, you need to add it as a
    - **Username**: Your My Speidel account username
    - **Password**: Your My Speidel account password
 5. Enter your Machine UUID (see below for how to find it)
+
+## Local Mode: Braumeister Bridge (optional)
+
+The Braumeister sends its status to the My Speidel cloud about once per second over plain HTTP. The **Braumeister Bridge** app receives this traffic directly in Home Assistant and forwards it to My Speidel, so the app and web interface keep working:
+
+- status every second instead of every 30 s, so short alarms (hop additions) are not missed
+- temperature, pump, heater and alarms keep working when the cloud is down
+- the recipe list of the device is kept, also while it is off
+
+**Setup** (Home Assistant OS / supervised only):
+
+1. Settings → Apps → App store → ⋮ → Repositories → add `https://github.com/omphteliba/ha-speidel-braumeister`
+2. Install and start **Braumeister Bridge**.
+3. In the Braumeister's WiFi settings, set the **DNS server** to the IP of your Home Assistant. Only the Braumeister uses it.
+4. Switch the Braumeister off and on. The integration uses the bridge automatically (debug log: `Got data via Braumeister Bridge`).
+
+The Braumeister always connects to port 80. If another service already uses port 80 on your Home Assistant host (e.g. `emulated_hue`), see the app's [documentation](braumeister_bridge/DOCS.md). Protocol details: [docs/DEVICE_PROTOCOL.md](docs/DEVICE_PROTOCOL.md).
 
 ## Finding Your Machine UUID
 
@@ -144,9 +191,10 @@ You need a **My Speidel account** with your Braumeister registered. The integrat
 
 The integration uses multiple data sources for maximum reliability:
 
-1. **XHR Polling (Primary)** - Same method used by the My Speidel web interface
-2. **Device Info JSON** - Additional metadata (device type, mode, step, progress)
-3. **Cloud API (Fallback)** - Historical data (may require subscription)
+1. **Braumeister Bridge (optional)** - Local data from the device, if the app is installed and receiving
+2. **XHR Polling** - Same method used by the My Speidel web interface
+3. **Device Info JSON** - Additional metadata (device type, mode, step, progress)
+4. **Cloud API (Fallback)** - Historical data (may require subscription)
 
 ### XHR Polling
 
