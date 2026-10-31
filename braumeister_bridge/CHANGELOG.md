@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3
+
+- **Fix:** answers from the cloud reached the device gzip-compressed, because aiohttp asked
+  for compression on its own. The device could not read them: recipe syncs and other
+  commands were lost and it reported only every ~4 s. The bridge now asks for plain text
+  and unpacks compressed answers.
+- Debug log: status, duration and answer of every request forwarded to the cloud.
+
 ## 0.1.2
 
 - Log every command the cloud sends to the device (`$k`, `$rz`, `$d`, ...), e.g. to follow a

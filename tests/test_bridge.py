@@ -205,3 +205,38 @@ async def test_long_recipe_command_passed_through(bridge_module, caplog):
         await api.close()
         await cloud.close()
         await bridge.close_session()
+
+
+async def test_cloud_answer_never_compressed(bridge_module):
+    """Regression: aiohttp asked for gzip and the compressed bytes reached the device."""
+    import gzip as gz
+
+    seen = []
+
+    async def fake_cloud(request):
+        seen.append(request.headers.get("Accept-Encoding"))
+        await request.read()
+        body = b"Start\r\n$k=2\r\nOK\r\nDone\r\n"
+        if "gzip" in (request.headers.get("Accept-Encoding") or ""):
+            return web.Response(body=gz.compress(body), headers={"Content-Encoding": "gzip"})
+        return web.Response(body=body)
+
+    async def always_gzip(request):
+        await request.read()
+        return web.Response(body=gz.compress(b"Start\r\n$k=4\r\nOK\r\nDone\r\n"), headers={"Content-Encoding": "gzip"})
+
+    for handler, expected in ((fake_cloud, b"$k=2"), (always_gzip, b"$k=4")):
+        cloud_app = web.Application()
+        cloud_app.router.add_post("/braumeister/connect", handler)
+        cloud = TestServer(cloud_app)
+        await cloud.start_server()
+        bridge, port80, api = await make_bridge(bridge_module, str(cloud.make_url("")))
+        try:
+            resp = await port80.post("/braumeister/connect", data=BM_STAT, headers=DEVICE_HEADERS)
+            assert expected in await resp.read()
+        finally:
+            await port80.close()
+            await api.close()
+            await cloud.close()
+            await bridge.close_session()
+    assert seen == ["identity"]

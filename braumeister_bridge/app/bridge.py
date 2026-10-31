@@ -17,6 +17,7 @@ See docs/DEVICE_PROTOCOL.md in the repository for the protocol.
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
 import logging
 import os
@@ -183,11 +184,17 @@ class Bridge:
 
         status, headers, answer, source = 200, {"Content-Type": "text/plain; charset=UTF-8"}, LOCAL_ANSWER, "local"
         if self.options["forward_to_cloud"]:
+            started = time.monotonic()
             try:
                 status, headers, answer = await self.forward_to_cloud(request, body)
                 source = "cloud"
             except Exception as err:  # cloud down or unreachable: answer locally
                 _LOGGER.warning("Cloud forward failed (%s), answering locally", err)
+            _LOGGER.debug(
+                "%s %s -> %s %s in %.0f ms: %r",
+                request.method, request.path, source, status,
+                (time.monotonic() - started) * 1000, answer[:200],
+            )
 
         device = self.device_for(body)
         if device:
@@ -212,8 +219,13 @@ class Bridge:
         base = self.options["cloud_url"] or f"http://{self.options['cloud_host']}"
         url = base.rstrip("/") + request.path_qs
         headers["Host"] = self.options["cloud_host"]
+        # The device cannot decode compressed answers and never asks for them, but
+        # aiohttp would add "Accept-Encoding: gzip" on its own. Ask for plain text.
+        headers["Accept-Encoding"] = "identity"
         async with self.session.request(request.method, url, data=body, headers=headers) as resp:
             answer = await resp.read()
+            if resp.headers.get("Content-Encoding", "").lower() in ("gzip", "x-gzip"):
+                answer = gzip.decompress(answer)  # compressed anyway: unpack for the device
             out = {"Content-Type": resp.headers.get("Content-Type", "text/plain; charset=UTF-8")}
             return resp.status, out, answer
 
@@ -221,6 +233,8 @@ class Bridge:
         url = self.options["passthrough_url"].rstrip("/") + request.path_qs
         headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_BY_HOP}
         headers["Host"] = request.headers.get("Host", "")
+        if not any(k.lower() == "accept-encoding" for k in headers):
+            headers["Accept-Encoding"] = "identity"  # don't let aiohttp add gzip on its own
         try:
             async with self.session.request(
                 request.method, url, data=await request.read(), headers=headers, allow_redirects=False
