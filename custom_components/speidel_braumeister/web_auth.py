@@ -5,6 +5,7 @@ This module handles obtaining/maintaining that session AND XHR polling for real-
 """
 
 import logging
+from time import monotonic
 import re
 from typing import Any, Optional
 from datetime import datetime, timedelta
@@ -13,6 +14,7 @@ import aiohttp
 from aiohttp import ClientError, ClientTimeout
 
 from .status_parser import parse_actuator_status
+from .polling import display_flags, METADATA_INTERVAL, RECIPES_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +49,8 @@ class SpeidelWebAuth:
         self._device_type: Optional[str] = None  # e.g., "Braumeister 20 Liter"
         self._last_online: Optional[str] = None
         self._device_info: dict = {}  # Full device info from JSON
+        self._metadata_due = 0.0
+        self._recipes_due = 0.0
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create an aiohttp session."""
@@ -168,21 +172,20 @@ class SpeidelWebAuth:
         session = await self._get_session()
         id_variants = self._get_id_variants(machine_id)
         
-        # Fetch device info JSON
-        await self._fetch_device_info_json(id_variants)
-        
-        # Fetch device recipes (stored on device)
-        if not self._device_recipes:
+        now = monotonic()
+        # Throttle attempts too: empty recipe lists/failures must not be fetched
+        # on every fast telemetry poll. No parallel or orphan background tasks.
+        if now >= self._metadata_due:
+            self._metadata_due = now + METADATA_INTERVAL
+            await self._fetch_device_info_json(id_variants)
+        if now >= self._recipes_due:
+            self._recipes_due = now + RECIPES_INTERVAL
             await self._fetch_device_recipes(id_variants[0] if id_variants else machine_id)
-        
-        # Fetch account recipes (stored in cloud)
-        if not self._account_recipes:
             await self._fetch_account_recipes()
-        
-        # Build mapping between device slots and account recipes
-        if self._device_recipes and self._account_recipes and not self._recipe_mapping:
-            self._build_recipe_mapping()
-        
+            self._recipe_mapping.clear()
+            if self._device_recipes and self._account_recipes:
+                self._build_recipe_mapping()
+
         for device_id in id_variants:
             url = f"{WEB_BASE_URL}/braumeister/getDeviceStatusControl/{device_id}"
             
@@ -194,7 +197,7 @@ class SpeidelWebAuth:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with session.get(url, headers=headers, timeout=ClientTimeout(total=10)) as response:
                     if response.status != 200:
                         continue
                     
@@ -203,7 +206,7 @@ class SpeidelWebAuth:
                     if text.startswith('<!'):
                         self._logged_in = False
                         if await self.login():
-                            async with session.get(url, headers=headers) as retry_response:
+                            async with session.get(url, headers=headers, timeout=ClientTimeout(total=10)) as retry_response:
                                 text = await retry_response.text()
                                 if text.startswith('<!'):
                                     continue
@@ -243,7 +246,7 @@ class SpeidelWebAuth:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with session.get(url, headers=headers, timeout=ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         text = await response.text()
                         if text.startswith('{'):
@@ -274,7 +277,7 @@ class SpeidelWebAuth:
                                 'screen_function': data.get('screenFunction'),  # e.g., "showMashing"
                             }
                             
-                            _LOGGER.info("Device info: type=%s, name=%s, mode=%s, step=%s",
+                            _LOGGER.debug("Device info: type=%s, name=%s, mode=%s, step=%s",
                                         self._device_type, self._device_name,
                                         data.get('deviceMode'), data.get('screenTitle'))
                             
@@ -296,7 +299,7 @@ class SpeidelWebAuth:
         }
         
         try:
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, headers=headers, timeout=ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     text = await response.text()
                     self._device_recipes = self._parse_device_recipes(text)
@@ -315,7 +318,7 @@ class SpeidelWebAuth:
         }
         
         try:
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, headers=headers, timeout=ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     html = await response.text()
                     self._account_recipes = self._parse_account_recipes_html(html)
@@ -483,6 +486,7 @@ class SpeidelWebAuth:
             
             # Pump/heater indicators are case-sensitive characters at field 14.
             result.update(parse_actuator_status(data_parts))
+            result.update(display_flags(data_parts))
 
             # Process status
             if current_temp is not None:
@@ -509,7 +513,7 @@ class SpeidelWebAuth:
                 result['current_stage'] = self._device_info.get('current_stage')
                 result['screen_function'] = self._device_info.get('screen_function')
             
-            _LOGGER.info("Parsed: temp=%.1f°C, recipe=%s (slot %s), step=%s, mode=%s", 
+            _LOGGER.debug("Parsed: temp=%.1f°C, recipe=%s (slot %s), step=%s, mode=%s",
                         current_temp or 0, result.get('brew_name', 'unknown'), recipe_slot,
                         result.get('current_step', 'unknown'), result.get('device_mode', 'unknown'))
             

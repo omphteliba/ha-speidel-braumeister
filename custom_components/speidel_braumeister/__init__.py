@@ -19,6 +19,10 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
 )
 from .coordinator import SpeidelBraumeisterDataCoordinator
+from .polling import (
+    configured_interval, CONF_ONLINE_INTERVAL, CONF_ACTIVE_INTERVAL,
+    DEFAULT_ONLINE_INTERVAL, DEFAULT_ACTIVE_INTERVAL,
+)
 from .mqtt_client import SpeidelMQTTClient
 from .web_auth import SpeidelWebAuth
 
@@ -43,7 +47,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
     machine_uuid = entry.data[CONF_MACHINE_UUID]
-    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    scan_interval = configured_interval(entry.data, entry.options, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, 10)
+    online_interval = configured_interval(entry.data, entry.options, CONF_ONLINE_INTERVAL, DEFAULT_ONLINE_INTERVAL)
+    active_interval = configured_interval(entry.data, entry.options, CONF_ACTIVE_INTERVAL, DEFAULT_ACTIVE_INTERVAL)
     
     _LOGGER.info("Machine UUID: %s, Scan interval: %s", machine_uuid, scan_interval)
 
@@ -87,6 +93,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         api,
         machine_uuid,
         scan_interval,
+        online_interval=online_interval,
+        active_interval=active_interval,
     )
     
     # IMPORTANT: Set web_auth BEFORE first data refresh

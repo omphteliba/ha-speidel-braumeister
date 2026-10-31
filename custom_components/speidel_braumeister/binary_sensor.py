@@ -53,7 +53,7 @@ class SpeidelBraumeisterBinarySensor(SpeidelBraumeisterEntity, BinarySensorEntit
         self.entity_description = description
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
         data = self.coordinator.data
         if not data:
@@ -62,6 +62,13 @@ class SpeidelBraumeisterBinarySensor(SpeidelBraumeisterEntity, BinarySensorEntit
         key = self.entity_description.key
 
         if key == "alarm":
+            if data.get("connection_status") != "online":
+                return None
+            if isinstance(data.get("alarm"), bool):
+                return data["alarm"]
+            # Legacy/cloud fallback; unknown fast alarm flags remain unknown.
+            if "alarm" in data and data["alarm"] is None:
+                return None
             # Check if current phase is an alarm state
             current_phase = data.get("current_phase", "")
             return current_phase in ALARM_PHASES

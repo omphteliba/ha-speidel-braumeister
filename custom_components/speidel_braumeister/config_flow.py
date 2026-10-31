@@ -19,6 +19,11 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
 )
 
+from .polling import (
+    configured_interval, CONF_ONLINE_INTERVAL, CONF_ACTIVE_INTERVAL,
+    DEFAULT_ONLINE_INTERVAL, DEFAULT_ACTIVE_INTERVAL,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 # Schema for authentication
@@ -157,8 +162,16 @@ class SpeidelBraumeisterOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
-                    default=self._config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                    default=configured_interval(self._config_entry.data, self._config_entry.options, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, 10),
                 ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
+                vol.Optional(
+                    CONF_ONLINE_INTERVAL,
+                    default=configured_interval(self._config_entry.data, self._config_entry.options, CONF_ONLINE_INTERVAL, DEFAULT_ONLINE_INTERVAL),
+                ): vol.All(vol.Coerce(int), vol.Range(min=3, max=3600)),
+                vol.Optional(
+                    CONF_ACTIVE_INTERVAL,
+                    default=configured_interval(self._config_entry.data, self._config_entry.options, CONF_ACTIVE_INTERVAL, DEFAULT_ACTIVE_INTERVAL),
+                ): vol.All(vol.Coerce(int), vol.Range(min=3, max=3600)),
             }
         )
 

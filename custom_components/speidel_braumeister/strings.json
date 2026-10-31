@@ -36,8 +36,11 @@
       "init": {
         "title": "Speidel Braumeister Options",
         "data": {
-          "scan_interval": "Scan Interval (seconds)"
-        }
+          "scan_interval": "Offline/base interval (seconds)",
+          "online_scan_interval": "Online idle interval (seconds)",
+          "active_scan_interval": "Brewing / manual operation interval (seconds)"
+        },
+        "description": "Defaults: offline 30 s, online 10 s, active 5 s. Active polling supports 3 s minimum. Faster states never use a longer interval than slower states."
       }
     }
   },

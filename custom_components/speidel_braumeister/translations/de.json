@@ -36,8 +36,11 @@
       "init": {
         "title": "Speidel Braumeister Optionen",
         "data": {
-          "scan_interval": "Aktualisierungsintervall (Sekunden)"
-        }
+          "scan_interval": "Offline-/Basisintervall (Sekunden)",
+          "online_scan_interval": "Online im Leerlauf (Sekunden)",
+          "active_scan_interval": "Brauen / manueller Betrieb (Sekunden)"
+        },
+        "description": "Standard: offline 30 s, online 10 s, aktiv 5 s. Aktiv sind mindestens 3 s möglich. Schnellere Zustände verwenden höchstens das Intervall des langsameren Zustands."
       }
     }
   },

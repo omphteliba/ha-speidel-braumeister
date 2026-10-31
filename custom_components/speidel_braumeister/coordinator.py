@@ -1,6 +1,7 @@
 """Data coordinator for the Speidel Braumeister integration."""
 
 import logging
+from time import monotonic
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -9,6 +10,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .const import DEFAULT_SCAN_INTERVAL
+from .polling import polling_state, DEFAULT_ONLINE_INTERVAL, DEFAULT_ACTIVE_INTERVAL, MQTT_MAX_AGE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +27,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         api: SpeidelBraumeisterAPI,
         machine_uuid: str,
         scan_interval: int = DEFAULT_SCAN_INTERVAL,
+        online_interval: int = DEFAULT_ONLINE_INTERVAL,
+        active_interval: int = DEFAULT_ACTIVE_INTERVAL,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
@@ -33,6 +37,12 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             name="Speidel Braumeister",
             update_interval=timedelta(seconds=scan_interval),
         )
+        self._poll_intervals = {
+            "offline": scan_interval,
+            "online": min(scan_interval, online_interval),
+            "active": min(scan_interval, online_interval, active_interval),
+        }
+        self._mqtt_received_at = None
         self._api = api
         self._machine_uuid = machine_uuid
         self._mqtt_data: dict[str, Any] = {}
@@ -50,6 +60,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Update data from MQTT message."""
         _LOGGER.debug("Updating from MQTT: %s", data)
         
+        self._mqtt_received_at = monotonic()
         self._mqtt_data.update(data)
         self._last_online = datetime.now(timezone.utc).replace(microsecond=0)
         
@@ -60,6 +71,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         updated_data["connection_status"] = "online"
         updated_data["last_online"] = self._last_online
+        self._set_poll_interval(updated_data)
         self.async_set_updated_data(updated_data)
 
     def _is_valid_temp(self, temp: Any) -> bool:
@@ -187,10 +199,29 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         return cleaned
 
+    def _set_poll_interval(self, data: dict[str, Any]) -> None:
+        state = polling_state(data)
+        seconds = self._poll_intervals[state]
+        self.update_interval = timedelta(seconds=seconds)
+        _LOGGER.debug("Adaptive polling: state=%s, next interval=%ss", state, seconds)
+
     async def _async_update_data(self) -> dict[str, Any]:
+        """Choose the next interval after every result, including failures."""
+        try:
+            result = await self._fetch_data()
+        except Exception:
+            self._set_poll_interval({})
+            raise
+        self._set_poll_interval(result)
+        return result
+
+    async def _fetch_data(self) -> dict[str, Any]:
         """Fetch data from the API."""
         _LOGGER.debug("Starting data update for machine %s", self._machine_uuid)
         
+        # A historic MQTT message must not disable XHR polling indefinitely.
+        if self._mqtt_received_at is None or monotonic() - self._mqtt_received_at >= MQTT_MAX_AGE:
+            self._mqtt_data.clear()
         result: dict[str, Any] = self._mqtt_data.copy()
         result["payment_required"] = False
         result["last_online"] = self._last_online
@@ -228,6 +259,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result['current_step'] = xhr_data.get('current_step')
                     result['current_phase'] = xhr_data.get('current_phase')
                     result['progress'] = xhr_data.get('progress')
+                    result['brew_status_code'] = xhr_data.get('brew_status_code')
+                    result['alarm'] = xhr_data.get('alarm')
                     
                     self._update_last_online(result)
                     result["last_online"] = self._last_online
