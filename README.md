@@ -19,11 +19,11 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 | Pump Status | Current pump state (Ein/Aus - German for On/Off) |
 | Heating Status | Current heating element state (Ein/Aus) |
 | Process Status | Current brewing process status (running, idle, etc.) |
-| Current Phase | Current brewing phase (Einmaischen, Rast, Kochen, etc.) |
+| Current Phase | Current brewing phase as reported by the device in German (e.g. Einmaischen = mash-in, Rast = rest, Kochen = boil) |
 | Remaining Time | Estimated remaining time for the current phase |
 | Brew Name | Name of the current brew/recipe |
 | Device Type | Braumeister model (e.g., "Braumeister 20 Liter") |
-| Device Mode | Current mode (Automatik, wartet, etc.) |
+| Device Mode | Current mode as reported by the device (e.g. Automatik = automatic program, wartet = waiting) |
 | Current Step | Full step name (e.g., "Stone IPA – Einmaischen") |
 | Brewing Progress | Progress percentage of the current brew |
 | Last Online | Last time the device was online |
@@ -32,7 +32,7 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 
 | Binary Sensors | Description |
 |-----------------|-------------|
-| Alarm | Wird `AN`, wenn der Braumeister einen Alarmzustand erreicht (Einmaischtemperatur erreicht oder Rastende erreicht) |
+| Alarm | Turns `on` when the Braumeister shows an alarm and waits for you: mash-in temperature reached, rest end reached, remove lid, or brew finished. The attribute `alarm_type` tells which one |
 
 ### Recipe Information
 
