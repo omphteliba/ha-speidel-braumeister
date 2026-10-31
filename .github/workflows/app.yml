@@ -1,0 +1,35 @@
+name: Braumeister Bridge app
+
+on:
+  push:
+    paths:
+      - "braumeister_bridge/**"
+      - ".github/workflows/app.yml"
+  pull_request:
+    paths:
+      - "braumeister_bridge/**"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: App linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: frenck/action-addon-linter@v2
+        with:
+          path: "./braumeister_bridge"
+
+  build:
+    name: Build (amd64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build image
+        run: |
+          base=$(grep 'amd64:' braumeister_bridge/build.yaml | awk '{print $2}')
+          docker build --build-arg BUILD_FROM="$base" -t braumeister-bridge-test braumeister_bridge
+      - name: Smoke test
+        run: |
+          docker run --rm --entrypoint python3 braumeister-bridge-test \
+            -c "import sys; sys.path.insert(0, '/app'); import bridge; print('bridge imports OK')"

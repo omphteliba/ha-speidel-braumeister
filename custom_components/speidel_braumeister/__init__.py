@@ -53,7 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Authenticate with cloud API
     try:
-        auth_result = await api.authenticate()
+        await api.authenticate()
         _LOGGER.info("Cloud API authentication successful, user_id: %s", api.user_id)
         
         # Log subscription info

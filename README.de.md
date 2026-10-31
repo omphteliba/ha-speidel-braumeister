@@ -3,6 +3,7 @@
 [![hacs][hacs-badge]][hacs]
 [![GitHub Release][release-badge]][release]
 [![License][license-badge]][license]
+[![Tests][tests-badge]][tests]
 
 Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die My Speidel Cloud API. Diese Integration ermöglicht es Ihnen, Ihren Brauvorgang mit Echtzeitdaten und Rezeptinformationen zu überwachen.
 
@@ -226,3 +227,5 @@ Dieses Projekt wurde mit KI-Unterstützung entwickelt: die erste Version (bis v2
 [release]: https://github.com/omphteliba/ha-speidel-braumeister/releases
 [license-badge]: https://img.shields.io/github/license/omphteliba/ha-speidel-braumeister?style=for-the-badge
 [license]: LICENSE
+[tests-badge]: https://github.com/omphteliba/ha-speidel-braumeister/actions/workflows/tests.yml/badge.svg
+[tests]: https://github.com/omphteliba/ha-speidel-braumeister/actions/workflows/tests.yml

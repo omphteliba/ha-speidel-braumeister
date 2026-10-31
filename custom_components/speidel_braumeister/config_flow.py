@@ -83,7 +83,7 @@ class SpeidelBraumeisterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except SpeidelApiError as err:
                 _LOGGER.error("API error: %s", err)
                 errors["base"] = "cannot_connect"
-            except Exception as err:  # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception during authentication")
                 errors["base"] = "unknown"
             else:

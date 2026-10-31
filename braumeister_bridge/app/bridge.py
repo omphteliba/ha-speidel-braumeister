@@ -112,10 +112,11 @@ def build_answer(query: bytes, question_end: int, qtype: int, ip: str, ttl: int 
 
 
 class DnsProtocol(asyncio.DatagramProtocol):
-    def __init__(self, cloud_host: str, bridge_ip: str, upstream: str) -> None:
+    def __init__(self, cloud_host: str, bridge_ip: str, upstream: str, upstream_port: int = 53) -> None:
         self.cloud_host = cloud_host.lower()
         self.bridge_ip = bridge_ip
         self.upstream = upstream
+        self.upstream_port = upstream_port
         self.transport: asyncio.DatagramTransport | None = None
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
@@ -138,7 +139,7 @@ class DnsProtocol(asyncio.DatagramProtocol):
                 if not future.done():
                     future.set_result(reply)
 
-        transport, _ = await loop.create_datagram_endpoint(Relay, remote_addr=(self.upstream, 53))
+        transport, _ = await loop.create_datagram_endpoint(Relay, remote_addr=(self.upstream, self.upstream_port))
         try:
             transport.sendto(data)
             self.transport.sendto(await asyncio.wait_for(future, 3), addr)
@@ -273,6 +274,16 @@ class Bridge:
         return web.json_response({"ok": True, "devices": len(self.devices)})
 
 
+def build_apps(bridge: Bridge) -> tuple[web.Application, web.Application]:
+    """The port-80 app and the local status API app."""
+    port80 = web.Application()
+    port80.router.add_route("*", "/{tail:.*}", bridge.handle_port80)
+    api = web.Application()
+    api.router.add_get("/api/status", bridge.api_status)
+    api.router.add_get("/api/health", bridge.api_health)
+    return port80, api
+
+
 async def main() -> None:
     options = load_options()
     logging.basicConfig(
@@ -293,12 +304,7 @@ async def main() -> None:
         _LOGGER.info("DNS on port %s: %s -> %s, other names -> %s",
                      options["dns_port"], options["cloud_host"], bridge_ip, upstream)
 
-    port80 = web.Application()
-    port80.router.add_route("*", "/{tail:.*}", bridge.handle_port80)
-    api = web.Application()
-    api.router.add_get("/api/status", bridge.api_status)
-    api.router.add_get("/api/health", bridge.api_health)
-
+    port80, api = build_apps(bridge)
     runners = []
     for app, host, port in ((port80, "0.0.0.0", options["http_port"]),
                             (api, options["api_host"], options["api_port"])):

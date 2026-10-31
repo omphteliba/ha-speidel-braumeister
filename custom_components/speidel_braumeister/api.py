@@ -24,9 +24,6 @@ from .models import (
     MachineList,
     OnOffStatus,
     ProcessStatus,
-    AccountRecipe,
-    RecipeSlot,
-    BrewingProcess,
 )
 from .xhr_client import SpeidelXHRClient
 

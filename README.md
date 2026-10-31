@@ -3,6 +3,7 @@
 [![hacs][hacs-badge]][hacs]
 [![GitHub Release][release-badge]][release]
 [![License][license-badge]][license]
+[![Tests][tests-badge]][tests]
 
 A Home Assistant integration for Speidel Braumeister brewing systems via the My Speidel Cloud API. This integration allows you to monitor your Braumeister brewing process with real-time data and recipe information. It only works for Speidel Braumeister before the 2021 models at the moment.
 
@@ -236,3 +237,5 @@ This project was developed with AI assistance: the first version (up to v2.0.3) 
 [release-badge]: https://img.shields.io/github/v/release/omphteliba/ha-speidel-braumeister
 [license]: LICENSE
 [license-badge]: https://img.shields.io/github/license/omphteliba/ha-speidel-braumeister
+[tests-badge]: https://github.com/omphteliba/ha-speidel-braumeister/actions/workflows/tests.yml/badge.svg
+[tests]: https://github.com/omphteliba/ha-speidel-braumeister/actions/workflows/tests.yml

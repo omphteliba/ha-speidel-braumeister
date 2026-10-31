@@ -32,7 +32,7 @@ class SpeidelBraumeisterEntity(CoordinatorEntity[SpeidelBraumeisterDataCoordinat
             name=NAME,
             manufacturer=MANUFACTURER,
             model="Braumeister",
-            configuration_url=f"https://www.myspeidel.com/braumeister",
+            configuration_url="https://www.myspeidel.com/braumeister",
         )
 
     @property
