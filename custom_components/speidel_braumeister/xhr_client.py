@@ -16,7 +16,8 @@ Data positions (X-separated):
   [5] = current temperature (°C)
   [6] = remaining time in seconds
   [7] = counter
-  [8] = status flags (bit 0 = heating, bit 1 = pump)
+  [8] = unknown (not actuator flags)
+  [14] = case-sensitive pump/heater indicators (P/p/q and H/h/i)
   ...
 """
 
@@ -27,6 +28,8 @@ from datetime import datetime, timedelta
 
 import aiohttp
 from aiohttp import ClientError, ClientTimeout
+
+from .status_parser import parse_actuator_status
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -335,7 +338,8 @@ class SpeidelXHRClient:
           [5] = current temperature (°C)
           [6] = remaining time in seconds
           [7] = counter
-          [8] = status flags (bit 0 = heating, bit 1 = pump)
+          [8] = unknown (not actuator flags)
+          [14] = case-sensitive pump/heater indicators (P/p/q and H/h/i)
           ...
         """
         result = {
@@ -405,17 +409,9 @@ class SpeidelXHRClient:
             # Counter (position 7)
             result['counter'] = safe_int(7)
             
-            # Status flags (position 8)
-            status_flag = safe_int(8)
-            if status_flag is not None:
-                # Decode status flags
-                # Based on testing: value 1 means heating is active
-                result['heating'] = 'on' if status_flag & 0x01 else 'off'
-                result['pump'] = 'on' if status_flag & 0x02 else 'off'
-            else:
-                result['heating'] = 'unknown'
-                result['pump'] = 'unknown'
-            
+            # Pump/heater indicators are case-sensitive characters at field 14.
+            result.update(parse_actuator_status(data_parts))
+
             # Try to determine process status based on available data
             if current_temp is not None:
                 if remaining_seconds and remaining_seconds > 0:
@@ -425,8 +421,9 @@ class SpeidelXHRClient:
             else:
                 result['process_status'] = 'unknown'
             
-            _LOGGER.debug("Parsed XHR response: temp=%.1f°C, time=%dmin, flags=%s", 
-                         current_temp or 0, result.get('remaining_time', 0), status_flag)
+            _LOGGER.debug("Parsed XHR response: temp=%.1f°C, time=%dmin, pump=%s, heating=%s",
+                         current_temp or 0, result.get('remaining_time', 0),
+                         result['pump'], result['heating'])
             
             return result
             
