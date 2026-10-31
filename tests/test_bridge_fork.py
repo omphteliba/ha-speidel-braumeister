@@ -80,7 +80,7 @@ async def test_local_freshness_uses_host_clock(age, valid):
         assert data['data_source'] == 'bridge'
         assert data['alarm'] is False
         assert data['pump'] == 'off'
-        assert data['current_step'] == 'Statuscode 2820'
+        assert data['current_step'] == '1. Rast'
 
 
 async def test_other_device_and_malformed_payload_are_ignored():
