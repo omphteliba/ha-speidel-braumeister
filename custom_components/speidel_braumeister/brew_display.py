@@ -72,7 +72,18 @@ def brew_display(fields):
             text = phase = "Einstellungen"
     if interrupt is not None and interrupt > 0:
         text = "Temperaturfehler" if interrupt > 1 else "Bitte Deckel entfernen." if cover else "Automatik angehalten"
-    return {"current_step": text, "display_phase": phase,
+    clock = field(1)
+    clock_parts = clock.split(":")
+    clock_valid = len(clock_parts) == 2 and all(p.isascii() and p.isdigit() for p in clock_parts) and len(clock_parts[0]) in (1, 2) and len(clock_parts[1]) == 2 and int(clock_parts[0]) < 24 and int(clock_parts[1]) < 60
+    actuators = field(14)
+    pump_flag = actuators[:1] if actuators[:1] in ("P", "p", "q") else None
+    heater_flag = actuators[1:2] if actuators[1:2] in ("H", "h", "i") else None
+    timed = code is not None and 2810 <= code < 2910
+    target_seconds, elapsed_seconds = number(6), number(7)
+    return {"display_clock": clock if clock_valid else None, "display_pump_flag": pump_flag, "display_heater_flag": heater_flag,
+            "display_time_target_seconds": target_seconds if timed and target_seconds is not None and target_seconds >= 0 else None,
+            "display_time_elapsed_seconds": elapsed_seconds if timed and elapsed_seconds is not None and elapsed_seconds >= 0 else None,
+            "current_step": text, "display_phase": phase,
             "display_state_code": code, "display_interrupt": interrupt,
             "display_rest_number": rest + 1 if rest is not None and 0 <= rest < 5 else None,
             "display_hop_number": hop + 1 if hop is not None and hop >= 0 else None}

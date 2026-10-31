@@ -63,9 +63,6 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
 
         key = self.entity_description.key
         
-        if key == "current_step":
-            return {k: data.get(k) for k in ("display_phase", "display_state_code",
-                    "display_interrupt", "display_rest_number", "display_hop_number")}
 
         if key == "connection_status":
             return data.get("connection_status", "unknown")
@@ -140,7 +137,9 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
         
         if key == "current_step":
             return {k: data.get(k) for k in ("display_phase", "display_state_code",
-                    "display_interrupt", "display_rest_number", "display_hop_number")}
+                    "display_interrupt", "display_rest_number", "display_hop_number",
+                    "display_clock", "display_pump_flag", "display_heater_flag",
+                    "display_time_target_seconds", "display_time_elapsed_seconds")}
 
         if key == "connection_status":
             return {"data_source": data.get("data_source", "cloud"), "bridge_age": data.get("bridge_age")}

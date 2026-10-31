@@ -48,3 +48,42 @@ def test_pump_pause_and_one_based_indices():
 def test_truncated_and_invalid_state_do_not_invent_screen():
     assert brew_display([])['current_step'] == 'Status unbekannt'
     assert brew_display(fields('bad'))['display_state_code'] is None
+
+
+def test_rest_timers_and_original_flags():
+    data = brew_display(fields(2820, pump='qi'))
+    assert data['display_time_target_seconds'] == 1200
+    assert data['display_time_elapsed_seconds'] == 30
+    assert data['display_pump_flag'] == 'q'
+    assert data['display_heater_flag'] == 'i'
+    assert data['display_clock'] == '12:00'
+    assert brew_display(fields(2030))['display_time_elapsed_seconds'] is None
+
+
+def test_invalid_display_values():
+    raw = fields(2820, pump='??')
+    raw[1], raw[6], raw[7] = '25:99', '-1', 'invalid'
+    data = brew_display(raw)
+    for key in ('display_clock', 'display_pump_flag', 'display_heater_flag',
+                'display_time_target_seconds', 'display_time_elapsed_seconds'):
+        assert data[key] is None
+
+
+def test_sensor_step_is_text_and_metadata_is_attributes():
+    # Compile only the entity class with minimal bases; no HA runtime required.
+    import ast
+    from pathlib import Path
+    source = Path(__file__).parents[1] / 'custom_components/speidel_braumeister/sensor.py'
+    tree = ast.parse(source.read_text())
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef))
+    cls.bases = []
+    namespace = {'Any': object, 'SpeidelBraumeisterDataCoordinator': object,
+                 'SensorEntityDescription': object}
+    exec(compile(ast.Module(body=[cls], type_ignores=[]), str(source), 'exec'), namespace)
+    sensor = object.__new__(namespace[cls.name])
+    from types import SimpleNamespace
+    sensor.coordinator = SimpleNamespace(data=brew_display(fields(2820, pump='Pi')))
+    sensor.entity_description = SimpleNamespace(key='current_step')
+    assert sensor.native_value == '1. Rast'
+    assert sensor.extra_state_attributes['display_heater_flag'] == 'i'
+    assert sensor.extra_state_attributes['display_time_elapsed_seconds'] == 30

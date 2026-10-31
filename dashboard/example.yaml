@@ -1,0 +1,18 @@
+type: custom:braumeister-display-card
+title: Speidels Braumeister
+# Replace these illustrative IDs with your entities from Developer Tools > States.
+entities:
+  temperature: sensor.braumeister_temperature
+  target: sensor.braumeister_target
+  step: sensor.braumeister_step
+  recipe: sensor.braumeister_recipe
+  mode: sensor.braumeister_mode
+  connection: sensor.braumeister_connection
+  pump: sensor.braumeister_pump
+  heater: sensor.braumeister_heater
+  progress: sensor.braumeister_progress
+  time: sensor.braumeister_time
+  alarm: binary_sensor.braumeister_alarm
+  plug: switch.braumeister_plug
+  power: sensor.braumeister_power
+  behavior: select.braumeister_behavior
