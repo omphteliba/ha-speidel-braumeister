@@ -29,6 +29,8 @@ import math
 from typing import Any, Optional
 from urllib.parse import unquote
 
+from .brew_display import brew_display
+
 NO_TARGET_TEMPERATURE = -1000
 STATE_MAIN_MENU = 101
 STATE_BREW_FINISHED = 3450
@@ -260,4 +262,5 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     else:
         result["process_status"] = "idle"
 
+    result.update(brew_display(fields))
     return result

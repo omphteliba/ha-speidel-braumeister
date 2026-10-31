@@ -136,6 +136,12 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
         
         key = self.entity_description.key
         
+        if key == "current_step":
+            return {key: data.get(key) for key in (
+                "display_phase", "display_state_code", "display_interrupt",
+                "display_rest_number", "display_hop_number",
+            )}
+
         if key == "brew_name":
             # Add recipe matching attributes
             attrs = {

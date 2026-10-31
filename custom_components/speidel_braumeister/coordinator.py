@@ -226,7 +226,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return data
 
     async def _add_web_texts(self, result: dict[str, Any]) -> None:
-        """Add the texts only the web interface has (step, mode, device type) to bridge data.
+        """Add optional web metadata without overwriting the local step text.
 
         Optional: if the cloud is unreachable, the local values are kept as they are.
         """
@@ -240,14 +240,14 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not info:
             return
         for key, source in (("device_type", "device_type"), ("device_name", "device_name"),
-                            ("device_mode", "device_mode"), ("current_step", "screen_title"),
+                            ("device_mode", "device_mode"),
                             ("current_stage", "current_stage"), ("screen_function", "screen_function")):
             if info.get(source) is not None:
                 result[key] = info[source]
         if result.get("progress") is None and info.get("progress") is not None:
             result["progress"] = info["progress"]
         if result.get("process_status") in ("running", "finished"):
-            step_name = brew_name_from_step(result.get("current_step"))
+            step_name = brew_name_from_step(info.get("screen_title"))
             if step_name:
                 result["brew_name"] = step_name
 
