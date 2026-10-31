@@ -12,7 +12,7 @@ Status fields (X-separated):
   [1]  = device clock (HH:MM)
   [2]  = temperature unit ("C")
   [3]  = state / screen code (101 = main menu, 2xxx = mashing, 3xxx = boiling, 4xxx = manual mode)
-  [4]  = target temperature x10, <= -1000 or 0 = none (stale in main menu, ignored there)
+  [4]  = target temperature x10, <= -1000 = none, 0 between steps (stale in main menu, ignored there)
   [5]  = current temperature (°C)
   [6]  = duration of the current program step in seconds (rest, boil)
   [7]  = seconds since the current state was entered
@@ -179,13 +179,13 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         result["remaining_seconds"] = remaining
         result["remaining_time"] = -(-remaining // 60)  # minutes, rounded up
 
-    # In the main menu the device keeps reporting the last program's target,
-    # and between steps it reports 0. "None" is -1000 (seen once as -10000).
+    # In the main menu the device keeps reporting the last program's target, so it
+    # is ignored there. "None" is -1000 (seen once as -10000). Between steps the
+    # device reports 0, shown as 0 °C like MySpeidel's web interface does.
     target_raw = _int(fields, 4)
     result["target_temperature"] = (
         target_raw / 10
         if target_raw is not None
-        and target_raw != 0
         and target_raw > NO_TARGET_TEMPERATURE
         and state_code != STATE_MAIN_MENU
         else None

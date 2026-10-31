@@ -55,7 +55,7 @@ Payload is 19 fields separated by `X`:
 | 1 | `18:12` | Device clock, HH:MM |
 | 2 | `C` | Temperature unit (Celsius) |
 | 3 | `101`, `2xxx`, `3xxx`, `4006`, `4007`, `6010` | **State / screen code** (see below) |
-| 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` and `0` = none. In the main menu (state `101`) it can still hold the last program's target, so the parser ignores it there |
+| 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` = none, `0` between steps (shown as 0 °C, like MySpeidel's web interface). In the main menu (state `101`) it can still hold the last program's target, so the parser ignores it there |
 | 5 | ` 24.5` | **Current temperature** in °C (leading space, 0.5 °C steps) |
 | 6 | `4800`, `1200`, `60`, `0` | **Duration of the current program step in seconds**: rest (`60` for a 1-min rest), boil (`1200` for 20 min). Outside timed steps it keeps the boil time of the selected recipe. Remaining time = field 6 − field 7 during `2820` (rest) and `3070` (boil) |
 | 7 | `0`…`167` | **Seconds since the current state was entered**, resets on state change |

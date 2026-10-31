@@ -78,7 +78,7 @@ def test_no_remaining_time_outside_timed_steps(dp):
 
 @pytest.mark.parametrize(
     ("state", "target_raw", "expected"),
-    [(2820, "440", 44.0), (2820, "-1000", None), (2820, "-10000", None), (2960, "0", None), (101, "400", None)],
+    [(2820, "440", 44.0), (2820, "-1000", None), (2820, "-10000", None), (2960, "0", 0.0), (101, "400", None)],
 )
 def test_target_temperature(dp, state, target_raw, expected):
     result = dp.parse_bm_stat(status(f"0X21:00XCX{state}X{target_raw}X 40.0X60X5X5X2X0X0X0XA00SXPHX000X0X0X0"))
