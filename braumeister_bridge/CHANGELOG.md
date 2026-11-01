@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Cloud lookups reject private/local answers, so a network-wide DNS rewrite (e.g. AdGuard
+  with `dns_port: 0`) can no longer loop the bridge back to itself. New option `cloud_dns`
+  for an explicit resolver in that setup; by default the host resolver is used as before.
+- `dns_port: 0` is accepted (disables the DNS server, as documented).
+- Deflate-compressed cloud answers are unpacked for the device; redirects are not followed.
+  (thanks to DanielP-1337, #13)
+
 ## 0.2.2
 
 - After a restart the restored recipe list was written again on the first message; now only
