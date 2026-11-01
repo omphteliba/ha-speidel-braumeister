@@ -64,6 +64,9 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             updated_data = self._mqtt_data.copy()
         
+        # MQTT currently has no verified device phase timer. Do not keep a
+        # previous XHR/bridge duration when the data source changes.
+        updated_data["elapsed_time"] = None
         updated_data["connection_status"] = "online"
         updated_data["last_online"] = self._last_online
         self.async_set_updated_data(updated_data)
@@ -96,6 +99,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "process_status": "idle",
             "brew_name": None,
             "remaining_time": None,
+            "elapsed_time": None,
             "payment_required": False,
             "device_type": self._last_device_info.get("device_type"),
             "device_name": self._last_device_info.get("device_name"),
@@ -261,6 +265,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         # If we have MQTT data, device is online
         if self._mqtt_data:
+            result["elapsed_time"] = None
             result["connection_status"] = "online"
             self._update_last_online(result)
             return self._clean_data(result)
@@ -295,6 +300,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result['target_temperature'] = xhr_data.get('target_temperature')
                     result['remaining_time'] = xhr_data.get('remaining_time')
                     result['remaining_seconds'] = xhr_data.get('remaining_seconds')
+                    result['elapsed_time'] = xhr_data.get('elapsed_time')
                     result['heating'] = xhr_data.get('heating', 'unknown')
                     result['pump'] = xhr_data.get('pump', 'unknown')
                     result['process_status'] = xhr_data.get('process_status', 'unknown')

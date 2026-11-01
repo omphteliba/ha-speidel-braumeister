@@ -20,6 +20,7 @@ Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die M
 | Heizstatus | Aktueller Zustand des Heizelements (Ein/Aus) |
 | Prozessstatus | Aktueller Brauprozessstatus (läuft, wartet, etc.) |
 | Aktuelle Phase | Aktuelle Brauphase (Einmaischen, Rast, Kochen, etc.) |
+| Verstrichene Phasenzeit | Vom Gerät gemeldete vergangene Rast- oder Kochzeit in Sekunden, auch während Hopfengaben; außerhalb zeitgesteuerter Phasen unbekannt |
 | Verbleibende Zeit | Geschätzte verbleibende Zeit für die aktuelle Phase |
 | Brauname | Name des aktuellen Braus/Rezepts |
 | Gerätetyp | Braumeister-Modell (z. B. "Braumeister 20 Liter") |

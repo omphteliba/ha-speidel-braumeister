@@ -96,6 +96,13 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
         icon="mdi:format-list-bulleted-type",
     ),
     SensorEntityDescription(
+        key="elapsed_time",
+        translation_key="elapsed_time",
+        icon="mdi:timer-outline",
+        native_unit_of_measurement="s",
+        device_class="duration",
+    ),
+    SensorEntityDescription(
         key="remaining_time",
         translation_key="remaining_time",
         icon="mdi:timer-outline",

@@ -91,6 +91,9 @@
       "current_phase": {
         "name": "Current Phase"
       },
+      "elapsed_time": {
+        "name": "Elapsed step time"
+      },
       "remaining_time": {
         "name": "Remaining Time"
       },
