@@ -260,3 +260,18 @@ def test_bridge_recipes_use_device_unit(dp):
                                                  "bm_stat_received": 999.0, "rz": RZ_FAHRENHEIT}]}
     assert dp.from_bridge(status_payload, "1234567890ABCDEF", 30)["device_recipe_details"][1]["mash_in_temperature"] == 40
     assert dp.recipes_from_bridge(status_payload, "1234567890ABCDEF")[1]["boil_temperature"] == 103
+
+
+@pytest.mark.parametrize(
+    ("state", "unit", "target_raw", "expected"),
+    [
+        (8101, "C", "1040", None),   # settings menu after switching °F -> °C: stale 104 °F value
+        (6010, "C", "400", None),    # sub-menu
+        (0, "C", "1040", None),      # transient state after the end of a brew
+        (4006, "C", "380", 38.0),    # manual mode keeps its target
+        (2030, "F", "1040", 40.0),   # program start in °F
+    ],
+)
+def test_target_only_while_heating(dp, state, unit, target_raw, expected):
+    result = dp.parse_bm_stat(status(f"0X12:46X{unit}X{state}X{target_raw}X 35.5X300X4X4X0X0X0X0XEMSRXphX000X0X0X0"))
+    assert result["target_temperature"] == expected

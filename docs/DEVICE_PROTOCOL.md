@@ -55,7 +55,7 @@ Payload is 19 fields separated by `X`:
 | 1 | `18:12` | Device clock, HH:MM |
 | 2 | `C`, `F` | **Temperature unit** as set on the device. With `F`, fields 4 and 5 are in °F (seen live: 33.0 °C → `91.5`, target 40 °C → `1040`); the parser converts them to °C. The recipe list (`rz`) then is in °F too (e.g. mash-in `104`, boil `217`) although it carries no unit itself; it is converted with the unit from the status message |
 | 3 | `101`, `2xxx`, `3xxx`, `4006`, `4007`, `6010` | **State / screen code** (see below) |
-| 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` = none, `0` between steps (shown as 0 °C, like MySpeidel's web interface). In the main menu (state `101`) it can still hold the last program's target, so the parser ignores it there |
+| 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` = none, `0` between steps (shown as 0 °C, like MySpeidel's web interface). Only meaningful during a program (2xxx/3xxx) or manual mode (4xxx); in menus (101, 8xxx, 6010, 0) it still holds the last program's target – after a °F→°C switch even in °F – and the parser ignores it |
 | 5 | ` 24.5` | **Current temperature** in °C (leading space, 0.5 °C steps) |
 | 6 | `4800`, `1200`, `60`, `0` | **Duration of the current program step in seconds**: rest (`60` for a 1-min rest), boil (`1200` for 20 min). Outside timed steps it keeps the boil time of the selected recipe. Remaining time = field 6 − field 7 during `2820` (rest) and `3070` (boil) |
 | 7 | `0`…`167` | **Seconds since the current state was entered**, resets on state change |

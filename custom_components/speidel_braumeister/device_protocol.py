@@ -52,6 +52,9 @@ ALARM_STATES = {
 # Automatic program: 2xxx = mashing, 3xxx = boiling
 PROGRAM_STATES = range(2000, 4000)
 
+# Manual mode (4006 manual heating, 4007 editing the target)
+MANUAL_STATES = range(4000, 5000)
+
 # Timed steps: field 6 is the step duration, field 7 the elapsed seconds
 TIMED_STATES = {
     2820,  # holding a rest
@@ -253,15 +256,18 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         result["remaining_seconds"] = remaining
         result["remaining_time"] = -(-remaining // 60)  # minutes, rounded up
 
-    # In the main menu the device keeps reporting the last program's target, so it
-    # is ignored there. "None" is -1000 (seen once as -10000). Between steps the
-    # device reports 0, shown as 0 °C like MySpeidel's web interface does.
+    # A target only exists while a program or manual mode runs. In menus (main menu,
+    # settings 8xxx, 6010, 0) the device keeps the last program's value – after a
+    # unit change even still in the old unit – so it is ignored there.
+    # "None" is -1000 (seen once as -10000). Between steps the device reports 0,
+    # shown as 0 °C like MySpeidel's web interface does.
     target_raw = _int(fields, 4)
+    heating_state = state_code is not None and (in_program or state_code in MANUAL_STATES)
     result["target_temperature"] = (
         (0.0 if target_raw == 0 else _to_celsius(target_raw / 10, fahrenheit))
         if target_raw is not None
         and target_raw > NO_TARGET_TEMPERATURE
-        and state_code != STATE_MAIN_MENU
+        and heating_state
         else None
     )
 
