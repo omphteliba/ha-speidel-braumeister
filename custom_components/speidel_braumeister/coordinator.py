@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -9,10 +10,12 @@ from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
 from .device_protocol import brew_name_from_step, from_bridge, recipes_from_bridge
+from .rtc_monitor import RTCMonitor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +53,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_device_info: dict[str, Any] = {}
         # Last known recipe slots on the device, shown also while it is off
         self._recipes: list[dict[str, Any]] = []
+        self._rtc_monitor = RTCMonitor()
 
     @callback
     def update_from_mqtt(self, data: dict[str, Any]) -> None:
@@ -66,6 +70,9 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         updated_data["connection_status"] = "online"
         updated_data["last_online"] = self._last_online
+        # MQTT currently carries no verified RTC sample. Do not retain old evidence.
+        self._rtc_monitor.reset()
+        updated_data.update(rtc_offset=None, rtc_warning=None)
         self.async_set_updated_data(updated_data)
 
     def _is_valid_temp(self, temp: Any) -> bool:
@@ -87,7 +94,10 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _get_offline_result(self) -> dict[str, Any]:
         """Return a default result for offline devices, preserving last online info."""
+        self._rtc_monitor.reset()
         return {
+            "rtc_offset": None,
+            "rtc_warning": None,
             "connection_status": "offline",
             "temperature": None,
             "target_temperature": None,
@@ -123,6 +133,13 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _clean_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Clean and validate data, removing invalid/stale values."""
         cleaned = data.copy()
+        if data.get("time_display") and data.get("device_timestamp"):
+            cleaned.update(self._rtc_monitor.observe(
+                data, dt_util.now(), time.monotonic()
+            ))
+        else:
+            self._rtc_monitor.reset()
+            cleaned.update(rtc_offset=None, rtc_warning=None)
         cleaned["device_recipe_details"] = self._recipes
         
         # Clean temperature values
@@ -299,6 +316,9 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result['pump'] = xhr_data.get('pump', 'unknown')
                     result['process_status'] = xhr_data.get('process_status', 'unknown')
                     result['state_code'] = xhr_data.get('state_code')
+                    result['data_source'] = 'xhr'
+                    result['device_timestamp'] = xhr_data.get('device_timestamp')
+                    result['time_display'] = xhr_data.get('time_display')
                     self._remember_recipes(xhr_data.get('device_recipe_details'))
                     result['alarm'] = xhr_data.get('alarm')
                     result['connection_status'] = 'online'

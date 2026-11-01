@@ -4,3 +4,4 @@ pytest-asyncio
 ruff
 pyyaml
 aiodns
+tzdata

@@ -29,6 +29,8 @@ Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die M
 | Zuletzt online | Letzte Zeit, zu der das Gerät online war |
 | Rezepte auf dem Gerät | Anzahl der Rezepte auf dem Braumeister; jedes Rezept (Einmaischen, Rasten, Kochzeit, Hopfengaben) steht im Attribut `recipes` |
 
+Die RTC-Diagnose vergleicht die Geräteuhr mit der lokalen Home-Assistant-Zeit anhand frischer, fortschreitender Gerätezeitstempel. **RTC-Abweichung** zeigt Minuten mit Vorzeichen; **RTC prüfen** warnt bei mindestens 6 Minuten absoluter Abweichung über 3 Minuten. Fehlende oder veraltete Daten sind unbekannt, ausgeschaltete Geräte nicht verfügbar. Die Integration stellt die Geräteuhr nicht und versendet keine Benachrichtigungen.
+
 ### Binäre Sensoren
 
 | Binärer Sensor | Beschreibung |

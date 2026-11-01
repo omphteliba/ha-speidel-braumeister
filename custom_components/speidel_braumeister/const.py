@@ -2,6 +2,8 @@
 
 from typing import Final
 
+from homeassistant.helpers.entity import EntityCategory
+
 from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 
@@ -39,6 +41,14 @@ MQTT_URL: Final = "wss://api.cloud.myspeidel.com/mqtt"
 # Sensor types using SensorEntityDescription
 # Note: Names are provided via translations (strings.json and translations/*.json)
 SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
+    SensorEntityDescription(
+        key="rtc_offset",
+        translation_key="rtc_offset",
+        icon="mdi:clock-alert-outline",
+        native_unit_of_measurement="min",
+        state_class="measurement",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     SensorEntityDescription(
         key="connection_status",
         translation_key="connection_status",
@@ -144,6 +154,12 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
 # Binary sensor types using BinarySensorEntityDescription
 # Note: Names are provided via translations (strings.json and translations/*.json)
 BINARY_SENSOR_TYPES: Final[tuple[BinarySensorEntityDescription, ...]] = (
+    BinarySensorEntityDescription(
+        key="rtc_warning",
+        translation_key="rtc_warning",
+        device_class="problem",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     BinarySensorEntityDescription(
         key="alarm",
         translation_key="alarm",
