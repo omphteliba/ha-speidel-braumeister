@@ -158,6 +158,10 @@ async def test_diagnostic_entities_registration_and_unknown_states():
     import sys
     import types
     from conftest import ROOT
+    from enum import StrEnum
+
+    class EntityCategory(StrEnum):
+        DIAGNOSTIC = "diagnostic"
 
     def mod(name, **attrs):
         result = types.ModuleType(name)
@@ -176,6 +180,7 @@ async def test_diagnostic_entities_registration_and_unknown_states():
         'rtc_entities.entity': mod('entity', SpeidelBraumeisterEntity=Entity),
         'homeassistant.config_entries': mod('config', ConfigEntry=object),
         'homeassistant.core': mod('core', HomeAssistant=object),
+        'homeassistant.helpers.entity': mod('entity', EntityCategory=EntityCategory),
         'homeassistant.helpers.entity_platform': mod('platform', AddEntitiesCallback=object),
         'homeassistant.components.sensor': mod('sensor', SensorEntity=type('Sensor', (), {}), SensorEntityDescription=SimpleNamespace),
         'homeassistant.components.binary_sensor': mod('binary', BinarySensorEntity=type('Binary', (), {}), BinarySensorEntityDescription=SimpleNamespace),
@@ -191,7 +196,11 @@ async def test_diagnostic_entities_registration_and_unknown_states():
         await binaries.async_setup_entry(hass, entry, entities.extend)
         offset = next(e for e in entities if e.entity_description.key == 'rtc_offset')
         warning = next(e for e in entities if e.entity_description.key == 'rtc_warning')
-        assert offset.entity_description.entity_category == 'diagnostic'
+        # HA registry requires an enum instance; an equal string is rejected.
+        for entity in (offset, warning):
+            category = entity.entity_description.entity_category
+            assert isinstance(category, EntityCategory)
+            assert category is EntityCategory.DIAGNOSTIC
         assert offset.entity_description.native_unit_of_measurement == 'min'
         assert warning.entity_description.device_class == 'problem'
         assert offset.native_value == 30
@@ -201,3 +210,22 @@ async def test_diagnostic_entities_registration_and_unknown_states():
         assert warning.is_on is None
         obj.data = None
         assert warning.is_on is None
+
+
+def test_manual_rtc_correction_reestablishes_baseline_then_clears_warning():
+    """Reproduce the observed +9 to +1 minute correction with a device time jump."""
+    monitor = RTCMonitor()
+    for seconds in range(0, 211, 30):
+        state = observe(monitor, seconds, 9)
+    assert state == {'rtc_offset': 9, 'rtc_warning': True}
+
+    corrected = sample(240, 1)
+    corrected['device_timestamp'] -= 8 * 60
+    assert monitor.observe(corrected, START + timedelta(seconds=240), 240) == {
+        'rtc_offset': None, 'rtc_warning': None,
+    }
+    corrected = sample(250, 1)
+    corrected['device_timestamp'] -= 8 * 60
+    assert monitor.observe(corrected, START + timedelta(seconds=250), 250) == {
+        'rtc_offset': 1, 'rtc_warning': False,
+    }

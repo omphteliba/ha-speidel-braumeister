@@ -2,6 +2,8 @@
 
 from typing import Final
 
+from homeassistant.helpers.entity import EntityCategory
+
 from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 
@@ -45,7 +47,7 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
         icon="mdi:clock-alert-outline",
         native_unit_of_measurement="min",
         state_class="measurement",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
         key="connection_status",
@@ -156,7 +158,7 @@ BINARY_SENSOR_TYPES: Final[tuple[BinarySensorEntityDescription, ...]] = (
         key="rtc_warning",
         translation_key="rtc_warning",
         device_class="problem",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     BinarySensorEntityDescription(
         key="alarm",

@@ -33,7 +33,25 @@ payloads can bias the measurement. No bounded transport delay is guaranteed, so
 this is an approximate diagnostic, not proof that an RTC error caused a Wi-Fi
 or cloud failure. It never changes device time, firmware state, recipes or commands.
 
-Hardware evidence: on 2026-11-01 a manual +3 minute adjustment on a pre-2020
-20 L Braumeister (firmware 1.1.27, external WLAN) also shifted the HA card's
-reported device time by +3 minutes. The new diagnostic entities themselves
-still need a hardware test after installation.
+## Hardware validation
+
+User-reported hardware test on 2026-11-01 with a Braumeister 20 L Plus,
+firmware 1.1.27, using the RTC implementation in fork release 2.0.11-beta:
+
+- Both diagnostic entities registered after using `EntityCategory.DIAGNOSTIC`.
+- With the device clock manually advanced, RTC offset reported +9 minutes.
+- Check RTC changed from OK at 13:06:11 to Problem at 13:09:12, consistent
+  with the three-minute persistence requirement.
+- After manually correcting the device clock, Check RTC became unknown at
+  13:18:37 and OK at 13:18:47; RTC offset then reported +1 minute.
+
+This validates warning activation and recovery on that installation. It is
+not a measurement of long-term oscillator drift or proof of a connection
+failure caused by RTC offset. Automated tests additionally cover stale and
+repeated payloads, malformed data, offline state, midnight, source changes,
+and host clock/timezone changes.
+
+The entity registration regression test explicitly checks the category enum
+instance for both entities: a plain string equal to `"diagnostic"` is rejected
+by Home Assistant's entity registry. The test uses HA boundary stubs; actual
+registration was verified in the hardware test above.
