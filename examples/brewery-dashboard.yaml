@@ -178,7 +178,7 @@ views:
             title: Recipes
           - type: markdown
             title: Current recipe
-            content: >-
+            content: |-
               {% set recipes = state_attr('sensor.braumeister_device_recipes', 'recipes') or [] %}
               {% set slot = state_attr('sensor.braumeister_brew_name', 'recipe_slot') %}
               {% set current = recipes | selectattr('slot', 'eq', slot) | list %}
@@ -196,7 +196,7 @@ views:
               {% endif %}
           - type: markdown
             title: On the Braumeister
-            content: >-
+            content: |-
               {% set recipes = state_attr('sensor.braumeister_device_recipes', 'recipes') or [] %}
               {% for r in recipes %}
               **{{ r.slot + 1 }}. {{ r.name }}**<br>

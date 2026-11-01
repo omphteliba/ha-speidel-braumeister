@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Example dashboard: the recipe table was rendered as a single line (folded YAML block instead of a literal one)
+
 ### Added
 - Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
 

@@ -29,3 +29,12 @@ def test_dashboard_uses_only_known_entities():
     used = set(re.findall(r"\b(?:sensor|binary_sensor)\.braumeister_[a-z_]+\b", body))
     assert used, "no entities found"
     assert used <= KNOWN, used - KNOWN
+
+
+def test_markdown_cards_keep_line_breaks():
+    """Markdown tables need real newlines; a folded block (>-) joins them into one line."""
+    config = yaml.safe_load(DASHBOARD.read_text(encoding="utf-8"))
+    cards = [c for s in config["views"][0]["sections"] for c in s["cards"] if c["type"] == "markdown"]
+    assert cards
+    for card in cards:
+        assert "\n|---|" in card["content"] or "{% for r in recipes %}\n" in card["content"]
