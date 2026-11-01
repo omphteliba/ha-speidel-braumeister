@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Local display texts for the current step derived from the device state ("Malz einfüllen!", "Malzrohr entnehmen!", "Hopfen zugeben" …), no cloud needed with the bridge (thanks to DanielP-1337, #12)
 - Braumeister Bridge 0.3.0: loop protection for network-wide DNS rewrites, optional `cloud_dns` resolver, `dns_port: 0` allowed, deflate answers decoded (thanks to DanielP-1337, #13)
+- "Elapsed Step Time" sensor: elapsed time of the current rest or boil as reported by the device, also during hop additions (thanks to DanielP-1337, #17)
 - Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
 
 ### Fixed
+- The alarm sensor could stay on after an alarm was acknowledged when no state code was available; the decoded alarm now always wins over the old phase text (thanks to DanielP-1337, #16)
 - Braumeisters set to **Fahrenheit** reported their °F values as °C (e.g. 91.5 °C instead of 33 °C), and at boiling temperature the value was dropped as implausible. Temperatures are now converted to °C; Home Assistant shows them in the user's unit
 - The target temperature is now only shown during a program or manual mode; in the settings menu it showed the last program's stale value (after switching °F back to °C even as 104 °C)
 - With the device set to Fahrenheit, the recipe temperatures (Device Recipes sensor) were °F values labelled °C; they are converted to °C as well
