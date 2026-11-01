@@ -18,6 +18,8 @@ from aiohttp import ClientError, ClientTimeout
 
 from .device_protocol import parse_bm_stat
 
+from .request_policy import PollingError, RequestPolicy
+
 _LOGGER = logging.getLogger(__name__)
 
 WEB_BASE_URL = "https://www.myspeidel.com"
@@ -39,6 +41,7 @@ class SpeidelXHRClient:
         session: Optional[aiohttp.ClientSession] = None,
     ) -> None:
         """Initialize the XHR client."""
+        self.request_policy = RequestPolicy()
         self._username = username
         self._password = password
         self._session = session
@@ -84,11 +87,11 @@ class SpeidelXHRClient:
                 'Accept-Language': 'en-US,en;q=0.9,de;q=0.8',
             }
             
-            async with session.get(WEB_BASE_URL, headers=headers) as response:
+            async with self.request_policy.request(session.get, WEB_BASE_URL, headers=headers) as response:
                 _LOGGER.debug("Homepage status: %s", response.status)
             
             # Step 2: Get login page
-            async with session.get(LOGIN_URL, headers=headers) as response:
+            async with self.request_policy.request(session.get, LOGIN_URL, headers=headers) as response:
                 html = await response.text()
                 _LOGGER.debug("Login page status: %s", response.status)
                 
@@ -113,7 +116,7 @@ class SpeidelXHRClient:
                 'Referer': LOGIN_URL,
             }
             
-            async with session.post(
+            async with self.request_policy.request(session.post,
                 LOGIN_URL,
                 data=form_data,
                 headers=headers,
@@ -158,6 +161,8 @@ class SpeidelXHRClient:
                     _LOGGER.error("No session cookie received - login failed")
                     return False
                     
+        except PollingError:
+            raise
         except ClientError as err:
             _LOGGER.error("Login error: %s", err)
             return False
@@ -178,12 +183,14 @@ class SpeidelXHRClient:
         }
         
         try:
-            async with session.get(url, headers=headers) as response:
+            async with self.request_policy.request(session.get, url, headers=headers) as response:
                 text = await response.text()
                 
                 # Check if we got actual data (not HTML login page)
                 if text and not text.startswith('<!'):
                     return self._parse_xhr_response(text)
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.debug("XHR test error: %s", err)
         
@@ -259,7 +266,7 @@ class SpeidelXHRClient:
             }
             
             try:
-                async with session.get(url, headers=headers) as response:
+                async with self.request_policy.request(session.get, url, headers=headers) as response:
                     if response.status != 200:
                         _LOGGER.debug("Status %s for device %s", response.status, device_id)
                         continue
@@ -272,7 +279,7 @@ class SpeidelXHRClient:
                         self._logged_in = False
                         if await self.login():
                             # Retry with new session
-                            async with session.get(url, headers=headers) as retry_response:
+                            async with self.request_policy.request(session.get, url, headers=headers) as retry_response:
                                 text = await retry_response.text()
                                 if text.startswith('<!'):
                                     continue
@@ -334,6 +341,8 @@ class SpeidelXHRClient:
 
             return result
             
+        except PollingError:
+            raise
         except Exception as err:
             _LOGGER.error("Error parsing XHR response: %s", err)
             return {}
