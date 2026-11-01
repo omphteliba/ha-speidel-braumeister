@@ -81,9 +81,12 @@ def test_no_timer_outside_verified_timed_states(code):
     assert device_protocol.parse_bm_stat(payload(code))['elapsed_time'] is None
 
 
-@pytest.mark.parametrize('elapsed', ['-1', '', '?', '1.5'])
+@pytest.mark.parametrize('elapsed', ['-1', '', '?', '1.5', '+1', '1e2', '１２'])
 def test_invalid_device_timer_is_unknown(elapsed):
-    assert device_protocol.parse_bm_stat(payload(2820, elapsed=elapsed))['elapsed_time'] is None
+    result = device_protocol.parse_bm_stat(payload(2820, elapsed=elapsed))
+    assert result['state_seconds'] is None
+    assert result['elapsed_time'] is None
+    assert result['remaining_seconds'] is None
 
 
 def test_zero_overrun_and_phase_reset():

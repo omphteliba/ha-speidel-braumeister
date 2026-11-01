@@ -20,6 +20,7 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 | Heating Status | Current heating element state (Ein/Aus) |
 | Process Status | Current brewing process status (running, idle, etc.) |
 | Current Phase | Current brewing phase as reported by the device in German (e.g. Einmaischen = mash-in, Rast = rest, Kochen = boil) |
+| Elapsed Step Time | Device-reported elapsed rest or boil time in seconds, including hop-addition prompts; unknown outside timed steps |
 | Remaining Time | Estimated remaining time for the current phase |
 | Brew Name | Name of the current brew/recipe |
 | Device Type | Braumeister model (e.g., "Braumeister 20 Liter") |

@@ -231,6 +231,10 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     unit = _field(fields, 2)
     fahrenheit = bool(unit) and unit.upper() == "F"
 
+    # Field 7 must be a non-negative integer number of seconds.
+    timer = (_field(fields, 7) or "").strip()
+    state_seconds = int(timer) if timer.isascii() and timer.isdecimal() else None
+
     result: dict[str, Any] = {
         "firmware": parts[0],
         "device_uuid": parts[1],
@@ -239,7 +243,7 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         "state_code": _int(fields, 3),
         "temperature": _to_celsius(_float(fields, 5), fahrenheit),
         "device_temperature_unit": "°F" if fahrenheit else "°C",
-        "state_seconds": _int(fields, 7),
+        "state_seconds": state_seconds,
         "recipe_count": _int(fields, 8),
         "display_code": _field(fields, 13),
         "remaining_time": None,
@@ -254,9 +258,8 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     duration, elapsed = _int(fields, 6), result["state_seconds"]
     # Field 7 is the device timer, not time since HA started observing.
     # During 3080 (hop addition) the boil timer continues running.
-    timer = (_field(fields, 7) or "").strip()
-    if state_code in (2820, 3070, 3080) and timer.isascii() and timer.isdecimal():
-        result["elapsed_time"] = int(timer)
+    if state_code in (2820, 3070, 3080):
+        result["elapsed_time"] = elapsed
     if state_code in TIMED_STATES and duration and elapsed is not None:
         remaining = max(duration - elapsed, 0)
         result["remaining_seconds"] = remaining
