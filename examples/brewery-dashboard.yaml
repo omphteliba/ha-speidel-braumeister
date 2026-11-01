@@ -197,13 +197,10 @@ views:
           - type: markdown
             title: On the Braumeister
             content: |-
-              {% set recipes = state_attr('sensor.braumeister_device_recipes', 'recipes') or [] %}
-              {% for r in recipes %}
-              **{{ r.slot + 1 }}. {{ r.name }}**<br>
-              <small>Mash-in {{ r.mash_in_temperature }} °C ·
-              {% for rest in r.rests %}{{ rest.temperature }} °C/{{ rest.minutes }} min · {% endfor %}
-              Boil {{ r.boil_minutes }} min{% if r.hop_additions %} · Hops {{ r.hop_additions | join('/') }}{% endif %}</small>
+              {%- set recipes = state_attr('sensor.braumeister_device_recipes', 'recipes') or [] %}
+              {%- for r in recipes %}
+              **{{ r.slot + 1 }}. {{ r.name }}**<br><small>Mash-in {{ r.mash_in_temperature }} °C · {% for rest in r.rests %}{{ rest.temperature }} °C/{{ rest.minutes }} min · {% endfor %}Boil {{ r.boil_minutes }} min{% if r.hop_additions %} · Hops {{ r.hop_additions | join('/') }}{% endif %}</small>
 
               {% else %}
               _No recipes known._
-              {% endfor %}
+              {%- endfor %}

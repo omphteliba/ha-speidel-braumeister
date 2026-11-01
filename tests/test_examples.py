@@ -31,10 +31,13 @@ def test_dashboard_uses_only_known_entities():
     assert used <= KNOWN, used - KNOWN
 
 
-def test_markdown_cards_keep_line_breaks():
-    """Markdown tables need real newlines; a folded block (>-) joins them into one line."""
+def test_markdown_cards_layout():
+    """Recipe table needs real newlines (a folded >- block joins it into one line);
+    each recipe in the list must stay on one line (literal newlines become line breaks)."""
     config = yaml.safe_load(DASHBOARD.read_text(encoding="utf-8"))
     cards = [c for s in config["views"][0]["sections"] for c in s["cards"] if c["type"] == "markdown"]
-    assert cards
-    for card in cards:
-        assert "\n|---|" in card["content"] or "{% for r in recipes %}\n" in card["content"]
+    table, recipe_list = cards
+    assert "
+|---|" in table["content"]
+    line = next(line for line in recipe_list["content"].splitlines() if "<small>" in line)
+    assert "</small>" in line
