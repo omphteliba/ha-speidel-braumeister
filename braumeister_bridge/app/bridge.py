@@ -32,6 +32,7 @@ from urllib.parse import unquote_plus
 
 from aiohttp import AsyncResolver, ClientSession, ClientTimeout, TCPConnector, web
 from aiohttp.abc import AbstractResolver
+from aiohttp.resolver import DefaultResolver
 
 _LOGGER = logging.getLogger("braumeister_bridge")
 
@@ -42,7 +43,7 @@ DEFAULTS: dict[str, Any] = {
     "forward_to_cloud": True,
     "upstream_dns": "",
     "dns_port": 53,
-    "cloud_dns": ["1.1.1.1", "1.0.0.1"],
+    "cloud_dns": [],
     "http_port": 80,
     "passthrough_url": "",
     "api_port": 8642,
@@ -161,17 +162,17 @@ class DnsProtocol(asyncio.DatagramProtocol):
 # ---------------------------------------------------------------------------
 
 class PublicCloudResolver(AbstractResolver):
-    """Resolve cloud names outside AdGuard and reject local/loopback answers."""
+    """Use host or explicitly chosen DNS and reject non-public cloud answers."""
 
     def __init__(self, nameservers):
-        if not nameservers:
-            raise ValueError("cloud_dns must specify a resolver without DNS rewrites")
-        self.delegate = AsyncResolver(nameservers=nameservers)
+        self.delegate = (
+            AsyncResolver(nameservers=nameservers) if nameservers else DefaultResolver()
+        )
 
     async def resolve(self, host, port=0, family=socket.AF_INET):
         records = await self.delegate.resolve(host, port, family)
         if not records or any(not ipaddress.ip_address(r["host"]).is_global for r in records):
-            raise OSError("Cloud DNS returned a non-public address; forwarding blocked")
+            raise OSError("Cloud DNS returned a non-public address; forwarding blocked to prevent a loop. Configure cloud_dns with a reachable resolver without the local rewrite")
         return records
 
     async def close(self):
@@ -275,7 +276,7 @@ class Bridge:
         return response
 
     async def forward_to_cloud(self, request: web.Request, body: bytes) -> tuple[int, dict[str, str], bytes]:
-        # Dedicated public resolver avoids network-wide rewrites back to this bridge.
+        # Guarded cloud resolution blocks rewrites back to this bridge.
         headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_BY_HOP}
         base = self.options["cloud_url"] or f"http://{self.options['cloud_host']}"
         url = base.rstrip("/") + request.path_qs

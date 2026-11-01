@@ -1,7 +1,7 @@
 """Cloud DNS isolation and uncompressed command delivery; no external traffic."""
 import socket
 import zlib
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiohttp import web
@@ -28,7 +28,7 @@ async def test_cloud_resolver_independent_of_inbound_dns(bridge_module, monkeypa
         seen.append(kwargs)
         return delegate
     monkeypatch.setattr(bridge_module, "AsyncResolver", resolver_factory)
-    obj = bridge_module.Bridge({**bridge_module.DEFAULTS, "dns_port": dns_port, "state_file": ""})
+    obj = bridge_module.Bridge({**bridge_module.DEFAULTS, "dns_port": dns_port, "state_file": "", "cloud_dns": ["1.1.1.1", "1.0.0.1"]})
     await obj.start_session()
     try:
         assert bridge_module.DEFAULTS["dns_port"] == 53
@@ -64,3 +64,29 @@ async def test_deflate_command_reaches_device(bridge_module, raw):
         await api.close()
         await cloud.close()
         await bridge.close_session()
+
+
+@pytest.mark.parametrize("dns_port", [0, 53])
+@pytest.mark.parametrize("address", ["1.1.1.1", "192.168.1.2"])
+async def test_default_host_resolver_keeps_loop_protection(bridge_module, monkeypatch, dns_port, address):
+    delegate = AsyncMock()
+    delegate.resolve.return_value = [{"host": address}]
+    host_factory = Mock(return_value=delegate)
+    explicit_factory = Mock(side_effect=AssertionError("No explicit DNS requested"))
+    monkeypatch.setattr(bridge_module, "DefaultResolver", host_factory)
+    monkeypatch.setattr(bridge_module, "AsyncResolver", explicit_factory)
+    assert bridge_module.DEFAULTS["cloud_dns"] == []
+    obj = bridge_module.Bridge({**bridge_module.DEFAULTS, "dns_port": dns_port, "state_file": ""})
+    await obj.start_session()
+    try:
+        host_factory.assert_called_once_with()
+        explicit_factory.assert_not_called()
+        if address == "192.168.1.2":
+            with pytest.raises(OSError, match="cloud_dns"):
+                await obj.cloud_resolver.resolve("api2.myspeidel.com", 80)
+        else:
+            assert await obj.cloud_resolver.resolve("api2.myspeidel.com", 80) == [{"host": address}]
+        delegate.resolve.assert_awaited_once_with("api2.myspeidel.com", 80, socket.AF_INET)
+    finally:
+        await obj.close_session()
+    delegate.close.assert_awaited_once()

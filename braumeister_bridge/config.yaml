@@ -15,9 +15,7 @@ options:
   forward_to_cloud: true
   upstream_dns: ""
   dns_port: 53
-  cloud_dns:
-    - 1.1.1.1
-    - 1.0.0.1
+  cloud_dns: []
   http_port: 80
   passthrough_url: ""
   api_port: 8642
