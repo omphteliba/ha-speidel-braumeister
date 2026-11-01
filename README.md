@@ -29,6 +29,8 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 | Last Online | Last time the device was online |
 | Device Recipes | Number of recipes stored on the Braumeister; each recipe (mash-in, rests, boil time, hop additions) is listed in the `recipes` attribute |
 
+RTC diagnostics compare the device display clock with Home Assistant local time using fresh, advancing device timestamps. **RTC offset** reports signed minutes; **Check RTC** warns when the absolute offset is at least 6 minutes for 3 minutes. Missing or stale samples are unknown, and offline devices are unavailable. The integration does not set the device clock or send notifications.
+
 ### Binary Sensors
 
 | Binary Sensors | Description |

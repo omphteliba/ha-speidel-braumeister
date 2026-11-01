@@ -65,6 +65,7 @@ def load_coordinator(package, root):
     import importlib
     import sys
     import types
+    from datetime import datetime, timezone
     from unittest.mock import patch
     def mod(name, **attrs):
         result = types.ModuleType(name)
@@ -78,6 +79,7 @@ def load_coordinator(package, root):
             self.hass = None
             self.data = None
     stubs = {
+        "homeassistant.util": mod("util", dt=mod("dt", now=lambda: datetime.now(timezone.utc))),
         "homeassistant.core": mod("core", HomeAssistant=object, callback=lambda fn: fn),
         "homeassistant.helpers.aiohttp_client": mod("aiohttp", async_get_clientsession=lambda hass: None),
         "homeassistant.helpers.update_coordinator": mod("coordinator", DataUpdateCoordinator=Base, UpdateFailed=RuntimeError),

@@ -123,9 +123,9 @@ async def test_xhr_samples_reach_diagnostics_and_offline_clears():
     module, obj = coordinator()
     obj._fetch_bridge = AsyncMock(return_value=None)
     obj.web_auth = SimpleNamespace(get_device_status=AsyncMock())
-    with patch.object(module, 'datetime') as clock, patch.object(module.time, 'monotonic') as mono:
+    with patch.object(module.dt_util, 'now') as clock, patch.object(module.time, 'monotonic') as mono:
         for seconds in [0, 30, 60]:
-            clock.now.return_value = START + timedelta(seconds=seconds)
+            clock.return_value = START + timedelta(seconds=seconds)
             mono.return_value = seconds
             obj.web_auth.get_device_status.return_value = {**sample(seconds), 'temperature': 20}
             result = await obj._async_update_data()
@@ -138,9 +138,9 @@ async def test_xhr_samples_reach_diagnostics_and_offline_clears():
 async def test_bridge_samples_and_mqtt_do_not_retain_diagnostics():
     module, obj = coordinator()
     obj._fetch_bridge = AsyncMock()
-    with patch.object(module, 'datetime') as clock, patch.object(module.time, 'monotonic') as mono:
+    with patch.object(module.dt_util, 'now') as clock, patch.object(module.time, 'monotonic') as mono:
         for seconds in [0, 30]:
-            clock.now.return_value = START + timedelta(seconds=seconds)
+            clock.return_value = START + timedelta(seconds=seconds)
             mono.return_value = seconds
             obj._fetch_bridge.return_value = sample(seconds, source='bridge')
             result = await obj._async_update_data()

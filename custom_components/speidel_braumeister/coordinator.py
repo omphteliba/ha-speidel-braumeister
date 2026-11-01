@@ -5,12 +5,12 @@ import logging
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
-from zoneinfo import ZoneInfo
 
 from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
@@ -135,7 +135,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         cleaned = data.copy()
         if data.get("time_display") and data.get("device_timestamp"):
             cleaned.update(self._rtc_monitor.observe(
-                data, datetime.now(ZoneInfo(self.hass.config.time_zone)), time.monotonic()
+                data, dt_util.now(), time.monotonic()
             ))
         else:
             self._rtc_monitor.reset()
