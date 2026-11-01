@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- After a restart the restored recipe list was written again on the first message; now only
+  real changes are saved.
+
 ## 0.2.1
 
 - The state-change log also shows the temperature unit (field 2) and the display language

@@ -234,3 +234,29 @@ def test_fahrenheit_boil_stays_plausible(dp):
 def test_celsius_unchanged(dp):
     result = dp.parse_bm_stat(status("0X11:33XCX2030X400X 33.0X300X7441X5X0X0X0X0XADUSXphX000X0X0X0"))
     assert (result["temperature"], result["target_temperature"], result["device_temperature_unit"]) == (33.0, 40.0, "°C")
+
+
+RZ_FAHRENHEIT = (
+    "V1.1.27 Sep 12 2018;1234567890ABCDEF;1793380000;4\r\n"
+    "0X104X104X1X0X0X0X0X0X0X0X0X5X217X3X2X1X0X0X0.test 10 minute\r\n"
+    "1X104X111X20X125X20X145X35X163X35X172X10X90X217X90X15X0X0X0X0.Weizen;00000000;00000000"
+)
+BM_FAHRENHEIT = status("0X11:33XFX2610X1040X 105.0X300X256X4X0X0X0X14XA00SXphX000X0X0X0")
+
+
+def test_fahrenheit_recipes_converted(dp):
+    # Seen live after switching the device to °F: the recipe list arrives in °F too
+    recipes = dp.parse_recipes(RZ_FAHRENHEIT, fahrenheit=True)
+    weizen = recipes[1]
+    assert weizen["mash_in_temperature"] == 40
+    assert [r["temperature"] for r in weizen["rests"]] == [44, 52, 63, 73, 78]
+    assert weizen["boil_temperature"] == 103
+    assert recipes[0]["boil_temperature"] == 103
+    assert dp.parse_recipes(RZ_FAHRENHEIT)[1]["mash_in_temperature"] == 104  # unit unknown: raw
+
+
+def test_bridge_recipes_use_device_unit(dp):
+    status_payload = {"now": 1000.0, "devices": [{"device_id": "1234567890ABCDEF", "bm_stat": BM_FAHRENHEIT,
+                                                 "bm_stat_received": 999.0, "rz": RZ_FAHRENHEIT}]}
+    assert dp.from_bridge(status_payload, "1234567890ABCDEF", 30)["device_recipe_details"][1]["mash_in_temperature"] == 40
+    assert dp.recipes_from_bridge(status_payload, "1234567890ABCDEF")[1]["boil_temperature"] == 103

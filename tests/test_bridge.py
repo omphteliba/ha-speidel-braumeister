@@ -257,3 +257,15 @@ def test_recipes_saved_and_restored(bridge_module, tmp_path):
     restored = bridge_module.Bridge(options)
     assert "Weizen" in restored.devices[DEVICE]["rz"]
     assert "bm_stat" not in restored.devices[DEVICE]
+
+
+def test_restored_recipes_not_rewritten(bridge_module, tmp_path):
+    state = tmp_path / "recipes.json"
+    options = {**bridge_module.DEFAULTS, "state_file": str(state)}
+    rz = (f"rz=V1.1.27%20Sep%2012%202018;{DEVICE};1793380000;5\r\n"
+          "0X40X44X20X52X20X63X35X73X35X78X10X90X103X90X15X0X0X0X0.Weizen;0;0").encode()
+    bridge_module.Bridge(options).record("/braumeister/connect", rz, "192.0.2.29")
+    first = state.stat().st_mtime_ns
+    restarted = bridge_module.Bridge(options)
+    restarted.record("/braumeister/connect", rz.replace(b"1793380000", b"1793380500"), "192.0.2.29")
+    assert state.stat().st_mtime_ns == first

@@ -145,9 +145,33 @@ def parse_recipe_line(line: str) -> Optional[dict[str, Any]]:
     }
 
 
-def parse_recipes(text: str) -> list[dict[str, Any]]:
-    """All recipe slots in an ``rz`` payload or a getDeviceRecipes response, sorted by slot."""
+def recipe_to_celsius(recipe: dict[str, Any]) -> dict[str, Any]:
+    """Convert a recipe decoded from a Fahrenheit device to °C (whole degrees, as entered)."""
+    def c(value: int) -> int:
+        return round((value - 32) * 5 / 9)
+    return {
+        **recipe,
+        "mash_in_temperature": c(recipe["mash_in_temperature"]),
+        "rests": [{**rest, "temperature": c(rest["temperature"])} for rest in recipe["rests"]],
+        "boil_temperature": c(recipe["boil_temperature"]),
+    }
+
+
+def is_fahrenheit(bm_stat: Optional[str]) -> bool:
+    """Whether a raw bm_stat message comes from a device set to Fahrenheit (field 2)."""
+    parsed = parse_bm_stat(bm_stat) if bm_stat else {}
+    return parsed.get("device_temperature_unit") == "°F"
+
+
+def parse_recipes(text: str, fahrenheit: bool = False) -> list[dict[str, Any]]:
+    """All recipe slots in an ``rz`` payload or a getDeviceRecipes response, sorted by slot.
+
+    The recipe list carries no unit: with the device set to Fahrenheit (bm_stat field 2)
+    its temperatures are °F as well and are converted to whole °C.
+    """
     recipes = [r for line in text.replace("\r\n", "\n").split("\n") if (r := parse_recipe_line(line))]
+    if fahrenheit:
+        recipes = [recipe_to_celsius(r) for r in recipes]
     return sorted(recipes, key=lambda r: r["slot"])
 
 
@@ -160,7 +184,7 @@ def recipes_from_bridge(status: dict[str, Any], device_id: str) -> Optional[list
     """This device's recipe slots from the bridge, also when the device is currently off."""
     for device in status.get("devices", []):
         if device.get("device_id", "").lower() == device_id.lower() and device.get("rz"):
-            return parse_recipes(device["rz"])
+            return parse_recipes(device["rz"], is_fahrenheit(device.get("bm_stat")))
     return None
 
 
@@ -175,7 +199,8 @@ def from_bridge(status: dict[str, Any], device_id: str, max_age: float) -> dict[
         parsed = parse_bm_stat(device["bm_stat"])
         if not parsed:
             return None
-        details = parse_recipes(device["rz"]) if device.get("rz") else []
+        fahrenheit = parsed.get("device_temperature_unit") == "°F"
+        details = parse_recipes(device["rz"], fahrenheit) if device.get("rz") else []
         recipes = {r["slot"]: r["name"] for r in details}
         slot = parsed.get("recipe_slot")
         parsed["brew_name"] = recipes.get(slot) if slot is not None else None

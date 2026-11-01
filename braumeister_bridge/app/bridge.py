@@ -175,7 +175,10 @@ class Bridge:
             _LOGGER.warning("Could not read %s: %s", self.state_file, err)
             return
         for device_id, data in stored.items():
-            self.devices[device_id] = {"device_id": device_id, "rz": data["rz"], "rz_received": data["rz_received"]}
+            self.devices[device_id] = {
+                "device_id": device_id, "rz": data["rz"], "rz_received": data["rz_received"],
+                "rz_saved": data["rz"],  # already on disk: no rewrite on the first rz after a restart
+            }
         _LOGGER.info("Restored recipe lists of %d device(s)", len(stored))
 
     def save_recipes(self) -> None:

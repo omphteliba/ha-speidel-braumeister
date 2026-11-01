@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Braumeisters set to **Fahrenheit** reported their °F values as °C (e.g. 91.5 °C instead of 33 °C), and at boiling temperature the value was dropped as implausible. Temperatures are now converted to °C; Home Assistant shows them in the user's unit
+- With the device set to Fahrenheit, the recipe temperatures (Device Recipes sensor) were °F values labelled °C; they are converted to °C as well
 - Example dashboard: the recipe table was rendered as a single line (folded YAML block instead of a literal one)
 
 ## [3.0.0] - 2026-10-31

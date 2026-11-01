@@ -44,7 +44,7 @@ class SpeidelWebAuth:
         self._account_recipes: dict[int, dict] = {}  # account recipe_id -> {name, date, style}
         self._recipe_mapping: dict[int, int] = {}  # device slot -> account recipe_id (matched by name)
         self._recipe_count: Optional[int] = None  # bm_stat field 8, changes when recipes are synced
-        self._device_recipe_details: list[dict[str, Any]] = []  # decoded slots for the recipes sensor
+        self._device_recipes_text: str = ""  # raw getDeviceRecipes answer; decoded per poll with the unit
         self._device_name: Optional[str] = None
         self._device_type: Optional[str] = None  # e.g., "Braumeister 20 Liter"
         self._last_online: Optional[str] = None
@@ -308,7 +308,7 @@ class SpeidelWebAuth:
                 if response.status == 200:
                     text = await response.text()
                     self._device_recipes = self._parse_device_recipes(text)
-                    self._device_recipe_details = parse_recipes(text)
+                    self._device_recipes_text = text
                     _LOGGER.info("Loaded %d device recipes", len(self._device_recipes))
         except Exception as err:
             _LOGGER.warning("Error fetching device recipes: %s", err)
@@ -437,7 +437,9 @@ class SpeidelWebAuth:
 
             recipe_slot = result['recipe_slot']
             current_temp = result['temperature']
-            result['device_recipe_details'] = self._device_recipe_details
+            result['device_recipe_details'] = parse_recipes(
+                self._device_recipes_text, result['device_temperature_unit'] == '°F'
+            )
             
             # Look up recipe name from device recipes
             if recipe_slot is not None and recipe_slot in self._device_recipes:

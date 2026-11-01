@@ -53,7 +53,7 @@ Payload is 19 fields separated by `X`:
 |---|---|---|
 | 0 | `0` | Display language (MySpeidel `language`; `0` = German). Not used by the integration |
 | 1 | `18:12` | Device clock, HH:MM |
-| 2 | `C`, `F` | **Temperature unit** as set on the device. With `F`, fields 4 and 5 are in °F (seen live: 33.0 °C → `91.5`, target 40 °C → `1040`); the parser converts them to °C |
+| 2 | `C`, `F` | **Temperature unit** as set on the device. With `F`, fields 4 and 5 are in °F (seen live: 33.0 °C → `91.5`, target 40 °C → `1040`); the parser converts them to °C. The recipe list (`rz`) then is in °F too (e.g. mash-in `104`, boil `217`) although it carries no unit itself; it is converted with the unit from the status message |
 | 3 | `101`, `2xxx`, `3xxx`, `4006`, `4007`, `6010` | **State / screen code** (see below) |
 | 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` = none, `0` between steps (shown as 0 °C, like MySpeidel's web interface). In the main menu (state `101`) it can still hold the last program's target, so the parser ignores it there |
 | 5 | ` 24.5` | **Current temperature** in °C (leading space, 0.5 °C steps) |
