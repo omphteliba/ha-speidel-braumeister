@@ -37,7 +37,6 @@ def test_markdown_cards_layout():
     config = yaml.safe_load(DASHBOARD.read_text(encoding="utf-8"))
     cards = [c for s in config["views"][0]["sections"] for c in s["cards"] if c["type"] == "markdown"]
     table, recipe_list = cards
-    assert "
-|---|" in table["content"]
+    assert any(line.strip().startswith("|---|") for line in table["content"].splitlines())
     line = next(line for line in recipe_list["content"].splitlines() if "<small>" in line)
     assert "</small>" in line
