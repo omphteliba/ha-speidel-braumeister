@@ -52,8 +52,37 @@ App option: `passthrough_url: http://127.0.0.1:8300`
 | `cloud_host` | `api2.myspeidel.com` | Hostname the Braumeister talks to. |
 | `forward_to_cloud` | `true` | Forward messages to My Speidel. If `false`, or if the cloud is unreachable, the app answers itself and My Speidel shows the device as offline. |
 | `upstream_dns` | auto | DNS server for all other names. Auto-detected from the host. |
+| `cloud_dns` | `[]` | Host resolver by default; explicitly set DNS servers without the local rewrite when needed. |
 | `dns_port` | `53` | Port of the DNS server. `0` turns it off (if you use your own DNS). |
 | `http_port` | `80` | Port for the Braumeister's messages. Must be 80 for a real device. |
 | `passthrough_url` | empty | Where other requests on port 80 go, e.g. `http://127.0.0.1:8300`. |
 | `api_port` | `8642` | Local status API for the integration (only reachable from the host). |
 | `log_level` | `info` | `debug` logs every message. |
+
+
+## Cloud DNS and AdGuard rewrites
+
+The built-in DNS remains enabled on `dns_port: 53` by default. For an existing
+AdGuard (or other DNS) rewrite of `api2.myspeidel.com` to the HA host, set
+`dns_port: 0` to disable only the bridge's DNS listener. The device must actually
+use that DNS server; some routers use a separate resolver on guest Wi-Fi.
+
+By default, `cloud_dns: []` uses the host resolver. In the documented setup,
+only the Braumeister uses the bridge's DNS, so no separate cloud resolver is
+needed and no third-party DNS service is selected by the bridge.
+
+For a network-wide AdGuard rewrite with `dns_port: 0`, configure `cloud_dns`
+with a reachable DNS resolver that does not apply the local rewrite. For example,
+`cloud_dns: ["1.1.1.1", "1.0.0.1"]` explicitly opts into Cloudflare; choose a
+resolver permitted by your network and your DNS/privacy preferences instead if
+appropriate. Outbound DNS to the configured resolver must be allowed.
+
+Both resolver modes reject non-public answers to prevent forwarding loops. The
+error message points to `cloud_dns`; failure retains the existing local response
+behavior. `upstream_dns` still serves the built-in DNS forwarder for other names.
+HTTP passthrough still uses the host resolver, so local targets continue to work.
+Cloud redirects are not followed.
+
+Cloud requests ask for identity encoding; gzip and both zlib-wrapped and raw
+HTTP deflate responses are decoded if the server compresses anyway. Recipe
+persistence and the device command-response format are unchanged.
