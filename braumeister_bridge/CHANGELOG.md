@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- The state-change log also shows the temperature unit (field 2) and the display language
+  (field 0) and logs when they change.
+
 ## 0.2.0
 
 - The recipe list of each device is saved in the app's data folder and restored after a

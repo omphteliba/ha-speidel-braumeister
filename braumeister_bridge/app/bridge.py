@@ -329,12 +329,12 @@ class Bridge:
         fields = status.split("X")
         if len(fields) < 16:
             return
-        key = (fields[3], fields[14], fields[15])
+        key = (fields[0], fields[2], fields[3], fields[14], fields[15])
         if device.get("last_state") != key:
             _LOGGER.info(
-                "state %s flags %s indicator %s (temp %s, target %s, step %s/%s s, rest %s, hop %s)",
-                fields[3], fields[14], fields[15], fields[5].strip(), fields[4], fields[7], fields[6],
-                fields[10], fields[11],
+                "state %s flags %s indicator %s (temp %s%s, target %s, step %s/%s s, rest %s, hop %s, language %s)",
+                fields[3], fields[14], fields[15], fields[5].strip(), fields[2], fields[4], fields[7], fields[6],
+                fields[10], fields[11], fields[0],
             )
             device["last_state"] = key
 

@@ -51,9 +51,9 @@ Payload is 19 fields separated by `X`:
 
 | Pos | Observed values | Meaning |
 |---|---|---|
-| 0 | `0` | Unknown (always `0`) |
+| 0 | `0` | Display language (MySpeidel `language`; `0` = German). Not used by the integration |
 | 1 | `18:12` | Device clock, HH:MM |
-| 2 | `C` | Temperature unit (Celsius) |
+| 2 | `C`, `F` | **Temperature unit** as set on the device. With `F`, fields 4 and 5 are in °F (seen live: 33.0 °C → `91.5`, target 40 °C → `1040`); the parser converts them to °C |
 | 3 | `101`, `2xxx`, `3xxx`, `4006`, `4007`, `6010` | **State / screen code** (see below) |
 | 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` = none, `0` between steps (shown as 0 °C, like MySpeidel's web interface). In the main menu (state `101`) it can still hold the last program's target, so the parser ignores it there |
 | 5 | ` 24.5` | **Current temperature** in °C (leading space, 0.5 °C steps) |
@@ -74,6 +74,7 @@ Payload is 19 fields separated by `X`:
 | Code | Field 13 | Observed context |
 |---|---|---|
 | `101` | `EMSR` | Main menu / idle |
+| `8101`, `8706` | | Settings menu (changing the temperature unit). Entering it pauses a running program (field 15 `120`) |
 | `4006` | `APHT` | Manual mode, target 38.0 °C, pump toggled here |
 | `4007` | `ADUS` | Manual mode, editing target temperature (38.0 → 39.0) |
 | `6010` | `ADUS` | Some sub-menu, entered with `$k=4`, left with `$k=1` |

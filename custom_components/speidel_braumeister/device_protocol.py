@@ -10,7 +10,7 @@ Envelope: firmware;device_id;unix_time;X-separated-status;constant;signature
 Status fields (X-separated):
   [0]  = unknown (always 0)
   [1]  = device clock (HH:MM)
-  [2]  = temperature unit ("C")
+  [2]  = temperature unit ("C" or "F"); "F" values are converted to °C
   [3]  = state / screen code (101 = main menu, 2xxx = mashing, 3xxx = boiling, 4xxx = manual mode)
   [4]  = target temperature x10, <= -1000 = none, 0 between steps (stale in main menu, ignored there)
   [5]  = current temperature (°C)
@@ -86,6 +86,13 @@ def _float(fields: list[str], idx: int) -> Optional[float]:
 # q/i as inactive, p/h unmarked. Inactive maps to off in the on/off model.
 PUMP_FLAGS = {"P": "on", "p": "off", "q": "off"}
 HEATER_FLAGS = {"H": "on", "h": "off", "i": "off"}
+
+
+def _to_celsius(value: Optional[float], fahrenheit: bool) -> Optional[float]:
+    """Device temperature in °C (the device reports °F when set to Fahrenheit)."""
+    if value is None or not fahrenheit:
+        return value
+    return round((value - 32) * 5 / 9, 1)
 
 
 def _actuators(flags: Optional[str]) -> tuple[str, str]:
@@ -191,6 +198,10 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         return {}
 
     fields = parts[3].split("X")
+    # Field 2: "C" or "F" as set on the device. Values are converted to °C here;
+    # Home Assistant converts back for users who display Fahrenheit.
+    unit = _field(fields, 2)
+    fahrenheit = bool(unit) and unit.upper() == "F"
 
     result: dict[str, Any] = {
         "firmware": parts[0],
@@ -198,7 +209,8 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         "device_timestamp": _int(parts, 2),
         "time_display": _field(fields, 1),
         "state_code": _int(fields, 3),
-        "temperature": _float(fields, 5),
+        "temperature": _to_celsius(_float(fields, 5), fahrenheit),
+        "device_temperature_unit": "°F" if fahrenheit else "°C",
         "state_seconds": _int(fields, 7),
         "recipe_count": _int(fields, 8),
         "display_code": _field(fields, 13),
@@ -221,7 +233,7 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
     # device reports 0, shown as 0 °C like MySpeidel's web interface does.
     target_raw = _int(fields, 4)
     result["target_temperature"] = (
-        target_raw / 10
+        (0.0 if target_raw == 0 else _to_celsius(target_raw / 10, fahrenheit))
         if target_raw is not None
         and target_raw > NO_TARGET_TEMPERATURE
         and state_code != STATE_MAIN_MENU

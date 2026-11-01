@@ -214,3 +214,23 @@ def test_recipes_from_bridge_without_fresh_status(dp):
     status = {"now": 99999.0, "devices": [{"device_id": "1234567890ABCDEF", "rz": RZ, "rz_received": 1.0}]}
     assert [r["name"] for r in dp.recipes_from_bridge(status, "1234567890abcdef")] == ["Weizen", "test 10 minute"]
     assert dp.recipes_from_bridge(status, "FFFF") is None
+
+
+def test_fahrenheit_converted_to_celsius(dp):
+    # Seen live after switching the device to °F: 33.0 °C -> 91.5, target 40 °C -> 1040
+    result = dp.parse_bm_stat(status("0X11:33XFX2030X1040X 91.5X300X7441X5X0X0X0X0XADUSXphX000X0X0X0"))
+    assert result["device_temperature_unit"] == "°F"
+    assert result["temperature"] == 33.1
+    assert result["target_temperature"] == 40.0
+
+
+def test_fahrenheit_boil_stays_plausible(dp):
+    # 103 °C = 217.4 °F: must arrive as about 103 °C, not as an implausible 217
+    result = dp.parse_bm_stat(status("0X11:33XFX3070X2174X 215.6X300X10X5X2X5X0X256XA00SXqHX000X0X0X0"))
+    assert result["temperature"] == 102.0
+    assert result["target_temperature"] == 103.0
+
+
+def test_celsius_unchanged(dp):
+    result = dp.parse_bm_stat(status("0X11:33XCX2030X400X 33.0X300X7441X5X0X0X0X0XADUSXphX000X0X0X0"))
+    assert (result["temperature"], result["target_temperature"], result["device_temperature_unit"]) == (33.0, 40.0, "°C")

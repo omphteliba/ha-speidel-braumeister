@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- Example dashboard: the recipe table was rendered as a single line (folded YAML block instead of a literal one)
-
 ### Added
+- Local display texts for the current step derived from the device state ("Malz einfüllen!", "Malzrohr entnehmen!", "Hopfen zugeben" …), no cloud needed with the bridge (thanks to DanielP-1337, #12)
 - Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
+
+### Fixed
+- Braumeisters set to **Fahrenheit** reported their °F values as °C (e.g. 91.5 °C instead of 33 °C), and at boiling temperature the value was dropped as implausible. Temperatures are now converted to °C; Home Assistant shows them in the user's unit
+- Example dashboard: the recipe table was rendered as a single line (folded YAML block instead of a literal one)
 
 ## [3.0.0] - 2026-10-31
 
