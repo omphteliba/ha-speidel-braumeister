@@ -6,6 +6,7 @@ installing Home Assistant (importing the package would load __init__.py).
 
 import importlib.util
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -22,8 +23,13 @@ def _load(name: str, path: Path):
     return module
 
 
+# A package namespace permits relative imports without importing HA's __init__.
+package = types.ModuleType("protocol_tests")
+package.__path__ = [str(ROOT / "custom_components" / "speidel_braumeister")]
+sys.modules[package.__name__] = package
+
 device_protocol = _load(
-    "device_protocol", ROOT / "custom_components" / "speidel_braumeister" / "device_protocol.py"
+    "protocol_tests.device_protocol", ROOT / "custom_components" / "speidel_braumeister" / "device_protocol.py"
 )
 bridge = _load("bridge", ROOT / "braumeister_bridge" / "app" / "bridge.py")
 
