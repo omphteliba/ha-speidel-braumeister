@@ -91,6 +91,9 @@
       "current_phase": {
         "name": "Aktuelle Phase"
       },
+      "elapsed_time": {
+        "name": "Verstrichene Phasenzeit"
+      },
       "remaining_time": {
         "name": "Restzeit"
       },

@@ -244,6 +244,7 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         "display_code": _field(fields, 13),
         "remaining_time": None,
         "remaining_seconds": None,
+        "elapsed_time": None,
     }
 
     state_code = result["state_code"]
@@ -251,6 +252,11 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
 
     # Remaining time of a timed step (rest, boil): step duration minus elapsed
     duration, elapsed = _int(fields, 6), result["state_seconds"]
+    # Field 7 is the device timer, not time since HA started observing.
+    # During 3080 (hop addition) the boil timer continues running.
+    timer = (_field(fields, 7) or "").strip()
+    if state_code in (2820, 3070, 3080) and timer.isascii() and timer.isdecimal():
+        result["elapsed_time"] = int(timer)
     if state_code in TIMED_STATES and duration and elapsed is not None:
         remaining = max(duration - elapsed, 0)
         result["remaining_seconds"] = remaining
