@@ -62,8 +62,9 @@ class SpeidelBraumeisterBinarySensor(SpeidelBraumeisterEntity, BinarySensorEntit
         key = self.entity_description.key
 
         if key == "alarm":
-            # Prefer the device state code (see device_protocol.ALARM_STATES)
-            if data.get("state_code") is not None:
+            # A decoded alarm (including explicit None after acknowledgement)
+            # is authoritative even when the state code is unavailable.
+            if "alarm" in data:
                 return data.get("alarm") is not None
             # Fallback: check if current phase is an alarm state
             current_phase = data.get("current_phase", "")
