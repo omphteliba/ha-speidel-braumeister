@@ -98,3 +98,28 @@ The file is capped at 1 MiB and is kept across restarts. The local health API
 reports `diagnostics_missed` for writes skipped because the writer is busy,
 the file is full, or storage is unavailable. To start a fresh capture, stop
 the app, archive or remove the summary file, then start the app again.
+
+With `control_enabled: true`, local API clients can POST JSON containing
+`device_id` and `action` to `/api/control`. Supported actions:
+
+| Action | Screen transition |
+| --- | --- |
+| `open_settings` / `close_settings` | 101 ↔ 8101 |
+| `open_manual` / `close_manual` | 101 ↔ 4006 |
+| `open_recipe_list` / `close_recipe_list` | 101 ↔ 6010 |
+| `open_recipe_selection` / `cancel_recipe_selection` | 101 ↔ 2015 |
+| `recipe_down` / `recipe_up` | 2015, change highlighted slot |
+
+List navigation uses the device-reported recipe count (one to five) and
+confirms the expected highlighted slot, including wraparound.
+
+The Bridge requires recent status with both actuators off. HTTP 202 means the
+action is queued. Only one action can be pending across the Bridge.
+
+The Bridge adds the key once on a fresh matching device poll with the
+standard successful acknowledgment, including the local reply when cloud
+forwarding is disabled or unavailable. Other cloud responses pass through
+as received by the normal forwarding path. GET `/api/control` returns the
+latest action's outcome. A later device poll reporting the expected screen
+and actuator flags marks it confirmed. An action expires after five seconds
+in the queue or becomes unconfirmed after five seconds awaiting telemetry.
