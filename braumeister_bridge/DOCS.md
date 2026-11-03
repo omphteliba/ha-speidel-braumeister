@@ -86,3 +86,15 @@ Cloud redirects are not followed.
 Cloud requests ask for identity encoding; gzip and both zlib-wrapped and raw
 HTTP deflate responses are decoded if the server compresses anyway. Recipe
 persistence and the device command-response format are unchanged.
+
+Set `diagnostics_enabled: true` to record a compact local summary of completed
+device exchanges in `/data/diagnostics-summary.jsonl`. Each entry contains the
+Bridge timestamp, response source and HTTP status, command count, recognized
+key numbers, and, for status messages, the screen code and actuator flags.
+The recorder stores only these fields. Device IDs, account data, signatures,
+recipe contents, headers and raw bodies are excluded.
+
+The file is capped at 1 MiB and is kept across restarts. The local health API
+reports `diagnostics_missed` for writes skipped because the writer is busy,
+the file is full, or storage is unavailable. To start a fresh capture, stop
+the app, archive or remove the summary file, then start the app again.

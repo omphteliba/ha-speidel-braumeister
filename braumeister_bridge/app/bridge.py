@@ -23,7 +23,9 @@ import zlib
 import json
 import logging
 import os
+import re
 import socket
+import stat
 import struct
 import time
 from pathlib import Path
@@ -37,6 +39,8 @@ from aiohttp.resolver import DefaultResolver
 _LOGGER = logging.getLogger("braumeister_bridge")
 
 OPTIONS_FILE = Path(os.environ.get("BRIDGE_OPTIONS", "/data/options.json"))
+DIAGNOSTICS_FILE = Path("/data/diagnostics-summary.jsonl")
+DIAGNOSTICS_LIMIT = 1024 * 1024
 DEFAULTS: dict[str, Any] = {
     "bridge_ip": "",
     "cloud_host": "api2.myspeidel.com",
@@ -49,6 +53,7 @@ DEFAULTS: dict[str, Any] = {
     "api_port": 8642,
     "api_host": "127.0.0.1",
     "log_level": "info",
+    "diagnostics_enabled": False,
     # Where device requests are forwarded; empty = http://<cloud_host> (for tests)
     "cloud_url": "",
     # Recipe lists are kept here so they survive restarts (empty = do not store)
@@ -56,6 +61,20 @@ DEFAULTS: dict[str, Any] = {
 }
 
 LOCAL_ANSWER = b"Start\r\nOK\r\nDone\r\n"
+
+
+def append_diagnostic(path: Path, line: bytes) -> bool:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+    try:
+        with os.fdopen(os.open(path, flags, 0o600), "ab") as output:
+            info = os.fstat(output.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size + len(line) > DIAGNOSTICS_LIMIT:
+                return False
+            output.write(line)
+    except OSError:
+        return False
+    return True
 HOP_BY_HOP = {
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
     "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length",
@@ -187,6 +206,8 @@ class Bridge:
         self.session: ClientSession | None = None
         self.cloud_session: ClientSession | None = None
         self.cloud_resolver = None
+        self.diagnostic_write: asyncio.Task | None = None
+        self.diagnostic_missed = 0
         self.state_file = Path(options["state_file"]) if options.get("state_file") else None
         self.load_recipes()
 
@@ -226,6 +247,8 @@ class Bridge:
         self.session = ClientSession(timeout=ClientTimeout(total=8), auto_decompress=False)
 
     async def close_session(self, _app: web.Application | None = None) -> None:
+        if self.diagnostic_write is not None:
+            await self.diagnostic_write
         if self.cloud_session:
             await self.cloud_session.close()
         if self.cloud_resolver:
@@ -276,7 +299,33 @@ class Bridge:
         await response.prepare(request)
         await response.write(answer)
         await response.write_eof()
+        if self.options.get("diagnostics_enabled"):
+            self.record_diagnostic(body, commands, status, source)
         return response
+
+    def record_diagnostic(self, body: bytes, commands: list[str], status: int, source: str) -> None:
+        if self.diagnostic_write is not None and not self.diagnostic_write.done():
+            self.diagnostic_missed += 1
+            return
+        entry = {
+            "time": time.time(), "status": status, "source": source,
+            "keys": [int(command[-1]) for command in commands[:8] if re.fullmatch(r"\$k=[1-4]", command)],
+            "command_count": len(commands),
+        }
+        message = self.split_message(body)
+        if message and message[0] == "bm_stat":
+            parts = message[1].split(";", 4)
+            fields = parts[3].split("X", 15) if len(parts) >= 4 else []
+            if len(fields) >= 15 and re.fullmatch(r"[0-9]{1,4}", fields[3]):
+                entry["state"] = int(fields[3])
+                if re.fullmatch(r"[pPq][hHi]", fields[14]):
+                    entry["actuators"] = fields[14]
+        self.diagnostic_write = asyncio.create_task(self.write_diagnostic(entry))
+
+    async def write_diagnostic(self, entry: dict[str, Any]) -> None:
+        line = (json.dumps(entry) + "\n").encode("ascii")
+        if not await asyncio.to_thread(append_diagnostic, DIAGNOSTICS_FILE, line):
+            self.diagnostic_missed += 1
 
     async def forward_to_cloud(self, request: web.Request, body: bytes) -> tuple[int, dict[str, str], bytes]:
         # Guarded cloud resolution blocks rewrites back to this bridge.
@@ -397,7 +446,10 @@ class Bridge:
         return web.json_response({"now": time.time(), "devices": devices})
 
     async def api_health(self, _request: web.Request) -> web.Response:
-        return web.json_response({"ok": True, "devices": len(self.devices)})
+        health = {"ok": True, "devices": len(self.devices)}
+        if self.options.get("diagnostics_enabled"):
+            health["diagnostics_missed"] = self.diagnostic_missed
+        return web.json_response(health)
 
 
 def build_apps(bridge: Bridge) -> tuple[web.Application, web.Application]:

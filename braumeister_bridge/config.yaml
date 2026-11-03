@@ -20,6 +20,7 @@ options:
   passthrough_url: ""
   api_port: 8642
   log_level: info
+  diagnostics_enabled: false
 schema:
   bridge_ip: str?
   cloud_host: str
@@ -32,3 +33,4 @@ schema:
   passthrough_url: str?
   api_port: port
   log_level: list(debug|info|warning|error)
+  diagnostics_enabled: bool
