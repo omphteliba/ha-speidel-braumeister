@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
 
 ### Changed
-- New integration icon (a black "S" on yellow) instead of the Speidel logo, and a README note that this is an unofficial project, not affiliated with Speidel
+- New integration icon (a brew kettle drawn by @DanielP-1337, #22) instead of the Speidel logo, and a README note that this is an unofficial project, not affiliated with Speidel
 
 ### Fixed
 - The alarm sensor could stay on after an alarm was acknowledged when no state code was available; the decoded alarm now always wins over the old phase text (thanks to DanielP-1337, #16)
