@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Braumeister Bridge 0.3.1: optional diagnostic summary of device exchanges, without IDs or raw data (thanks to DanielP-1337, #19)
 - Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
 
+### Changed
+- New integration icon (a black "S" on yellow) instead of the Speidel logo, and a README note that this is an unofficial project, not affiliated with Speidel
+
 ### Fixed
 - The alarm sensor could stay on after an alarm was acknowledged when no state code was available; the decoded alarm now always wins over the old phase text (thanks to DanielP-1337, #16)
 - Braumeisters set to **Fahrenheit** reported their °F values as °C (e.g. 91.5 °C instead of 33 °C), and at boiling temperature the value was dropped as implausible. Temperatures are now converted to °C; Home Assistant shows them in the user's unit

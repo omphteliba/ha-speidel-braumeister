@@ -277,6 +277,8 @@ Bei Problemen oder Fragen:
 
 Diese Integration ist unter der [MIT-Lizenz](LICENSE) lizenziert.
 
+Dies ist ein inoffizielles Community-Projekt. Es steht in keiner Verbindung zur Speidel Tank- und Behälterbau GmbH und wird von ihr weder unterstützt noch empfohlen. „Speidel“ und „Braumeister“ sind Marken ihres Inhabers und werden hier nur verwendet, um die unterstützten Geräte zu benennen.
+
 ## Danksagung
 
 Danke an die gesamte Home Assistant Community für die Unterstützung und Inspiration!

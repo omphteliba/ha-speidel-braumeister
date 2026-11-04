@@ -281,6 +281,8 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+This is an unofficial community project. It is not affiliated with, endorsed by or supported by Speidel Tank- und Behälterbau GmbH. "Speidel" and "Braumeister" are trademarks of their respective owner and are used here only to name the supported devices.
+
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/omphteliba/ha-speidel-braumeister/issues)
