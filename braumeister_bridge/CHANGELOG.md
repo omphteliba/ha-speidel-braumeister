@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- New option `diagnostics_enabled` (off by default): writes a compact summary of each device
+  exchange (time, response source, HTTP status, key commands, screen code, actuator flags)
+  to `/data/diagnostics-summary.jsonl`, capped at 1 MiB. No device IDs, signatures, account
+  data, recipes or raw messages (thanks to DanielP-1337, #19)
+
 ## 0.3.0
 
 - Cloud lookups reject private/local answers, so a network-wide DNS rewrite (e.g. AdGuard

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Braumeister Bridge 0.3.0: loop protection for network-wide DNS rewrites, optional `cloud_dns` resolver, `dns_port: 0` allowed, deflate answers decoded (thanks to DanielP-1337, #13)
 - "Elapsed Step Time" sensor: elapsed time of the current rest or boil as reported by the device, also during hop additions (thanks to DanielP-1337, #17)
 - RTC diagnostics: "RTC offset" (device clock vs. Home Assistant time, in minutes) and "Check RTC", a problem sensor when the clock is off by 6 minutes or more for 3 minutes, e.g. after a DST change (thanks to DanielP-1337, #15)
+- Braumeister Bridge 0.3.1: optional diagnostic summary of device exchanges, without IDs or raw data (thanks to DanielP-1337, #19)
 - Example brewery dashboard (`examples/brewery-dashboard.yaml`, README section "Example Dashboard"): temperature gauge, status chips, progress, alarm banner, temperature curve and recipes
 
 ### Fixed
