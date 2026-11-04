@@ -1,9 +1,11 @@
 """Tests for the Braumeister Bridge app (no traffic leaves the machine)."""
 
 import asyncio
+import json
 import socket
 import struct
 
+import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
@@ -89,24 +91,30 @@ async def make_bridge(bridge_module, cloud_url, passthrough_url=""):
     return bridge, port80_client, api_client
 
 
-async def test_device_message_forwarded_and_stored(bridge_module):
+@pytest.mark.parametrize("diagnostics_enabled", [False, True])
+async def test_device_message_forwarded_and_stored(bridge_module, diagnostics_enabled, tmp_path, monkeypatch):
     received = []
+    capture = tmp_path / "diagnostics-summary.jsonl"
+    monkeypatch.setattr(bridge_module, "DIAGNOSTICS_FILE", capture)
+    answer = b"Start\r\n$k=1\r\n$rz=private-account;private-signature\r\nOK\r\nDone\r\n"
 
     async def fake_cloud(request):
         received.append((dict(request.headers), await request.read()))
-        return web.Response(text="Start\r\n$k=1\r\nOK\r\nDone\r\n")
+        return web.Response(body=answer)
 
     cloud_app = web.Application()
     cloud_app.router.add_post("/braumeister/connect", fake_cloud)
     cloud = TestServer(cloud_app)
     await cloud.start_server()
     bridge, port80, api = await make_bridge(bridge_module, str(cloud.make_url("")))
+    bridge.options["diagnostics_enabled"] = diagnostics_enabled
+    message = BM_STAT.replace(b"00000000;00000000", b"private-account;private-signature")
     try:
-        resp = await port80.post("/braumeister/connect", data=BM_STAT, headers=DEVICE_HEADERS)
+        resp = await port80.post("/braumeister/connect", data=message, headers=DEVICE_HEADERS)
         assert resp.status == 200
-        assert await resp.text() == "Start\r\n$k=1\r\nOK\r\nDone\r\n"
+        assert await resp.read() == answer
         headers, body = received[0]
-        assert body == BM_STAT
+        assert body == message
         assert headers["Host"] == "api2.myspeidel.com"
         assert headers["Authorization"] == "Basic dGVzdDp0ZXN0"
 
@@ -115,6 +123,23 @@ async def test_device_message_forwarded_and_stored(bridge_module):
         assert device["device_id"] == DEVICE
         assert "2820" in device["bm_stat"]
         assert device["last_response_source"] == "cloud"
+        if diagnostics_enabled:
+            await bridge.diagnostic_write
+            original = capture.read_bytes()
+            entry = json.loads(original)
+            assert isinstance(entry.pop("time"), float)
+            assert entry == {
+                "status": 200, "source": "cloud", "keys": [1], "command_count": 2,
+                "state": 2820, "actuators": "Pi",
+            }
+            monkeypatch.setattr(bridge_module, "DIAGNOSTICS_LIMIT", len(original))
+            resp = await port80.post("/braumeister/connect", data=message, headers=DEVICE_HEADERS)
+            assert await resp.read() == answer
+            await bridge.diagnostic_write
+            assert capture.read_bytes() == original
+            assert (await (await api.get("/api/health")).json())["diagnostics_missed"] == 1
+        else:
+            assert not capture.exists()
     finally:
         await port80.close()
         await api.close()
