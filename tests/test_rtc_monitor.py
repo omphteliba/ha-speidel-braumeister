@@ -179,7 +179,8 @@ async def test_diagnostic_entities_registration_and_unknown_states():
         'rtc_entities.coordinator': mod('coordinator', SpeidelBraumeisterDataCoordinator=object),
         'rtc_entities.entity': mod('entity', SpeidelBraumeisterEntity=Entity),
         'homeassistant.config_entries': mod('config', ConfigEntry=object),
-        'homeassistant.core': mod('core', HomeAssistant=object),
+        'homeassistant.core': mod('core', HomeAssistant=object, callback=lambda fn: fn),
+        'homeassistant.helpers.event': mod('event', async_track_time_interval=lambda *args: lambda: None),
         'homeassistant.helpers.entity': mod('entity', EntityCategory=EntityCategory),
         'homeassistant.helpers.entity_platform': mod('platform', AddEntitiesCallback=object),
         'homeassistant.components.sensor': mod('sensor', SensorEntity=type('Sensor', (), {}), SensorEntityDescription=SimpleNamespace),
@@ -196,8 +197,9 @@ async def test_diagnostic_entities_registration_and_unknown_states():
         await binaries.async_setup_entry(hass, entry, entities.extend)
         offset = next(e for e in entities if e.entity_description.key == 'rtc_offset')
         warning = next(e for e in entities if e.entity_description.key == 'rtc_warning')
+        connection = next(e for e in entities if e.entity_description.key == 'connection_warning')
         # HA registry requires an enum instance; an equal string is rejected.
-        for entity in (offset, warning):
+        for entity in (offset, warning, connection):
             category = entity.entity_description.entity_category
             assert isinstance(category, EntityCategory)
             assert category is EntityCategory.DIAGNOSTIC

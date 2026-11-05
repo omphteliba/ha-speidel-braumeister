@@ -306,6 +306,10 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
 
     flags = _field(fields, 14)
     result["pump"], result["heating"] = _actuators(flags)
+    result["heater_enabled"] = (
+        flags[1] in ("H", "i") if flags and len(flags) == 2
+        and flags[0] in PUMP_FLAGS and flags[1] in HEATER_FLAGS else None
+    )
 
     indicator = _field(fields, 15)
     beep = indicator[1] if indicator and len(indicator) > 1 else None

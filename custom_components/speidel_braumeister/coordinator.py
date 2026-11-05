@@ -322,6 +322,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result['remaining_seconds'] = xhr_data.get('remaining_seconds')
                     result['elapsed_time'] = xhr_data.get('elapsed_time')
                     result['heating'] = xhr_data.get('heating', 'unknown')
+                    result['heater_enabled'] = xhr_data.get('heater_enabled')
                     result['pump'] = xhr_data.get('pump', 'unknown')
                     result['process_status'] = xhr_data.get('process_status', 'unknown')
                     result['state_code'] = xhr_data.get('state_code')

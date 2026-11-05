@@ -150,6 +150,9 @@
       },
       "rtc_warning": {
         "name": "Check RTC"
+      },
+      "connection_warning": {
+        "name": "Check device connection"
       }
     }
   }

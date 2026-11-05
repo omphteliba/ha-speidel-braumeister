@@ -162,6 +162,12 @@ SENSOR_TYPES: Final[tuple[SensorEntityDescription, ...]] = (
 # Note: Names are provided via translations (strings.json and translations/*.json)
 BINARY_SENSOR_TYPES: Final[tuple[BinarySensorEntityDescription, ...]] = (
     BinarySensorEntityDescription(
+        key="connection_warning",
+        translation_key="connection_warning",
+        device_class="problem",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BinarySensorEntityDescription(
         key="rtc_warning",
         translation_key="rtc_warning",
         device_class="problem",
