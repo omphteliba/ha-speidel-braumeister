@@ -54,6 +54,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Last known recipe slots on the device, shown also while it is off
         self._recipes: list[dict[str, Any]] = []
         self._rtc_monitor = RTCMonitor()
+        # Bridge time of the previous successful poll, to catch alarms confirmed in between
+        self._bridge_seen: Optional[float] = None
 
     @callback
     def update_from_mqtt(self, data: dict[str, Any]) -> None:
@@ -241,7 +243,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("Braumeister Bridge not reachable: %s", err)
             return None
         self._remember_recipes(recipes_from_bridge(status, device_id))
-        data = from_bridge(status, device_id, BRIDGE_MAX_AGE)
+        data = from_bridge(status, device_id, BRIDGE_MAX_AGE, self._bridge_seen)
+        self._bridge_seen = status.get("now") if data is not None else None
         if data is None:
             _LOGGER.debug("Braumeister Bridge reachable, but no fresh data for %s", device_id)
         return data

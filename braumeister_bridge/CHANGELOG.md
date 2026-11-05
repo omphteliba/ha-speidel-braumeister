@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Keeps the last device message with an alarm, so the integration also sees alarms that
+  were confirmed between two polls (a hop addition confirmed after 6 seconds was missed)
+
 ## 0.4.0
 
 - New option `control_enabled` (off by default): local menu navigation through

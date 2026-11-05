@@ -465,6 +465,12 @@ class Bridge:
         _LOGGER.debug("%s from %s (%s)", kind, device_id, remote)
         if kind == "bm_stat" and len(parts) > 3:
             self.log_state_change(device, parts[3])
+            # Keep the last message with an alarm indicator (field 15). A hop-addition
+            # alarm confirmed within seconds would otherwise fall between two polls.
+            fields = parts[3].split("X")
+            if len(fields) > 15 and fields[15][1:2] not in ("", "0"):
+                device["alarm_bm_stat"] = payload
+                device["alarm_bm_stat_received"] = device["bm_stat_received"]
         # The recipe list changes only on a sync; the rest of the message (timestamp, signature) every time
         if kind == "rz" and changed and self._recipes_part(payload) != self._recipes_part(device.get("rz_saved", "")):
             device["rz_saved"] = payload

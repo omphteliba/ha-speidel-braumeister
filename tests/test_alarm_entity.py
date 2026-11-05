@@ -93,3 +93,24 @@ def test_decoded_alarm_precedes_legacy_phase_fallback(data, expected):
     module = entity_module('binary_sensor')
     entity = module.SpeidelBraumeisterBinarySensor(SimpleNamespace(data=data), SimpleNamespace(key='alarm'))
     assert entity.is_on is expected
+
+
+@pytest.mark.parametrize(('since', 'received', 'expected'), [
+    (90, 95, 'hop_addition'),   # alarm seen by the bridge after the previous poll
+    (96, 95, None),             # already reported by the previous poll
+    (None, 95, None),           # first poll: no previous poll to compare with
+])
+def test_bridge_alarm_between_polls(since, received, expected):
+    status = {'now': 100, 'devices': [{
+        'device_id': 'TEST', 'bm_stat': payload(3070), 'bm_stat_received': 100,
+        'alarm_bm_stat': payload(3080, '010'), 'alarm_bm_stat_received': received,
+    }]}
+    assert device_protocol.from_bridge(status, 'TEST', 10, since)['alarm'] == expected
+
+
+def test_bridge_current_alarm_wins():
+    status = {'now': 100, 'devices': [{
+        'device_id': 'TEST', 'bm_stat': payload(2910, '010'), 'bm_stat_received': 100,
+        'alarm_bm_stat': payload(3080, '010'), 'alarm_bm_stat_received': 99,
+    }]}
+    assert device_protocol.from_bridge(status, 'TEST', 10, 90)['alarm'] == 'rest_end_reached'

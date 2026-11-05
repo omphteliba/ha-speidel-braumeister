@@ -93,6 +93,7 @@ Payload is 19 fields separated by `X`:
 | `2910` | `A00S` | **Alarm:** rest end reached ("Rastende erreicht"), field 15 `010` |
 | `3010` | `A00S` | Heating to boil (target 103.0 °C). The pump flag changes from `P` to `q` at about 88 °C (pump switched off for the boil). From 99 °C field 15 is `0D0` = **alarm "Deckel entfernen"** until confirmed |
 | `3070` | `A00S` | Boiling; field 7 counts the boil time. Field 11 changes from `0` to `-1` at the hop addition. Hop additions set earlier than the boil time (e.g. 11 and 10 min before the end of a 5-min boil) are skipped: field 11 is `-1` right at the start of the boil, without a beep |
+| `3075` | `A00S` | Shown for about 3 s right before a hop addition (`3080`), at the hop time (e.g. field 7 `600` for a 60-min addition in a 70-min boil). A confirmed hop addition may last only a few seconds, shorter than a 30-s poll; the Bridge keeps the last alarm message (`alarm_bm_stat`) so it is not missed |
 | `3080` | `A00S` | **Alarm:** hop addition ("Hopfen zugeben"), field 15 `010`. The boil timer keeps running; after confirmation back to `3070`. Field 11 counts the hop additions and is `-1` when all are done |
 | `3450` | `A00S` | **Alarm:** brew finished ("Brauvorgang beendet"), pump and heater off, field 15 `010` |
 | `0` | | Briefly (about 5 s) between confirming "brew finished" and the main menu `101` |

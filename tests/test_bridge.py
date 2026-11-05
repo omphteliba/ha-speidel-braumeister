@@ -294,3 +294,17 @@ def test_restored_recipes_not_rewritten(bridge_module, tmp_path):
     restarted = bridge_module.Bridge(options)
     restarted.record("/braumeister/connect", rz.replace(b"1793380000", b"1793380500"), "192.0.2.29")
     assert state.stat().st_mtime_ns == first
+
+
+def test_short_alarm_kept_after_confirmation(bridge_module, tmp_path):
+    """A hop addition confirmed within seconds must still be visible to the next poll."""
+    options = {**bridge_module.DEFAULTS, "state_file": str(tmp_path / "recipes.json")}
+    bridge = bridge_module.Bridge(options)
+    status = "bm_stat=V1;" + DEVICE + ";1793380000;0X10:04XCX{}X1000X98.0X4200X603X1X0X5X0X150XA00SXqHX{}X0X0X0;0;0"
+    bridge.record("/braumeister/connect", status.format(3070, "000").encode(), None)
+    assert "alarm_bm_stat" not in bridge.devices[DEVICE]
+    bridge.record("/braumeister/connect", status.format(3080, "010").encode(), None)
+    bridge.record("/braumeister/connect", status.format(3070, "000").encode(), None)
+    device = bridge.devices[DEVICE]
+    assert "X3080X" in device["alarm_bm_stat"]
+    assert "X3070X" in device["bm_stat"]

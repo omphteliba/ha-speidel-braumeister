@@ -191,8 +191,14 @@ def recipes_from_bridge(status: dict[str, Any], device_id: str) -> Optional[list
     return None
 
 
-def from_bridge(status: dict[str, Any], device_id: str, max_age: float) -> dict[str, Any] | None:
-    """Pick this device's latest bm_stat from the Braumeister Bridge app's /api/status."""
+def from_bridge(
+    status: dict[str, Any], device_id: str, max_age: float, since: float | None = None
+) -> dict[str, Any] | None:
+    """Pick this device's latest bm_stat from the Braumeister Bridge app's /api/status.
+
+    ``since`` is the bridge time of the previous poll. An alarm the bridge saw after
+    it, but that is already confirmed again, is reported for this one poll.
+    """
     now = status.get("now", 0)
     for device in status.get("devices", []):
         if device.get("device_id", "").lower() != device_id.lower():
@@ -209,6 +215,11 @@ def from_bridge(status: dict[str, Any], device_id: str, max_age: float) -> dict[
         parsed["brew_name"] = recipes.get(slot) if slot is not None else None
         parsed["device_recipes"] = recipes
         parsed["device_recipe_details"] = details
+        latched = device.get("alarm_bm_stat")
+        if since is not None and latched and not parsed.get("alarm") and (
+            device.get("alarm_bm_stat_received", 0) > since
+        ):
+            parsed["alarm"] = parse_bm_stat(latched).get("alarm")
         return parsed
     return None
 

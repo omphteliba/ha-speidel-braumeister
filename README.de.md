@@ -5,7 +5,7 @@
 [![License][license-badge]][license]
 [![Tests][tests-badge]][tests]
 
-Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die My Speidel Cloud API. Diese Integration ermöglicht es Ihnen, Ihren Brauvorgang mit Echtzeitdaten und Rezeptinformationen zu überwachen.
+Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die My Speidel Cloud API. Diese Integration ermöglicht es Ihnen, Ihren Brauvorgang mit Echtzeitdaten und Rezeptinformationen zu überwachen. Derzeit funktioniert sie nur mit Speidel Braumeister-Modellen vor 2021.
 
 ## Funktionen
 
