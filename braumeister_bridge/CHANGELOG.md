@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- New option `control_enabled` (off by default): local menu navigation through
+  `POST /api/control` on the loopback API (settings, manual mode, recipe list, moving the
+  recipe highlight). One action at a time, sent only when pump and heater are off and
+  confirmed by the next device status. Works with and without cloud forwarding. Nothing
+  is started or heated (thanks to DanielP-1337, #20)
+
 ## 0.3.1
 
 - New option `diagnostics_enabled` (off by default): writes a compact summary of each device
