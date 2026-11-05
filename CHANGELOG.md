@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-05
+
 ### Added
 - Local display texts for the current step derived from the device state ("Malz einfüllen!", "Malzrohr entnehmen!", "Hopfen zugeben" …), no cloud needed with the bridge (thanks to DanielP-1337, #12)
 - Braumeister Bridge 0.3.0: loop protection for network-wide DNS rewrites, optional `cloud_dns` resolver, `dns_port: 0` allowed, deflate answers decoded (thanks to DanielP-1337, #13)
