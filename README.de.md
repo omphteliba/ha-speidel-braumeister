@@ -194,7 +194,7 @@ Sie benötigen ein **My Speidel-Konto** mit Ihrem registrierten Braumeister. Die
 
 ### Geräteanforderungen
 
-- Speidel Braumeister (jedes Modell mit WiFi-Fähigkeit)
+- Speidel Braumeister mit WLAN, erste Generation (vor etwa 2021, Firmware V1.x). Sie haben ein neueres Modell? Siehe [Hilfe für neuere Braumeister-Modelle](docs/NEW_DEVICES.md) (Englisch): Ein Diagnose-Download genügt uns für den Anfang.
 - Gerät mit Ihrem lokalen WLAN-Netzwerk verbunden
 - Gerät beim My Speidel Cloud-Dienst registriert
 
@@ -207,7 +207,7 @@ Die Integration verwendet mehrere Datenquellen für maximale Zuverlässigkeit:
 1. **Braumeister Bridge (optional)** - Lokale Daten direkt vom Gerät, wenn die App installiert ist und Daten empfängt
 2. **XHR-Polling** - Gleiche Methode wie vom My Speidel Web Interface verwendet
 3. **Device Info JSON** - Zusätzliche Metadaten (Gerätetyp, Modus, Schritt, Fortschritt)
-4. **Cloud API (Fallback)** - Historische Daten (erfordert möglicherweise Abonnement)
+4. **Cloud API v1.0 Zeitreihen (Fallback)** - Nur lesend: Prozess-, Phasen-, Sensor- und Aktordaten, vermutlich nur für neuere Braumeister-Modelle (erfordert möglicherweise ein Abonnement). Die Zuordnung ist eine begründete Annahme, bis Besitzer solcher Geräte sie bestätigen, siehe [Hilfe für neuere Braumeister-Modelle](docs/NEW_DEVICES.md) (Englisch)
 
 ### XHR-Polling
 

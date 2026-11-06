@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Diagnostics download (Settings → Devices & services → ⋮ → Download diagnostics): data source, device type, firmware and the Cloud API v1.0 answers, with account data, IDs, tokens and signatures removed
+- Read-only fallback for newer Braumeister models: process status, phase, temperature, pump and heater from the Cloud API v1.0 timeseries when neither the Bridge nor the web interface has data. Untested on real devices; the mapping is a best guess from the API documentation
+- Guide and issue template for owners of newer models (`docs/NEW_DEVICES.md`)
 - Passive device connection watchdog: warns on stale device timestamps and retains last-known brewing/heater permission, without extra requests or periodic recorder writes for unchanged status (#23).
 
 ## [3.1.0] - 2026-11-05

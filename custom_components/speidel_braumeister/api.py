@@ -5,6 +5,7 @@ Refactored to use Pydantic v2 models for type-safe data handling.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -419,8 +420,13 @@ class SpeidelBraumeisterAPI:
     # TIMESERIES PROBE (diagnostic, see docs/DEVICE_PROTOCOL.md)
     # =========================================================================
 
-    async def _probe_get(self, endpoint: str, params: Optional[dict] = None) -> Any:
-        """GET an endpoint and log status and body, never raising."""
+    async def _get_json(
+        self, endpoint: str, params: Optional[dict] = None
+    ) -> tuple[Optional[int], Any, str]:
+        """GET an API v1.0 endpoint. Returns (HTTP status, JSON or None, body text).
+
+        Never raises: the status is None on a transport error.
+        """
         await self.ensure_authenticated()
         session = await self._get_session()
         headers = {
@@ -432,20 +438,60 @@ class SpeidelBraumeisterAPI:
         if params:
             url += "?" + urlencode(params, quote_via=quote)
         try:
-            async with session.get(URL(url, encoded=True), headers=headers) as response:
+            async with session.get(
+                URL(url, encoded=True), headers=headers, timeout=ClientTimeout(total=15)
+            ) as response:
                 text = await response.text()
-                _LOGGER.info(
-                    "TIMESERIES PROBE %s %s -> %d, %d bytes: %s",
-                    endpoint, params or "", response.status, len(text), text[:1500],
-                )
+                data = None
                 if response.status == 200:
                     try:
-                        return await response.json(content_type=None)
+                        data = json.loads(text)
                     except ValueError:
-                        return None
-        except Exception as err:  # diagnostic only
-            _LOGGER.info("TIMESERIES PROBE %s failed: %s", endpoint, err)
-        return None
+                        pass
+                return response.status, data, text
+        except Exception as err:  # noqa: BLE001 - callers only need "no answer"
+            return None, None, str(err)
+
+    async def _probe_get(self, endpoint: str, params: Optional[dict] = None) -> Any:
+        """GET an endpoint and log status and body, never raising."""
+        status, data, text = await self._get_json(endpoint, params)
+        if status is None:
+            _LOGGER.info("TIMESERIES PROBE %s failed: %s", endpoint, text)
+        else:
+            _LOGGER.info(
+                "TIMESERIES PROBE %s %s -> %d, %d bytes: %s",
+                endpoint, params or "", status, len(text), text[:1500],
+            )
+        return data
+
+    async def get_timeseries(self, machine_uuid: str) -> dict[str, Any]:
+        """Latest API v1.0 timeseries of a machine (read-only).
+
+        Tries the UUID variants until the process list answers 200. Returns the raw
+        answers (``process``, ``phase``, ``sensor``, ``actor``), the HTTP status per
+        endpoint and the variant that worked, for the coordinator and diagnostics.
+        """
+        now = datetime.now(timezone.utc)
+        fmt = "%Y-%m-%dT%H:%M:%S.000Z"
+        recent = {"from": (now - timedelta(minutes=30)).strftime(fmt), "to": now.strftime(fmt)}
+        day = {"from": (now - timedelta(days=1)).strftime(fmt), "to": now.strftime(fmt)}
+        result: dict[str, Any] = {"uuid": None, "status": {}}
+        for uuid in self._get_uuid_variants(machine_uuid):
+            # Without a range: a running process may have started more than a day ago
+            status, data, _ = await self._get_json(f"/machine/{uuid}/timeseries/process")
+            result["status"][f"process[{uuid}]"] = status
+            if status == 402:
+                self._payment_required = True
+                raise SpeidelPaymentRequiredError(f"/machine/{uuid}/timeseries/process")
+            if status != 200:
+                continue
+            result["uuid"], result["process"] = uuid, data
+            for name, params in (("phase", day), ("sensor", recent), ("actor", recent)):
+                status, data, _ = await self._get_json(f"/machine/{uuid}/timeseries/{name}", params)
+                result["status"][name] = status
+                result[name] = data
+            break
+        return result
 
     async def probe_timeseries(self, machine_uuid: str) -> None:
         """Log what the documented timeseries endpoints return for this account.

@@ -201,7 +201,7 @@ You need a **My Speidel account** with your Braumeister registered. The integrat
 
 ### Device Requirements
 
-- Speidel Braumeister (any model with WiFi capability)
+- Speidel Braumeister with WiFi, first generation (before about 2021, firmware V1.x). Own a newer model? See [Helping with newer Braumeister models](docs/NEW_DEVICES.md): a diagnostics download is all we need to start.
 - Device connected to your local WiFi network
 - Device registered with My Speidel cloud service
 
@@ -214,7 +214,7 @@ The integration uses multiple data sources for maximum reliability:
 1. **Braumeister Bridge (optional)** - Local data from the device, if the app is installed and receiving
 2. **XHR Polling** - Same method used by the My Speidel web interface
 3. **Device Info JSON** - Additional metadata (device type, mode, step, progress)
-4. **Cloud API (Fallback)** - Historical data (may require subscription)
+4. **Cloud API v1.0 timeseries (fallback)** - Read-only process, phase, sensor and actor data, most likely only for newer Braumeister models (may require a subscription). The mapping is a best guess until owners of such devices confirm it, see [Helping with newer Braumeister models](docs/NEW_DEVICES.md)
 
 ### XHR Polling
 

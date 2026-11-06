@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
+from .cloud_timeseries import from_timeseries
 from .device_protocol import brew_name_from_step, from_bridge, recipes_from_bridge
 from .rtc_monitor import RTCMonitor
 
@@ -56,6 +57,9 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._rtc_monitor = RTCMonitor()
         # Bridge time of the previous successful poll, to catch alarms confirmed in between
         self._bridge_seen: Optional[float] = None
+        # Cloud API v1.0 timeseries: last raw answer (for diagnostics) and retry backoff
+        self.cloud_series: Optional[dict[str, Any]] = None
+        self._cloud_retry_at = 0.0
 
     @callback
     def update_from_mqtt(self, data: dict[str, Any]) -> None:
@@ -357,7 +361,16 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except Exception as err:
                 _LOGGER.debug("XHR polling error: %s", err)
         
-        # PRIORITY 2: Cloud API
+        # PRIORITY 2: Cloud API v1.0 timeseries (newer Braumeister generation)
+        cloud_data = await self._fetch_cloud_timeseries()
+        if cloud_data:
+            result.update(cloud_data)
+            if cloud_data.get("connection_status") == "online":
+                self._update_last_online(result)
+            result["last_online"] = self._last_online
+            return self._clean_data(result)
+
+        # PRIORITY 3: legacy cloud/web status endpoints
         try:
             api_data = await self._api.get_latest_data(self._machine_uuid)
             
@@ -416,6 +429,32 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.debug("Unexpected error (device may be offline): %s", err)
             return self._get_offline_result()
+
+    async def _fetch_cloud_timeseries(self) -> Optional[dict[str, Any]]:
+        """Status from the Cloud API v1.0 timeseries, or None.
+
+        Only reached when neither the Bridge nor the web interface has data. Without
+        usable timeseries (older devices, no subscription) it is retried rarely.
+        """
+        if time.monotonic() < self._cloud_retry_at:
+            return None
+        try:
+            series = await self._api.get_timeseries(self._machine_uuid)
+        except SpeidelPaymentRequiredError:
+            self.cloud_series = {"status": {"process": 402}}
+            self._cloud_retry_at = time.monotonic() + 3600
+            return None
+        except Exception as err:  # noqa: BLE001 - fall back to the other sources
+            _LOGGER.debug("Cloud timeseries error: %s", err)
+            self._cloud_retry_at = time.monotonic() + 600
+            return None
+        self.cloud_series = series
+        data = from_timeseries(series)
+        if not data:
+            self._cloud_retry_at = time.monotonic() + 600
+            return None
+        _LOGGER.debug("Cloud timeseries data: %s", data)
+        return data
 
     @property
     def machine_uuid(self) -> str:

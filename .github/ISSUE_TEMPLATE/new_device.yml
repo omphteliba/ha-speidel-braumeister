@@ -1,0 +1,58 @@
+name: Newer Braumeister model
+description: Help add support for a Braumeister generation we cannot test (e.g. models from 2021 on)
+title: "[New device] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping! Please follow [docs/NEW_DEVICES.md](https://github.com/omphteliba/ha-speidel-braumeister/blob/main/docs/NEW_DEVICES.md) first.
+        Do **not** post passwords, tokens or the first (login) messages of a WebSocket recording.
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: e.g. Braumeister PLUS 50 L, Braumeister 20 L (2023)
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: As shown on the device or in My Speidel, e.g. 1.8.3-rc.0
+    validations:
+      required: true
+  - type: dropdown
+    id: subscription
+    attributes:
+      label: My Speidel subscription
+      options:
+        - "Yes"
+        - "No"
+        - Don't know
+    validations:
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration version
+      description: Settings → Devices & services → Speidel Braumeister
+    validations:
+      required: true
+  - type: textarea
+    id: shown
+    attributes:
+      label: What does the integration show?
+      description: Connection status, temperature, pump/heater, phase – and what the device display showed at that time.
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics file
+      description: Settings → Devices & services → Speidel Braumeister → ⋮ → Download diagnostics. Drag the file here.
+    validations:
+      required: true
+  - type: textarea
+    id: websocket
+    attributes:
+      label: WebSocket messages (optional)
+      description: A few status messages from the My Speidel web interface (see docs/NEW_DEVICES.md, step 3). No login messages.
+      render: text
