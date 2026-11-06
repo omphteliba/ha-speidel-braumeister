@@ -1,5 +1,5 @@
 name: Newer Braumeister model
-description: Help add support for Braumeister PLUS models with the new electronics (Linux controller, e.g. firmware 1.8.3)
+description: Your Braumeister shows no data? Help add support for models we cannot test (e.g. PLUS 50 L with firmware 1.8.3)
 title: "[New device] "
 body:
   - type: markdown

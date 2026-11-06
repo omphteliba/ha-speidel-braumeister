@@ -2,8 +2,8 @@
 
 The API (https://api.cloud.myspeidel.com/v1.0/api-docs) has no live-status endpoint,
 only timeseries of processes, phases, sensor and actor readouts. It is most likely fed
-by the PLUS models with the new electronics (Linux controller, firmware 0.x-2.x); for
-devices with firmware V1.x (api2.myspeidel.com) all timeseries are empty.
+by Braumeisters with the Linux-based controller (firmware list: 0.x-2.x, e.g. 1.8.3);
+for devices talking to api2.myspeidel.com (firmware V1.1.27) all timeseries are empty.
 
 The spec documents the process status values, but sensor/actor ``type`` strings and
 their ``values`` objects are free-form. The mapping below is therefore a best guess

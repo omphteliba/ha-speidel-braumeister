@@ -367,7 +367,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except Exception as err:
                 _LOGGER.debug("XHR polling error: %s", err)
         
-        # PRIORITY 2: Cloud API v1.0 timeseries (PLUS models with the new electronics)
+        # PRIORITY 2: Cloud API v1.0 timeseries (devices not using api2.myspeidel.com)
         cloud_data = await self._fetch_cloud_timeseries()
         if cloud_data:
             result.update(cloud_data)

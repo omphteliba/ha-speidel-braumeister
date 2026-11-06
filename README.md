@@ -5,7 +5,7 @@
 [![License][license-badge]][license]
 [![Tests][tests-badge]][tests]
 
-A Home Assistant integration for Speidel Braumeister brewing systems via the My Speidel Cloud API. This integration allows you to monitor your Braumeister brewing process with real-time data and recipe information. It currently works with Braumeisters with firmware V1.x (WiFi upgrade module or first PLUS models), not yet with the PLUS models with the new electronics.
+A Home Assistant integration for Speidel Braumeister brewing systems via the My Speidel Cloud API. This integration allows you to monitor your Braumeister brewing process with real-time data and recipe information. Not every Braumeister works yet, see [Device Requirements](#device-requirements).
 
 ## Features
 
@@ -201,7 +201,7 @@ You need a **My Speidel account** with your Braumeister registered. The integrat
 
 ### Device Requirements
 
-- Speidel Braumeister with WiFi and firmware V1.x: the generation with the WiFi upgrade module and the first PLUS models (e.g. firmware V1.1.27). Own a PLUS model with the new electronics (e.g. firmware 1.8.3)? See [Helping with newer Braumeister models](docs/NEW_DEVICES.md): a diagnostics download is all we need to start.
+- Known to work: Braumeister 20 L with WiFi module and Braumeister 20 L PLUS, both with firmware V1.1.27. Known not to work yet: Braumeister PLUS 50 L with firmware 1.8.3 (#7). Other models and firmware versions are untested. Please report what works for yours. Does it not work? See [Helping with newer Braumeister models](docs/NEW_DEVICES.md): a diagnostics download is all we need to start.
 - Device connected to your local WiFi network
 - Device registered with My Speidel cloud service
 
