@@ -22,6 +22,8 @@ options:
   log_level: info
   diagnostics_enabled: false
   control_enabled: false
+  manual_pump_enabled: false
+  allow_remote_heating: false
 schema:
   bridge_ip: str?
   cloud_host: str
@@ -36,3 +38,5 @@ schema:
   log_level: list(debug|info|warning|error)
   diagnostics_enabled: bool
   control_enabled: bool
+  manual_pump_enabled: bool
+  allow_remote_heating: bool
