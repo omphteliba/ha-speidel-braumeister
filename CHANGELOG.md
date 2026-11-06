@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Process status "waiting" (Waiting for start / Wartet auf Start) while a recipe is selected or the start screen "Wasser eingefüllt?" is shown (states 2015, 2030). Before, these counted as "running" although nothing heats. Automations that check for `running` no longer trigger there
 
+### Removed
+- The MQTT client: it was based on a guessed protocol, never received data and was not even started for accounts with a web login. Real-time support for newer models will be based on recorded traffic (see `docs/NEW_DEVICES.md`)
+
 ### Fixed
 - Braumeister Bridge 0.4.2: recipe navigation refused devices with six or more recipes; the Braumeister holds up to nine
 

@@ -36,7 +36,6 @@ BRIDGE_MAX_AGE: Final = 30  # seconds; older messages mean the device is not sen
 # API configuration
 API_BASE_URL: Final = "https://api.cloud.myspeidel.com/v1.0"
 WEB_API_BASE_URL: Final = "https://www.myspeidel.com/braumeister"
-MQTT_URL: Final = "wss://api.cloud.myspeidel.com/mqtt"
 
 # Sensor types using SensorEntityDescription
 # Note: Names are provided via translations (strings.json and translations/*.json)

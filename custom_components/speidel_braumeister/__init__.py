@@ -1,11 +1,10 @@
 """The Speidel Braumeister integration."""
 
-import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
@@ -19,7 +18,6 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
 )
 from .coordinator import SpeidelBraumeisterDataCoordinator
-from .mqtt_client import SpeidelMQTTClient
 from .web_auth import SpeidelWebAuth
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,52 +103,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store coordinator in hass.data
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Start MQTT client for real-time data if we have authentication
-    mqtt_client = None
-    mqtt_task = None
-    
-    session_value = web_auth.session_value if web_login_success else None
-    user_id = web_auth.user_id if web_login_success else api.user_id
-    
-    if user_id:
-        # Extract machine ID from UUID (could be "323" or "1234567890ABCDEF.123")
-        machine_id = machine_uuid
-        if "." in machine_uuid:
-            machine_id = machine_uuid.split(".")[-1]
-        
-        @callback
-        def on_mqtt_data(data: dict):
-            """Handle incoming MQTT data."""
-            _LOGGER.debug("Received MQTT data: %s", data)
-            # Update coordinator with new data
-            coordinator.update_from_mqtt(data)
-        
-        mqtt_client = SpeidelMQTTClient(
-            token=api.token,
-            user_id=user_id,
-            machine_id=machine_id,
-            on_data_callback=on_mqtt_data,
-            session_value=session_value,
-        )
-        
-        # Store MQTT client reference
-        coordinator.mqtt_client = mqtt_client
-        
-        # Start MQTT in background task
-        async def start_mqtt():
-            """Start MQTT client."""
-            try:
-                await mqtt_client.start()
-            except asyncio.CancelledError:
-                _LOGGER.debug("MQTT task cancelled")
-            except Exception as err:
-                _LOGGER.error("MQTT error: %s", err)
-        
-        mqtt_task = hass.loop.create_task(start_mqtt())
-        _LOGGER.info("Started MQTT client for real-time data")
-    
-    # Store task for cleanup
-    coordinator._mqtt_task = mqtt_task
+    # No real-time push client: the former MQTT client was based on a guessed
+    # protocol and never received data. See docs/NEW_DEVICES.md for how owners of
+    # newer models can record the real WebSocket traffic.
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -166,16 +121,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     coordinator: SpeidelBraumeisterDataCoordinator = hass.data[DOMAIN][entry.entry_id]
-    
-    # Stop MQTT client if running
-    if hasattr(coordinator, 'mqtt_client') and coordinator.mqtt_client:
-        await coordinator.mqtt_client.stop()
-    if hasattr(coordinator, '_mqtt_task') and coordinator._mqtt_task:
-        coordinator._mqtt_task.cancel()
-        try:
-            await coordinator._mqtt_task
-        except asyncio.CancelledError:
-            pass
     
     # Close web auth
     if hasattr(coordinator, 'web_auth') and coordinator.web_auth:
