@@ -275,3 +275,9 @@ has a subscription and one Braumeister with firmware V1.1.27 as described above.
   This needs a capture of a full brew.
 - Full `$k` key mapping, and the meaning of `$d=A`.
 - Behaviour during an alarm (e.g. hop addition, "add malt pipe").
+
+
+Manual screen 4006: key 2 toggles the pump and key 3 toggles the heater.
+Pump transitions preserve heater flags (ph/Ph, pH/PH, pi/Pi). Heater-off
+transitions pH or pi to ph, and PH or Pi to Ph; regulation pauses retain
+heater activation even when the output is temporarily idle.

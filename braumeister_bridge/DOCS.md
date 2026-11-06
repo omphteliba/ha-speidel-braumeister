@@ -123,3 +123,13 @@ as received by the normal forwarding path. GET `/api/control` returns the
 latest action's outcome. A later device poll reporting the expected screen
 and actuator flags marks it confirmed. An action expires after five seconds
 in the queue or becomes unconfirmed after five seconds awaiting telemetry.
+
+
+### Manual actuator controls
+
+With `control_enabled: true`, the loopback API accepts `heater_off` in manual
+mode (4006) without heating permission. `pump_on` and `pump_off` additionally
+require `manual_pump_enabled: true`; `heater_on` requires
+`allow_remote_heating: true`. Both options default to false. Fresh matching
+status and subsequent actuator flags are required; commands are never retried.
+Stay near the device and follow Speidel's operating instructions.
