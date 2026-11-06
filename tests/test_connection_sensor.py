@@ -7,7 +7,8 @@ from unittest.mock import patch
 import pytest
 
 
-def test_sensor_warns_during_coordinator_failure_and_cleans_up_timer():
+@pytest.fixture
+def sensor_context():
     def module(**values):
         result = ModuleType("stub")
         result.__dict__.update(values)
@@ -63,6 +64,11 @@ def test_sensor_warns_during_coordinator_failure_and_cleans_up_timer():
     # The HA stub has no suspended work; drive the lifecycle without an OS loop.
     with pytest.raises(StopIteration):
         sensor.async_added_to_hass().send(None)
+    return sensor, coordinator, clock, timers, removed
+
+
+def test_sensor_warns_during_coordinator_failure_and_cleans_up_timer(sensor_context):
+    sensor, coordinator, clock, timers, removed = sensor_context
     assert sensor.is_on is None
     assert timers[0][1] == 5
     clock[0] = 30
@@ -86,3 +92,58 @@ def test_sensor_warns_during_coordinator_failure_and_cleans_up_timer():
     for remove in sensor.removers:
         remove()
     assert removed == [True]
+
+
+def test_unchanged_healthy_day_and_outage_do_not_publish_periodic_states(sensor_context):
+    sensor, coordinator, clock, timers, _ = sensor_context
+    tick = timers[0][0]
+    assert sensor.writes == 0
+    # Synthetic day: advancing normal polls every 30 s, passive ticks every 5 s.
+    for seconds in range(5, 86401, 5):
+        clock[0] = seconds
+        if seconds % 30 == 0:
+            coordinator.data["device_timestamp"] = 1000 + seconds
+            sensor._handle_coordinator_update()
+        tick(None)
+    assert sensor.writes == 1  # Unknown -> healthy, not one write per tick/poll.
+    assert sensor.is_on is False
+    assert "age_seconds" not in sensor.extra_state_attributes
+
+    coordinator.last_update_success = False
+    for seconds in range(86405, 172801, 5):
+        clock[0] = seconds
+        sensor._handle_coordinator_update()
+        tick(None)
+    assert sensor.writes == 2  # One expiry, no repeated writes during the outage.
+    assert sensor.is_on is True
+    assert sensor.extra_state_attributes["activity_at_risk"] is True
+    assert sensor.extra_state_attributes["last_device_timestamp"] == 87400
+
+    clock[0] = 172805
+    coordinator.last_update_success = True
+    coordinator.data["device_timestamp"] = 173805
+    sensor._handle_coordinator_update()
+    assert sensor.writes == 3
+    assert sensor.is_on is False
+
+
+def test_timer_publishes_at_expiry_and_activity_changes_are_not_suppressed(sensor_context):
+    sensor, coordinator, clock, timers, _ = sensor_context
+    clock[0] = 30
+    coordinator.data["device_timestamp"] = 1030
+    sensor._handle_coordinator_update()
+    assert sensor.writes == 1
+    clock[0] = 60
+    coordinator.data.update(device_timestamp=1060, heater_enabled=False)
+    sensor._handle_coordinator_update()
+    assert sensor.writes == 2  # Meaningful metadata changed while still healthy.
+    assert sensor.extra_state_attributes["last_known_heater_enabled"] is False
+    clock[0] = 179
+    timers[0][0](None)
+    assert sensor.writes == 2
+    clock[0] = 180
+    timers[0][0](None)
+    assert sensor.writes == 3
+    assert sensor.is_on is True
+    timers[0][0](None)
+    assert sensor.writes == 3

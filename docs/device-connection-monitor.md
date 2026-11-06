@@ -8,6 +8,15 @@ five-second timer keeps the check working when coordinator polls fail or stall.
 Recovery is recognized on a subsequent normal integration update; no extra
 cloud requests or device probes are sent.
 
+The five-second check does not imply a five-second HA state write. Timer and
+coordinator callbacks publish only when the warning, risk, or other meaningful
+metadata changes. Timestamp-only advancement is ignored for publication, and
+`age_seconds` is not exposed as an entity attribute. `last_device_timestamp` is
+a snapshot refreshed when a meaningful state is published (including expiry and
+recovery), not a continuously updated age indicator. Healthy unchanged operation
+and an unchanged outage therefore do not generate periodic recorder/history rows
+from this sensor.
+
 Startup is unknown until advancement is observed. No evidence for 120 seconds
 also raises a warning (`evidence: unconfirmed`). Missing/invalid timestamps,
 MQTT/API samples without verified device timestamps, source changes and backwards
@@ -69,7 +78,7 @@ account/system/browser locales, units and related RTC behavior remain pending.
 Synthetic tests cover frozen samples, missing/invalid timestamps, startup,
 source changes, clock regressions, recovery, retained activity, `H`/`i` permission,
 coordinator failure visibility and timer cleanup. HA lifecycle is exercised with
-HA API stubs, not a full HA runtime. This exact PR branch passed **234 tests and
+HA API stubs, not a full HA runtime. This exact PR branch passed **236 tests and
 261 subtests**, full-repository Ruff and `git diff --check`. The fork beta's
 separate Card compatibility changes are intentionally
 excluded, as are its manifest version bump and release notes.

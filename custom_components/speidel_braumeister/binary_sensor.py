@@ -98,10 +98,13 @@ class ConnectionWarningSensor(SpeidelBraumeisterBinarySensor):
     def __init__(self, coordinator, description) -> None:
         super().__init__(coordinator, description)
         self._monitor = ConnectionMonitor()
+        self._last_published: dict[str, Any] | None = None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self._observe()
+        # HA publishes the initial state after async_added_to_hass returns.
+        self._last_published = self._visible_snapshot()
         self.async_on_remove(async_track_time_interval(
             self.hass, self._tick, timedelta(seconds=5)
         ))
@@ -113,11 +116,24 @@ class ConnectionWarningSensor(SpeidelBraumeisterBinarySensor):
     @callback
     def _handle_coordinator_update(self) -> None:
         self._observe()
-        super()._handle_coordinator_update()
+        self._publish_if_changed()
 
     @callback
     def _tick(self, _now) -> None:
-        self.async_write_ha_state()
+        self._publish_if_changed()
+
+    def _visible_snapshot(self) -> dict[str, Any]:
+        """Compare meaningful state, not a continuously advancing clock."""
+        result = self._monitor.snapshot(time.monotonic())
+        result.pop("age_seconds")
+        result.pop("last_device_timestamp")
+        return result
+
+    def _publish_if_changed(self) -> None:
+        visible = self._visible_snapshot()
+        if visible != self._last_published:
+            self._last_published = visible
+            self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
@@ -131,4 +147,5 @@ class ConnectionWarningSensor(SpeidelBraumeisterBinarySensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         result = self._monitor.snapshot(time.monotonic())
         result.pop("warning")
+        result.pop("age_seconds")
         return result
