@@ -1,9 +1,13 @@
 # Helping with newer Braumeister models
 
-The integration is developed and tested on the first Braumeister generation (WiFi
-controller, firmware V1.x, e.g. V1.1.27). Models from about 2021 on use a new
-controller (Linux, firmware 0.x–2.x) that talks to a different part of the My Speidel
-cloud. We don't own such a device, so we depend on owners to tell us what it sends.
+The integration works with Braumeisters whose controller runs **firmware V1.x**
+(e.g. V1.1.27): the generation for which the WiFi module was offered as an upgrade,
+and the first PLUS models. It is developed on a Braumeister 20 L of that generation.
+
+The **PLUS models with the new electronics** use a Linux-based controller (firmware
+0.x–2.x, e.g. 1.8.3) that talks to a different part of the My Speidel cloud. We don't
+own such a device, so we depend on owners to tell us what it sends. (The oldest
+generation, with membrane keypad and grey electronics housing, has no WiFi.)
 
 None of the steps below sends anything to your Braumeister. They only read.
 
@@ -55,6 +59,6 @@ a private way to send the file.
 
 ## What happens next
 
-We use your data to add parsing for the new generation, release it, and ask you to test
+We use your data to add parsing for the new electronics, release it, and ask you to test
 it. Controlling a newer device (pump, heater, programs) is not planned until its
 protocol is understood and tested.

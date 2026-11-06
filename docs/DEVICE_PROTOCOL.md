@@ -247,7 +247,7 @@ Atmel's programmer). Only the readable strings were examined; nothing was execut
 
 Documented at <https://api.cloud.myspeidel.com/> (OpenAPI 3.0, v1.0; the
 v2.0-test spec links return "Cannot GET"). Probed 2026-10-30 with an account that
-has a subscription and one Braumeister of the generation described above.
+has a subscription and one Braumeister with firmware V1.x as described above.
 
 - The server validates every request against the OpenAPI spec. Undocumented
   paths (`/account/machines`, `/machine/{uuid}/status`, which older versions of
@@ -261,10 +261,10 @@ has a subscription and one Braumeister of the generation described above.
   16-hex device ID and the combined form return `404`; IDs longer than 64 characters return `400`.
 - **All timeseries were empty** (`200 []`), including the last 24 h, although the
   device had run manual mode and an automatic program a few hours earlier.
-  `/account/timeseries/process` is empty too. So data from this device generation
+  `/account/timeseries/process` is empty too. So data from devices with firmware V1.x
   (firmware V1.x, `api2.myspeidel.com`) does not reach the cloud API.
 - The public `/v1.0/firmware` list only contains Linux images for i.MX6UL
-  (`image-speidel-swu-imx6ul-var`), i.e. the newer device generation. The cloud API
+  (`image-speidel-swu-imx6ul-var`), i.e. the PLUS models with the new electronics. The cloud API
   is most likely only useful for those devices. This is untested — it needs an
   account that owns such a device.
 

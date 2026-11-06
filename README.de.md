@@ -5,7 +5,7 @@
 [![License][license-badge]][license]
 [![Tests][tests-badge]][tests]
 
-Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die My Speidel Cloud API. Diese Integration ermöglicht es Ihnen, Ihren Brauvorgang mit Echtzeitdaten und Rezeptinformationen zu überwachen. Derzeit funktioniert sie nur mit Speidel Braumeister-Modellen vor 2021.
+Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die My Speidel Cloud API. Diese Integration ermöglicht es Ihnen, Ihren Brauvorgang mit Echtzeitdaten und Rezeptinformationen zu überwachen. Derzeit funktioniert sie mit Braumeistern mit Firmware V1.x (nachgerüstetes WLAN-Modul oder erste PLUS-Modelle), noch nicht mit den PLUS-Modellen mit neuer Elektronik.
 
 ## Funktionen
 
@@ -194,7 +194,7 @@ Sie benötigen ein **My Speidel-Konto** mit Ihrem registrierten Braumeister. Die
 
 ### Geräteanforderungen
 
-- Speidel Braumeister mit WLAN, erste Generation (vor etwa 2021, Firmware V1.x). Sie haben ein neueres Modell? Siehe [Hilfe für neuere Braumeister-Modelle](docs/NEW_DEVICES.md) (Englisch): Ein Diagnose-Download genügt uns für den Anfang.
+- Speidel Braumeister mit WLAN und Firmware V1.x: die Generation mit nachrüstbarem WLAN-Modul und die ersten PLUS-Modelle (z. B. Firmware V1.1.27). Sie haben ein PLUS-Modell mit der neuen Elektronik (z. B. Firmware 1.8.3)? Siehe [Hilfe für neuere Braumeister-Modelle](docs/NEW_DEVICES.md) (Englisch): Ein Diagnose-Download genügt uns für den Anfang.
 - Gerät mit Ihrem lokalen WLAN-Netzwerk verbunden
 - Gerät beim My Speidel Cloud-Dienst registriert
 

@@ -1,7 +1,7 @@
 """Diagnostics download ("Download diagnostics") for the Speidel Braumeister integration.
 
-Meant for owners of devices we cannot test ourselves (e.g. the newer Braumeister
-generation): one file with what each data source returned, without account data.
+Meant for owners of devices we cannot test ourselves (e.g. PLUS models with the
+new electronics): one file with what each data source returned, without account data.
 """
 
 from __future__ import annotations
