@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0
+
+All new actions use the loopback API only, need `control_enabled`, a fresh matching
+device status and are confirmed by the next status. Everything is off by default.
+
+- Manual mode: pump on/off (`manual_pump_enabled`), heater on (`allow_remote_heating`)
+  and heater off (only `control_enabled`, also during a regulation pause) (thanks to
+  DanielP-1337, #21)
+- Program control: select the highlighted recipe (stops at "Wasser eingefüllt?"), pause
+  during pump purging or heating to mash-in, and abort from the pause dialog. Resuming
+  after a purge pause additionally needs `program_control_enabled` and
+  `allow_remote_heating` (thanks to DanielP-1337, #24)
+
 ## 0.4.2
 
 - Recipe navigation accepts up to nine recipes on the device (it refused six or more)

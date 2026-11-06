@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Braumeister Bridge 0.5.0: optional local pump and heater control in manual mode and program control (select recipe up to the water prompt, pause, abort, resume after a purge pause). Off by default, loopback API only; heating needs `allow_remote_heating` (thanks to DanielP-1337, #21, #24)
+
 ## [3.2.0] - 2026-11-06
 
 ### Added

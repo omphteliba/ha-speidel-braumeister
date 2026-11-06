@@ -160,6 +160,32 @@ At most one command per response was observed.
 
 What a `$k` key press does depends on the screen the device currently shows (field 3).
 
+### Manual mode (4006)
+
+| Action | Key | Flags before → after |
+|---|---|---|
+| Pump on / off | `$k=2` | `ph`↔`Ph`, `pH`↔`PH`, `pi`↔`Pi` (heater flag unchanged) |
+| Heater on | `$k=3` | `ph` → `pH` or `pi`, `Ph` → `PH` or `Pi` |
+| Heater off | `$k=3` | `pH`/`pi` → `ph`, `PH`/`Pi` → `Ph` |
+
+`i` is a regulation pause: the heater stays enabled and resumes on its own below the
+target. Switching the heater off during a pause clears it (`Pi` → `Ph`).
+
+### Observed program control transitions
+
+| Action | Source state / flags / indicator | Confirmed target | Key |
+|---|---|---|---|
+| Select recipe | 2015 / ph / 000 | 2030 / ph / 000 (water prompt) | 4 |
+| Pause purging | 2300 / ph or Ph / 000 | 2300 / ph / 120 | 1 |
+| Pause heating | 2410 / active program / 000 | 2410 / ph / 120 | 1 |
+| Final abort | 2300 or 2410 / ph / 120 | 101 / ph / 000 | 1 |
+| Resume purging | 2300 / ph / 120 | 2300 / Ph / 000 | 4 |
+
+Indicator 120 identifies the paused dialog, not the main menu. Screen code alone
+is insufficient to confirm pause. The user reported successful purge Cancel and
+heating pause/final abort tests on 2026-11-06. Resume has synthetic coverage but
+is not claimed as hardware-validated here.
+
 ### Security implications
 
 - Device ↔ cloud traffic is **plain HTTP**: status, recipes and commands can be read by anyone
@@ -275,25 +301,3 @@ has a subscription and one Braumeister with firmware V1.1.27 as described above.
   This needs a capture of a full brew.
 - Full `$k` key mapping, and the meaning of `$d=A`.
 - Behaviour during an alarm (e.g. hop addition, "add malt pipe").
-
-
-Manual screen 4006: key 2 toggles the pump and key 3 toggles the heater.
-Pump transitions preserve heater flags (ph/Ph, pH/PH, pi/Pi). Heater-off
-transitions pH or pi to ph, and PH or Pi to Ph; regulation pauses retain
-heater activation even when the output is temporarily idle.
-
-
-### Observed program control transitions
-
-| Action | Source state / flags / indicator | Confirmed target | Key |
-|---|---|---|---|
-| Select recipe | 2015 / ph / 000 | 2030 / ph / 000 (water prompt) | 4 |
-| Pause purging | 2300 / ph or Ph / 000 | 2300 / ph / 120 | 1 |
-| Pause heating | 2410 / active program / 000 | 2410 / ph / 120 | 1 |
-| Final abort | 2300 or 2410 / ph / 120 | 101 / ph / 000 | 1 |
-| Resume purging | 2300 / ph / 120 | 2300 / Ph / 000 | 4 |
-
-Indicator 120 identifies the paused dialog, not the main menu. Screen code alone
-is insufficient to confirm pause. The user reported successful purge Cancel and
-heating pause/final abort tests on 2026-11-06. Resume has synthetic coverage but
-is not claimed as hardware-validated here.
