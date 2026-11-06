@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Passive device connection watchdog: warns on stale device timestamps and retains last-known brewing/heater permission, without extra requests or periodic recorder writes for unchanged status (#23).
+
 ## [3.1.0] - 2026-11-05
 
 ### Added

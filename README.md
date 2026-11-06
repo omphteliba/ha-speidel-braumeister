@@ -9,6 +9,13 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 
 ## Features
 
+### Device connection warning
+
+The diagnostic **Check device connection** binary sensor warns after 120 seconds
+without advancing device timestamps. It retains last-known brewing and heater
+permission for notification/dashboard use, without issuing device commands.
+See [behavior, limits and hardware observations](docs/device-connection-monitor.md).
+
 ### Sensors
 
 | Sensor | Description |
