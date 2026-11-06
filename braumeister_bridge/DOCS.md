@@ -133,3 +133,17 @@ require `manual_pump_enabled: true`; `heater_on` requires
 `allow_remote_heating: true`. Both options default to false. Fresh matching
 status and subsequent actuator flags are required; commands are never retried.
 Stay near the device and follow Speidel's operating instructions.
+
+
+### Program controls
+
+The loopback API accepts `select_recipe` from recipe selection, stopping at the
+water prompt. It validates the selected slot against field 8's recipe count.
+`request_program_pause` is available at 2300 (purging) and 2410 (heating).
+`abort_program` is available only from the matching pause dialog. These actions
+require `control_enabled`. `resume_program` is limited to the purge pause and
+additionally requires both `program_control_enabled: true` (default false) and
+`allow_remote_heating: true`. Water confirmation, delayed start, state 2310 and
+heating-stage resume are unsupported. Commands are checked again before sending;
+a changed dialog cancels the queued command. First Cancel pauses, second Cancel
+from the pause dialog ends the program.

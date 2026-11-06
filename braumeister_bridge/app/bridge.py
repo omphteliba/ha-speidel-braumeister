@@ -57,6 +57,7 @@ DEFAULTS: dict[str, Any] = {
     "control_enabled": False,
     "manual_pump_enabled": False,
     "allow_remote_heating": False,
+    "program_control_enabled": False,
     # Where device requests are forwarded; empty = http://<cloud_host> (for tests)
     "cloud_url": "",
     # Recipe lists are kept here so they survive restarts (empty = do not store)
@@ -80,7 +81,30 @@ LOCAL_ACTIONS = {
     "cancel_recipe_selection": ("2015", "101", b"$k=1"),
     "recipe_down": ("2015", "2015", b"$k=2"),
     "recipe_up": ("2015", "2015", b"$k=3"),
+    "select_recipe": ("2015", "2030", b"$k=4"),
 }
+PROGRAM_KEYS = {"request_program_pause": b"$k=1", "abort_program": b"$k=1", "resume_program": b"$k=4"}
+
+
+def program_transition(action, screen, flags, indicator):
+    """Only individually evidenced stages; a pause is not a final abort."""
+    if action == "request_program_pause" and indicator == "000":
+        permitted = {"2300": {"ph", "Ph"}, "2410": {"ph", "Ph", "pH", "PH", "pi", "Pi", "qh", "qH", "qi"}}
+        if flags in permitted.get(screen, set()):
+            return screen, ("ph",), "120"
+    if action == "abort_program" and screen in ("2300", "2410") and (flags, indicator) == ("ph", "120"):
+        return "101", ("ph",), "000"
+    if action == "resume_program" and (screen, flags, indicator) == ("2300", "ph", "120"):
+        return "2300", ("Ph",), "000"
+    return None
+
+
+def control_transition(command):
+    if command["action"] in PROGRAM_KEYS:
+        return command["source_screen"], command["target_screen"], PROGRAM_KEYS[command["action"]]
+    return LOCAL_ACTIONS[command["action"]]
+
+
 ACTUATOR_FLAGS = {
     "pump_on": {"ph": ("Ph",), "pH": ("PH",), "pi": ("Pi",)},
     "pump_off": {"Ph": ("ph",), "PH": ("pH",), "Pi": ("pi",)},
@@ -318,10 +342,11 @@ class Bridge:
             command = None
         if command and command["result"] == "sent":
             screen, flags, slot, count = self.control_screen(message[1])
-            if screen == LOCAL_ACTIONS[command["action"]][1] and flags in command["target_flags"] and (
+            if screen == control_transition(command)[1] and flags in command["target_flags"] and (
                 command["target_slot"] is None
                 or (command["target_slot"], command["recipe_count"]) == (slot, count)
-            ):
+            ) and (command.get("target_indicator") is None
+                   or self.control_indicator(message[1]) == command["target_indicator"]):
                 command["result"] = "confirmed"
 
         status, headers, answer, source = 200, {"Content-Type": "text/plain; charset=UTF-8"}, LOCAL_ANSWER, "local"
@@ -343,15 +368,18 @@ class Bridge:
                 and self.options.get("control_enabled") is True
                 and device.get("bm_stat_received") == sample
                 and time.monotonic() - received < CONTROL_TIMEOUT):
-            before, _, key = LOCAL_ACTIONS[command["action"]]
+            before, _, key = control_transition(command)
             screen, flags, slot, count = self.control_screen(message[1])
             action = command["action"]
             if action in ACTUATOR_OPTIONS and self.options.get(ACTUATOR_OPTIONS[action]) is not True:
                 command["result"] = "state_changed"
+            elif action == "resume_program" and not self.program_resume_allowed():
+                command["result"] = "state_changed"
             elif (screen, flags) != (before, command["source_flags"]) or (
                 command["source_slot"] is not None
                 and (command["source_slot"], command["recipe_count"]) != (slot, count)
-            ):
+            ) or (command.get("source_indicator") is not None
+                      and self.control_indicator(message[1]) != command["source_indicator"]):
                 command["result"] = "state_changed"
             elif status == 200 and answer == LOCAL_ANSWER:
                 answer = b"Start\r\n" + key + b"\r\nOK\r\nDone\r\n"
@@ -524,6 +552,16 @@ class Bridge:
 
     # -- local API ----------------------------------------------------------
 
+    def program_resume_allowed(self):
+        return (self.options.get("program_control_enabled") is True
+                and self.options.get("allow_remote_heating") is True)
+
+    @staticmethod
+    def control_indicator(payload):
+        parts = payload.split(";", 4)
+        fields = parts[3].split("X") if len(parts) >= 4 else []
+        return fields[15] if len(fields) >= 16 else ""
+
     @staticmethod
     def control_screen(payload: str) -> tuple[str, str, str, str]:
         parts = payload.split(";", 4)
@@ -558,15 +596,29 @@ class Bridge:
         if not 0 <= age < CONTROL_TIMEOUT:
             raise web.HTTPConflict(text="Fresh device status required")
         screen, flags, slot, count = self.control_screen(device.get("bm_stat", ""))
-        if action not in LOCAL_ACTIONS:
+        if action not in LOCAL_ACTIONS and action not in PROGRAM_KEYS:
             raise web.HTTPBadRequest(text="Unsupported action")
         if action in ACTUATOR_OPTIONS and self.options.get(ACTUATOR_OPTIONS[action]) is not True:
             raise web.HTTPForbidden(text="Manual actuator control is disabled")
-        target_flags = ACTUATOR_FLAGS.get(action, {"ph": ("ph",)}).get(flags)
-        if screen != LOCAL_ACTIONS[action][0] or target_flags is None:
-            raise web.HTTPConflict(text="Device screen or actuator state does not match")
+        source_indicator = target_indicator = target_screen = None
+        if action in PROGRAM_KEYS:
+            if action == "resume_program" and not self.program_resume_allowed():
+                raise web.HTTPForbidden(text="Program resume requires program_control_enabled and allow_remote_heating")
+            source_indicator = self.control_indicator(device.get("bm_stat", ""))
+            transition = program_transition(action, screen, flags, source_indicator)
+            if transition is None:
+                raise web.HTTPConflict(text="Device screen, actuator state or pause indicator does not match")
+            target_screen, target_flags, target_indicator = transition
+        else:
+            target_flags = ACTUATOR_FLAGS.get(action, {"ph": ("ph",)}).get(flags)
+            if screen != LOCAL_ACTIONS[action][0] or target_flags is None:
+                raise web.HTTPConflict(text="Device screen or actuator state does not match")
+            if action == "select_recipe":
+                source_indicator = target_indicator = "000"
+                if self.control_indicator(device.get("bm_stat", "")) != source_indicator:
+                    raise web.HTTPConflict(text="Recipe selection must not be interrupted")
         source_slot = target_slot = None
-        if action in RECIPE_MOVES:
+        if action in RECIPE_MOVES or action == "select_recipe":
             if (
                 # The device holds up to nine recipes (field 8 counts them)
                 count not in ("1", "2", "3", "4", "5", "6", "7", "8", "9")
@@ -575,7 +627,8 @@ class Bridge:
             ):
                 raise web.HTTPConflict(text="A valid recipe count and current slot are required")
             source_slot = slot
-            target_slot = str((int(slot) + RECIPE_MOVES[action]) % int(count))
+            if action in RECIPE_MOVES:
+                target_slot = str((int(slot) + RECIPE_MOVES[action]) % int(count))
         command = self.pending_control()
         if command and command["result"] in ("queued", "sending", "sent"):
             raise web.HTTPConflict(text="A local command is already pending")
@@ -585,6 +638,8 @@ class Bridge:
             "source_slot": source_slot, "target_slot": target_slot,
             "recipe_count": count,
             "source_flags": flags, "target_flags": target_flags,
+            "source_screen": screen, "target_screen": target_screen,
+            "source_indicator": source_indicator, "target_indicator": target_indicator,
             "deadline": now + CONTROL_TIMEOUT,
         }
         return web.json_response({"result": "queued"}, status=202)

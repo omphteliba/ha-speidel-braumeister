@@ -281,3 +281,19 @@ Manual screen 4006: key 2 toggles the pump and key 3 toggles the heater.
 Pump transitions preserve heater flags (ph/Ph, pH/PH, pi/Pi). Heater-off
 transitions pH or pi to ph, and PH or Pi to Ph; regulation pauses retain
 heater activation even when the output is temporarily idle.
+
+
+### Observed program control transitions
+
+| Action | Source state / flags / indicator | Confirmed target | Key |
+|---|---|---|---|
+| Select recipe | 2015 / ph / 000 | 2030 / ph / 000 (water prompt) | 4 |
+| Pause purging | 2300 / ph or Ph / 000 | 2300 / ph / 120 | 1 |
+| Pause heating | 2410 / active program / 000 | 2410 / ph / 120 | 1 |
+| Final abort | 2300 or 2410 / ph / 120 | 101 / ph / 000 | 1 |
+| Resume purging | 2300 / ph / 120 | 2300 / Ph / 000 | 4 |
+
+Indicator 120 identifies the paused dialog, not the main menu. Screen code alone
+is insufficient to confirm pause. The user reported successful purge Cancel and
+heating pause/final abort tests on 2026-11-06. Resume has synthetic coverage but
+is not claimed as hardware-validated here.
