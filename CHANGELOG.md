@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-11-06
+
 ### Added
 - Diagnostics download (Settings → Devices & services → ⋮ → Download diagnostics): data source, device type, firmware and the Cloud API v1.0 answers, with account data, IDs, tokens and signatures removed
 - Read-only fallback for newer Braumeister models: process status, phase, temperature, pump and heater from the Cloud API v1.0 timeseries when neither the Bridge nor the web interface has data. Untested on real devices; the mapping is a best guess from the API documentation
 - Guide and issue template for owners of newer models (`docs/NEW_DEVICES.md`)
-- Passive device connection watchdog: warns on stale device timestamps and retains last-known brewing/heater permission, without extra requests or periodic recorder writes for unchanged status (#23).
+- Passive device connection watchdog: warns on stale device timestamps and retains last-known brewing/heater permission, without extra requests or periodic recorder writes for unchanged status (thanks to DanielP-1337, #23)
 
 ### Changed
 - Process status "waiting" (Waiting for start / Wartet auf Start) while a recipe is selected or the start screen "Wasser eingefüllt?" is shown (states 2015, 2030). Before, these counted as "running" although nothing heats. Automations that check for `running` no longer trigger there
