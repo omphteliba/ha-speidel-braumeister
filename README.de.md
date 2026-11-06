@@ -18,7 +18,7 @@ Eine Home Assistant Integration für Speidel Braumeister Brauanlagen über die M
 | Zieltemperatur | Die Zieltemperatur für die aktuelle Phase |
 | Pumpenstatus | Aktueller Pumpenzustand (Ein/Aus) |
 | Heizstatus | Aktueller Zustand des Heizelements (Ein/Aus) |
-| Prozessstatus | Aktueller Brauprozessstatus (läuft, wartet, etc.) |
+| Prozessstatus | Aktueller Brauprozessstatus: bereit, wartet auf Start (Rezept gewählt), läuft, beendet |
 | Aktuelle Phase | Aktuelle Brauphase (Einmaischen, Rast, Kochen, etc.) |
 | Verstrichene Phasenzeit | Vom Gerät gemeldete vergangene Rast- oder Kochzeit in Sekunden, auch während Hopfengaben; außerhalb zeitgesteuerter Phasen unbekannt |
 | Verbleibende Zeit | Geschätzte verbleibende Zeit für die aktuelle Phase |

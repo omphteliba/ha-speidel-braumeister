@@ -21,7 +21,7 @@ def test_all_samples_parse(dp, samples):
         assert result["firmware"] == "V1.1.27 Sep 12 2018"
         assert isinstance(result["temperature"], float)
         assert result["state_code"] is not None
-        assert result["process_status"] in ("idle", "running", "finished")
+        assert result["process_status"] in ("idle", "waiting", "running", "finished")
 
 
 @pytest.mark.parametrize(
@@ -30,7 +30,7 @@ def test_all_samples_parse(dp, samples):
         (101, "idle", None),
         (4006, "idle", None),
         (6010, "idle", None),
-        (2030, "running", None),
+        (2030, "waiting", None),  # start screen "Wasser eingefüllt?", nothing heats yet
         (2410, "running", None),
         (2510, "running", "mash_in_temperature_reached"),
         (2610, "running", None),  # waiting for malt, no beep in the samples

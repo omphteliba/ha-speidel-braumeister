@@ -82,6 +82,7 @@
         "name": "Prozessstatus",
         "state": {
           "idle": "Bereit",
+          "waiting": "Wartet auf Start",
           "running": "Läuft",
           "paused": "Pausiert",
           "finished": "Beendet",

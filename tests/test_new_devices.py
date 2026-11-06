@@ -130,3 +130,21 @@ def test_diagnostics_hide_account_data_and_ids():
     assert result["firmware"] == "V1.1.27"
     assert result["cloud_api"]["timeseries"]["sensor"][1]["type"] == "temperature"
     assert result["cloud_api"]["timeseries"]["sensor"][1]["values"] == {"value": 100.5}
+
+
+def test_recipe_selection_is_waiting_not_running(dp):
+    status = "bm_stat=V1;1234567890ABCDEF;1;0X15:26XCX{}X-1000X 21.5X4200X2679X6X0X0X0X0XADUSXphX000X0X0X0;0;0"
+    assert dp.parse_bm_stat(status.format(2015))["process_status"] == "waiting"
+    assert dp.parse_bm_stat(status.format(2030))["process_status"] == "waiting"
+    assert dp.parse_bm_stat(status.format(2300))["process_status"] == "running"
+    assert dp.parse_bm_stat(status.format(101))["process_status"] == "idle"
+
+
+def test_waiting_keeps_selected_recipe_through_cleaning():
+    module = load_coordinator("protocol_tests", None)
+    obj = module.SpeidelBraumeisterDataCoordinator(None, None, "TEST")
+    cleaned = obj._clean_data({"state_code": 2015, "process_status": "waiting", "brew_name": "West Coast IPA",
+                               "temperature": 21.5, "target_temperature": None, "remaining_time": 5})
+    assert cleaned["process_status"] == "waiting"
+    assert cleaned["brew_name"] == "West Coast IPA"
+    assert cleaned["remaining_time"] is None

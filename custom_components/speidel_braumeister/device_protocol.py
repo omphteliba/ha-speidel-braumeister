@@ -34,6 +34,9 @@ from .brew_display import brew_display
 NO_TARGET_TEMPERATURE = -1000
 STATE_MAIN_MENU = 101
 STATE_BREW_FINISHED = 3450
+# Recipe selected, program not started yet: recipe list (2015) and the start
+# screen "Wasser eingefüllt?" with its start delay (2030). Nothing heats here.
+PRE_START_STATES = {2015, 2030}
 PROGRESS_FULL = 318
 
 # An alarm is active while the device beeps, as in MySpeidel's own web display:
@@ -322,6 +325,8 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
 
     if state_code is None:
         result["process_status"] = "unknown"
+    elif state_code in PRE_START_STATES:
+        result["process_status"] = "waiting"
     elif state_code == STATE_BREW_FINISHED:
         result["process_status"] = "finished"
     elif in_program:

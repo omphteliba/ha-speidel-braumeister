@@ -25,7 +25,7 @@ See [behavior, limits and hardware observations](docs/device-connection-monitor.
 | Target Temperature | The target temperature for the current phase |
 | Pump Status | Current pump state (Ein/Aus - German for On/Off) |
 | Heating Status | Current heating element state (Ein/Aus) |
-| Process Status | Current brewing process status (running, idle, etc.) |
+| Process Status | Current brewing process status: idle, waiting for start (recipe selected), running, finished |
 | Current Phase | Current brewing phase as reported by the device in German (e.g. Einmaischen = mash-in, Rast = rest, Kochen = boil) |
 | Elapsed Step Time | Device-reported elapsed rest or boil time in seconds, including hop-addition prompts; unknown outside timed steps |
 | Remaining Time | Estimated remaining time for the current phase |

@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Guide and issue template for owners of newer models (`docs/NEW_DEVICES.md`)
 - Passive device connection watchdog: warns on stale device timestamps and retains last-known brewing/heater permission, without extra requests or periodic recorder writes for unchanged status (#23).
 
+### Changed
+- Process status "waiting" (Waiting for start / Wartet auf Start) while a recipe is selected or the start screen "Wasser eingefüllt?" is shown (states 2015, 2030). Before, these counted as "running" although nothing heats. Automations that check for `running` no longer trigger there
+
 ### Fixed
 - Braumeister Bridge 0.4.2: recipe navigation refused devices with six or more recipes; the Braumeister holds up to nine
 

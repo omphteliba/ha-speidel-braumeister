@@ -196,6 +196,12 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         
         is_idle_phase = current_phase in idle_phases
         is_idle_mode = device_mode in idle_modes
+        if process_status == "waiting" and data.get("state_code") is not None:
+            # Recipe selected but not started: keep the selected recipe, no times
+            cleaned["remaining_time"] = None
+            if not target_valid:
+                cleaned["target_temperature"] = None
+            return cleaned
         if data.get("state_code") is not None:
             # The device's own state code is authoritative. The web interface's
             # device_mode stays "wartet" even while a program is running.

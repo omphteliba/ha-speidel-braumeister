@@ -14,7 +14,7 @@ DOMAIN: Final = "speidel_braumeister"
 ACTUATOR_STATES: Final = ["on", "off"]
 CONNECTION_STATES: Final = ["online", "offline", "invalid_uuid"]
 PAYMENT_STATES: Final = ["yes", "no"]
-PROCESS_STATES: Final = ["idle", "running", "paused", "finished", "aborted"]
+PROCESS_STATES: Final = ["idle", "waiting", "running", "paused", "finished", "aborted"]
 
 # Manufacturer and device info
 MANUFACTURER: Final = "Speidel"
