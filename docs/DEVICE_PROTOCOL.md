@@ -59,7 +59,7 @@ Payload is 19 fields separated by `X`:
 | 5 | ` 24.5` | **Current temperature** in °C (leading space, 0.5 °C steps) |
 | 6 | `4800`, `1200`, `60`, `0` | **Duration of the current program step in seconds**: rest (`60` for a 1-min rest), boil (`1200` for 20 min). Outside timed steps it keeps the boil time of the selected recipe. Remaining time = field 6 − field 7 during `2820` (rest) and `3070` (boil) |
 | 7 | `0`…`167` | **Seconds since the current state was entered**, resets on state change |
-| 8 | `0`…`5` | *Hypothesis:* number of recipe slots synced. Dropped to 0 after `$d=A`, then counted up by one per `$rz` |
+| 8 | `0`…`9` | Number of recipes on the device (up to 9; seen with 6). Dropped to 0 after `$d=A`, then counted up by one per `$rz` |
 | 9 | `0`…`4` | **Recipe slot of the running program** (`0` for Weizen, `2` for the test recipe). Briefly `4` after entering manual mode, so only meaningful during a program |
 | 10 | `0`, `5` | Unknown; became `5` at rest end and stayed until the end |
 | 11 | `0`, `-1` | *Hypothesis:* hop addition state; changed from `0` to `-1` at the hop addition 10 min before the end of the boil |

@@ -78,7 +78,7 @@ Short alarms such as hop additions can be missed with the default 30-second web 
 ### Recipe Information
 
 The Brew Name sensor includes additional attributes:
-- `recipe_slot` - Which device slot (0-4) the recipe is loaded from
+- `recipe_slot` - Which device slot (0-8) the recipe is loaded from
 - `recipe_matched` - Whether the recipe was found in your account
 - `account_recipe_id` - The account recipe ID if matched
 - `recipe_date` - Recipe creation date
@@ -227,7 +227,7 @@ The integration polls the web interface endpoints to get real-time data:
 
 ### Recipe Matching
 
-The integration automatically matches recipes stored on your Braumeister device (slots 0-4) with recipes in your My Speidel account:
+The integration automatically matches recipes stored on your Braumeister device (up to 9 slots) with recipes in your My Speidel account:
 
 1. **Exact match** - Recipe names match exactly (case-insensitive)
 2. **Partial match** - Device recipe name is contained in account recipe name (e.g., "Low Rider Pale" matches "Low Rider Pale Ale")

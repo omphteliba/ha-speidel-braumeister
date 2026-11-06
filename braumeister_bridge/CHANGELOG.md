@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Recipe navigation accepts up to nine recipes on the device (it refused six or more)
+
 ## 0.4.1
 
 - Keeps the last device message with an alarm, so the integration also sees alarms that

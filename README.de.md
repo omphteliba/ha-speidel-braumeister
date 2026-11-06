@@ -71,7 +71,7 @@ Kurze Alarme wie Hopfengaben können bei der standardmäßigen 30-Sekunden-Abfra
 ### Rezeptinformationen
 
 Der Sensor "Brauname" enthält zusätzliche Attribute:
-- `recipe_slot` - Welcher Geräte-Slot (0-4) das Rezept geladen ist
+- `recipe_slot` - Aus welchem Geräte-Slot (0-8) das Rezept geladen ist
 - `recipe_matched` - Ob das Rezept in Ihrem Konto gefunden wurde
 - `account_recipe_id` - Die Konto-Rezept-ID wenn gefunden
 - `recipe_date` - Rezepterstellungsdatum
@@ -220,7 +220,7 @@ Die Integration fragt die Web Interface Endpoints ab, um Echtzeitdaten zu erhalt
 
 ### Rezept-Abgleich
 
-Die Integration gleicht automatisch auf Ihrem Braumeister-Gerät gespeicherte Rezepte (Slots 0-4) mit Rezepten in Ihrem My Speidel-Konto ab:
+Die Integration gleicht automatisch auf Ihrem Braumeister-Gerät gespeicherte Rezepte (bis zu 9 Slots) mit Rezepten in Ihrem My Speidel-Konto ab:
 
 1. **Exakter Treffer** - Rezeptnamen stimmen exakt überein (Groß-/Kleinschreibung nicht beachtet)
 2. **Partieller Treffer** - Geräte-Rezeptname ist im Konto-Rezeptnamen enthalten (z. B. "Low Rider Pale" passt zu "Low Rider Pale Ale")

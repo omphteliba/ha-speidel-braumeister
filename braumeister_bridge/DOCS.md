@@ -110,7 +110,7 @@ With `control_enabled: true`, local API clients can POST JSON containing
 | `open_recipe_selection` / `cancel_recipe_selection` | 101 ↔ 2015 |
 | `recipe_down` / `recipe_up` | 2015, change highlighted slot |
 
-List navigation uses the device-reported recipe count (one to five) and
+List navigation uses the device-reported recipe count (one to nine) and
 confirms the expected highlighted slot, including wraparound.
 
 The Bridge requires recent status with both actuators off. HTTP 202 means the

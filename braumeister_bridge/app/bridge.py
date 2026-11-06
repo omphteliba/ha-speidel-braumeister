@@ -545,8 +545,9 @@ class Bridge:
         source_slot = target_slot = None
         if action in RECIPE_MOVES:
             if (
-                count not in ("1", "2", "3", "4", "5")
-                or slot not in ("0", "1", "2", "3", "4")
+                # The device holds up to nine recipes (field 8 counts them)
+                count not in ("1", "2", "3", "4", "5", "6", "7", "8", "9")
+                or slot not in ("0", "1", "2", "3", "4", "5", "6", "7", "8")
                 or int(slot) >= int(count)
             ):
                 raise web.HTTPConflict(text="A valid recipe count and current slot are required")

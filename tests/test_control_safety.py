@@ -80,7 +80,7 @@ async def test_local_control_through_device_poll(bridge_module):
 
                 assert await poll(2015, count=0) == ack
                 assert (await enqueue("recipe_up")).status == 409
-                for count in range(1, 6):
+                for count in range(1, 10):
                     for action, before, after, key in (
                         ("recipe_up", 0, count - 1, 3),
                         ("recipe_down", count - 1, 0, 2),

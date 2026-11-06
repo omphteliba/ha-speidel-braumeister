@@ -479,7 +479,8 @@ class SpeidelBraumeisterAPI:
         for uuid in self._get_uuid_variants(machine_uuid):
             # Without a range: a running process may have started more than a day ago
             status, data, _ = await self._get_json(f"/machine/{uuid}/timeseries/process")
-            result["status"][f"process[{uuid}]"] = status
+            kind = "combined" if "." in uuid else "short" if uuid.isdigit() else "long"
+            result["status"][f"process ({kind} ID)"] = status
             if status == 402:
                 self._payment_required = True
                 raise SpeidelPaymentRequiredError(f"/machine/{uuid}/timeseries/process")

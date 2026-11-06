@@ -119,7 +119,7 @@ def test_diagnostics_hide_account_data_and_ids():
         last_update_success=True,
         api=SimpleNamespace(has_subscription=False, payment_required=False),
         mqtt_client=None,
-        cloud_series={"uuid": "323", "status": {"process[0004A30B003D70F4.323]": 404}, **series()},
+        cloud_series={"uuid": "323", "status": {"process (combined ID)": 404}, **series()},
     )
     entry = {"username": "brewer@example.com", "password": "secret", "machine_uuid": "0004A30B003D70F4.323"}
     result = diagnostics.build_diagnostics(coordinator, entry, "3.1.0")

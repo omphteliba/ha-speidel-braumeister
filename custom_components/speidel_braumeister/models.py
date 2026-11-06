@@ -267,7 +267,7 @@ class DeviceStatusControl(DeviceStatus):
 # =============================================================================
 
 class RecipeSlot(BaseModel):
-    """Recipe stored in a device slot (0-4)."""
+    """Recipe stored in a device slot (0-8)."""
     
     slot: int = Field(..., ge=0, le=4, description="Slot number")
     name: str = Field(..., description="Recipe name")
