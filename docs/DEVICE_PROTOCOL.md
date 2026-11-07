@@ -289,10 +289,16 @@ has a subscription and one Braumeister with firmware V1.1.27 as described above.
   device had run manual mode and an automatic program a few hours earlier.
   `/account/timeseries/process` is empty too. So data from this device (firmware V1.1.27,
   `api2.myspeidel.com`) does not reach the cloud API.
-- The public `/v1.0/firmware` list only contains Linux images for i.MX6UL
-  (`image-speidel-swu-imx6ul-var`), i.e. a newer Linux-based controller (e.g. firmware 1.8.3 on a Braumeister PLUS 50 L). The cloud API
-  is most likely only useful for those devices. This is untested — it needs an
-  account that owns such a device.
+- The public `/v1.0/firmware` list observed on 2026-10-30 included the image
+  name `image-speidel-swu-imx6ul-var`, pointing to an i.MX6UL build target.
+  Page 2 of [Speidel's January 2021 direct update guide for PLUS Control V2.0](https://www.speidels-braumeister.de/files/braumeister/downloads/service/downloads/braumeister-software/Software-Update-Direct-BraumeisterPLUS-2021-January%202021.pdf#page=2)
+  shows a Variscite-branded SWUpdate interface on local port 8080. The guide
+  describes firmware upload and gives no public firmware file URL.
+  Together these clues suggest an i.MX6UL/Variscite platform for at least one
+  build. The exact module, its mapping to specific models and firmware versions,
+  and the appliance-to-cloud protocol still require independent confirmation.
+  See [the newer-device guide](NEW_DEVICES.md) for how to compare a community
+  diagnostics export with the appliance display.
 
 ## Open questions
 
