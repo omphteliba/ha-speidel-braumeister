@@ -296,7 +296,7 @@ has a subscription and one Braumeister with firmware V1.1.27 as described above.
 
 Speidel documents a Variscite-branded SWUpdate interface on local port 8080.
 The service page lists a separate download link for recovery when an over-the-air
-update fails. [Direct update guide, page 2](https://www.speidels-braumeister.de/files/braumeister/downloads/service/downloads/braumeister-software/Software-Update-Direct-BraumeisterPLUS-2021-January%202021.pdf#page=2) · [Speidel downloads](https://www.speidels-braumeister.de/en/service/downloads.html)
+update fails. [Download the recovery package from Speidel](https://oc.speidel-services.de/index.php/s/LcWbtFwa5mj2kJF) · [Direct update guide, page 2](https://www.speidels-braumeister.de/files/braumeister/downloads/service/downloads/braumeister-software/Software-Update-Direct-BraumeisterPLUS-2021-January%202021.pdf#page=2) · [Speidel downloads](https://www.speidels-braumeister.de/en/service/downloads.html)
 
 On 2026-11-07 a contributor shared archive listings for
 `MySpeidel_BMCv2_Software_Download.zip`. It contained
