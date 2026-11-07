@@ -291,14 +291,37 @@ has a subscription and one Braumeister with firmware V1.1.27 as described above.
   `api2.myspeidel.com`) does not reach the cloud API.
 - The public `/v1.0/firmware` list observed on 2026-10-30 included the image
   name `image-speidel-swu-imx6ul-var`, pointing to an i.MX6UL build target.
-  Page 2 of [Speidel's January 2021 direct update guide for PLUS Control V2.0](https://www.speidels-braumeister.de/files/braumeister/downloads/service/downloads/braumeister-software/Software-Update-Direct-BraumeisterPLUS-2021-January%202021.pdf#page=2)
-  shows a Variscite-branded SWUpdate interface on local port 8080. The guide
-  describes firmware upload and gives no public firmware file URL.
-  Together these clues suggest an i.MX6UL/Variscite platform for at least one
-  build. The exact module, its mapping to specific models and firmware versions,
-  and the appliance-to-cloud protocol still require independent confirmation.
-  See [the newer-device guide](NEW_DEVICES.md) for how to compare a community
-  diagnostics export with the appliance display.
+
+## Braumeister PLUS Control V2.0 reset packages
+
+Speidel documents a Variscite-branded SWUpdate interface on local port 8080.
+The service page lists a separate download link for recovery when an over-the-air
+update fails. [Direct update guide, page 2](https://www.speidels-braumeister.de/files/braumeister/downloads/service/downloads/braumeister-software/Software-Update-Direct-BraumeisterPLUS-2021-January%202021.pdf#page=2) · [Speidel downloads](https://www.speidels-braumeister.de/en/service/downloads.html)
+
+On 2026-11-07 a contributor shared archive listings for
+`MySpeidel_BMCv2_Software_Download.zip`. It contained
+`image-speidel-swu-imx6ul-var-dart-1.4.0-rc.0.swu` and
+`image-speidel-swu-imx6ul-var-dart-1.6.0-rc.0.swu`. Both names identify an
+i.MX6UL build target and point to the Variscite DART family. The exact module
+revision and its use across individual Braumeister models remain open.
+
+The listing and installer excerpt for **1.4.0-rc.0** give these details:
+
+- The archive contains `image-speidel-swupdate-imx6ul-var-dart.tar.gz.enc`,
+  `sw-description`, `sw-description.sig` and `update.sh`. The names suggest an
+  encrypted payload and a manifest signature. The listing alone leaves the
+  algorithms and verification behavior undetermined.
+- In `preinst`, the script reads the active root device from `/proc/cmdline`,
+  selects the other partition (1 or 2), formats it as ext4 and points
+  `/dev/update` at it. In `postinst`, it sets the U-Boot variables
+  `mmcbootpart` and `mmcrootpart` to the selected partition. This documents an
+  A/B update scheme. Automatic rollback after a failed boot remains unconfirmed.
+- The installer checks for `gpmi-nand` and configures the eMMC environment
+  tools when that debug path is absent. Determining the storage fitted to a
+  particular appliance requires device-specific evidence.
+
+These observations describe firmware installation. The appliance-to-cloud
+transport remains open. [How to interpret diagnostics from a newer device](NEW_DEVICES.md)
 
 ## Open questions
 
