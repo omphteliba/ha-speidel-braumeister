@@ -31,6 +31,7 @@ DEFAULT_SCAN_INTERVAL: Final = 30  # seconds
 
 # Braumeister Bridge app (local receiver for the device's cloud traffic)
 BRIDGE_STATUS_URL: Final = "http://127.0.0.1:8642/api/status"
+BRIDGE_RECIPES_URL: Final = "http://127.0.0.1:8642/api/recipes"
 BRIDGE_MAX_AGE: Final = 30  # seconds; older messages mean the device is not sending
 
 # API configuration

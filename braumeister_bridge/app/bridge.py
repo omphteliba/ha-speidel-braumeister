@@ -123,9 +123,12 @@ RECIPE_MOVES = {"recipe_down": 1, "recipe_up": -1}
 # "$rz=<slot line>" per slot (field 8 counts up by one each), resent until confirmed.
 RECIPE_SLOTS = 9
 RECIPE_ATTEMPTS = 3
-RECIPE_NAME = re.compile(r"[A-Za-z0-9 _-]{1,14}")
-RECIPE_KEYS = {"name", "mash_in", "rests", "boil_time", "hops"}
-BOIL_TEMPERATURE = 103  # the only value ever seen at position 13
+RECIPE_NAME_LENGTH = 14  # longer names are cut on transfer, as My Speidel does
+RECIPE_NAME = re.compile(r"[ -:<-~]+")  # printable ASCII without ";" (ends a line in rz)
+# Same shape as the integration's recipe attributes, so a list can be read, edited and written back
+RECIPE_KEYS = {"name", "mash_in_temperature", "rests", "boil_minutes"}
+RECIPE_OPTIONAL = {"hop_additions", "slot", "boil_temperature"}
+BOIL_TEMPERATURE = 103  # default; recipes on the device also had 100 and 102
 
 
 def _bounded(value: Any, low: int, high: int, what: str) -> int:
@@ -137,34 +140,40 @@ def _bounded(value: Any, low: int, high: int, what: str) -> int:
 def recipe_line(slot: int, recipe: Any, fahrenheit: bool = False) -> str:
     """Build one slot line (20 X-separated numbers, '.', name) from a validated recipe.
 
-    Temperatures are given in °C and converted when the device is set to °F.
+    Temperatures are given in °C and converted when the device is set to °F. A given
+    "slot" is ignored (recipes are written in list order); boil_temperature defaults to 103.
     """
-    if not isinstance(recipe, dict) or not RECIPE_KEYS - {"hops"} <= set(recipe) <= RECIPE_KEYS:
-        raise ValueError("A recipe needs name, mash_in, rests and boil_time (hops optional)")
-    name = recipe["name"]
-    if not isinstance(name, str) or not RECIPE_NAME.fullmatch(name) or name != name.strip():
-        raise ValueError("Recipe name: 1 to 14 characters A-Z, a-z, 0-9, space, _ or -")
+    if not isinstance(recipe, dict) or not RECIPE_KEYS <= set(recipe) <= RECIPE_KEYS | RECIPE_OPTIONAL:
+        raise ValueError("needs name, mash_in_temperature, rests and boil_minutes (hop_additions optional)")
+    name = recipe["name"].strip() if isinstance(recipe["name"], str) else ""
+    if not RECIPE_NAME.fullmatch(name):
+        raise ValueError("name: printable ASCII without ';' (no umlauts yet)")
+    name = name[:RECIPE_NAME_LENGTH].rstrip()
 
     def temp(celsius: int) -> int:
         return round(celsius * 9 / 5 + 32) if fahrenheit else celsius
 
-    numbers = [slot, temp(_bounded(recipe["mash_in"], 20, 80, "mash_in"))]
+    numbers = [slot, temp(_bounded(recipe["mash_in_temperature"], 20, 80, "mash_in_temperature"))]
     rests = recipe["rests"]
     if not isinstance(rests, list) or not 1 <= len(rests) <= 5:
-        raise ValueError("rests: a list of 1 to 5 [temperature, minutes] pairs")
+        raise ValueError("rests: a list of 1 to 5 rests")
     for rest in rests:
-        if not isinstance(rest, list) or len(rest) != 2:
-            raise ValueError("Each rest is [temperature, minutes]")
-        numbers += [temp(_bounded(rest[0], 20, 80, "Rest temperature")), _bounded(rest[1], 1, 180, "Rest minutes")]
+        if not isinstance(rest, dict) or set(rest) != {"temperature", "minutes"}:
+            raise ValueError("Each rest needs temperature and minutes")
+        numbers += [temp(_bounded(rest["temperature"], 20, 80, "Rest temperature")),
+                    _bounded(rest["minutes"], 1, 180, "Rest minutes")]
     numbers += [0, 0] * (5 - len(rests))
-    boil = _bounded(recipe["boil_time"], 1, 180, "boil_time")
-    numbers += [boil, temp(BOIL_TEMPERATURE)]
-    hops = recipe.get("hops", [])
+    boil = _bounded(recipe["boil_minutes"], 1, 180, "boil_minutes")
+    boil_temperature = _bounded(recipe.get("boil_temperature", BOIL_TEMPERATURE), 95, 105, "boil_temperature")
+    numbers += [boil, temp(boil_temperature)]
+    hops = recipe.get("hop_additions", [])
     if not isinstance(hops, list) or len(hops) > 6:
-        raise ValueError("hops: a list of up to 6 additions (minutes before the end of the boil)")
+        raise ValueError("hop_additions: up to 6, in minutes before the end of the boil")
     hops = [_bounded(hop, 1, boil, "Hop addition") for hop in hops]  # order as given, like the cloud
     numbers += hops + [0] * (6 - len(hops))
     return "X".join(str(number) for number in numbers) + "." + name
+
+
 HOP_BY_HOP = {
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
     "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length",
@@ -768,7 +777,8 @@ class Bridge:
         device_id, recipes = data["device_id"], data["recipes"]
         if not isinstance(device_id, str) or not isinstance(recipes, list) or not 1 <= len(recipes) <= RECIPE_SLOTS:
             raise web.HTTPBadRequest(text=f"Expected a device_id and 1 to {RECIPE_SLOTS} recipes")
-        device = self.devices.get(device_id, {})
+        device = next((d for d in self.devices.values() if d["device_id"].lower() == device_id.lower()), {})
+        device_id = device.get("device_id", device_id)
         age = time.time() - device.get("bm_stat_received", 0)
         if not 0 <= age < CONTROL_TIMEOUT:
             raise web.HTTPConflict(text="Fresh device status required")

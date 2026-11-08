@@ -7,12 +7,18 @@ from aiohttp.test_utils import TestServer
 from test_bridge import DEVICE, DEVICE_HEADERS, make_bridge
 from test_program_control import body
 
+def rests(*pairs):
+    return [{"temperature": t, "minutes": m} for t, m in pairs]
+
+
+# Same shape as the integration's recipe attributes (device_protocol.parse_recipe_line)
 WEIZEN = {
-    "name": "Weizen", "mash_in": 40,
-    "rests": [[44, 20], [52, 20], [63, 35], [73, 35], [78, 10]],
-    "boil_time": 90, "hops": [90, 15],
+    "name": "Weizen", "mash_in_temperature": 40,
+    "rests": rests((44, 20), (52, 20), (63, 35), (73, 35), (78, 10)),
+    "boil_minutes": 90, "hop_additions": [90, 15],
 }
-TEST = {"name": "test 10 minute", "mash_in": 40, "rests": [[40, 1]], "boil_time": 20, "hops": [10, 11, 11]}
+TEST = {"name": "test 10 minute", "mash_in_temperature": 40, "rests": rests((40, 1)),
+        "boil_minutes": 20, "hop_additions": [10, 11, 11]}
 
 
 def test_recipe_lines_match_captured_cloud_commands(bridge_module):
@@ -23,16 +29,37 @@ def test_recipe_lines_match_captured_cloud_commands(bridge_module):
 
 def test_recipe_line_fahrenheit(bridge_module):
     # Matches the °F recipe list seen on a device: mash-in 104, boil 217.
-    line = bridge_module.recipe_line(0, {"name": "F", "mash_in": 40, "rests": [[50, 10]], "boil_time": 60}, fahrenheit=True)
+    line = bridge_module.recipe_line(
+        0, {"name": "F", "mash_in_temperature": 40, "rests": rests((50, 10)), "boil_minutes": 60}, fahrenheit=True)
     assert line == "0X104X122X10X0X0X0X0X0X0X0X0X60X217X0X0X0X0X0X0.F"
 
 
+def test_recipe_line_round_trips_device_attributes(bridge_module, dp):
+    line = "3X40X52X15X63X90X72X15X78X20X0X0X90X103X90X60X15X0X0X0.Stone IPA"
+    parsed = dp.parse_recipe_line(line)
+    assert bridge_module.recipe_line(parsed["slot"], parsed) == line
+
+
+def test_boil_temperature_is_kept(bridge_module):
+    # A recipe on the device had boil temperature 100 (position 13)
+    assert "X70X100X60X10X" in bridge_module.recipe_line(0, {**WEIZEN, "boil_minutes": 70, "boil_temperature": 100,
+                                                            "hop_additions": [60, 10]})
+
+
+def test_long_names_are_cut_on_transfer(bridge_module):
+    line = bridge_module.recipe_line(0, {**WEIZEN, "name": "Belgisches Goldenes Ale"})
+    assert line.endswith(".Belgisches Gol")
+    assert bridge_module.recipe_line(0, {**WEIZEN, "name": "Stone IPA     extra"}).endswith(".Stone IPA")
+
+
 @pytest.mark.parametrize("change", [
-    {"name": ""}, {"name": "fifteen chars!!"}, {"name": "Bier;$k=4"}, {"name": "Bräu"}, {"name": " IPA"},
-    {"mash_in": 19}, {"mash_in": 81}, {"mash_in": 40.5}, {"mash_in": True},
-    {"rests": []}, {"rests": [[50, 10]] * 6}, {"rests": [[50]]}, {"rests": [[85, 10]]}, {"rests": [[50, 0]]},
-    {"boil_time": 0}, {"boil_time": 181},
-    {"hops": [91]}, {"hops": [0]}, {"hops": [10] * 7},
+    {"name": ""}, {"name": "   "}, {"name": "Bier;$k=4"}, {"name": "Bräu"}, {"name": 5},
+    {"mash_in_temperature": 19}, {"mash_in_temperature": 81}, {"mash_in_temperature": 40.5},
+    {"mash_in_temperature": True},
+    {"rests": []}, {"rests": rests((50, 10)) * 6}, {"rests": [[50, 10]]}, {"rests": rests((85, 10))},
+    {"rests": rests((50, 0))},
+    {"boil_minutes": 0}, {"boil_minutes": 181}, {"boil_temperature": 94}, {"boil_temperature": 106},
+    {"hop_additions": [91]}, {"hop_additions": [0]}, {"hop_additions": [10] * 7},
     {"extra": 1},
 ])
 def test_recipe_line_rejects_invalid_values(bridge_module, change):
@@ -65,7 +92,7 @@ async def test_recipe_upload_replays_cloud_sync(bridge_module):
                 await poll("6")
                 assert (await upload([WEIZEN])).status == 403  # off by default
                 bridge.options["recipe_write_enabled"] = True
-                assert (await upload([{**WEIZEN, "mash_in": 99}])).status == 400
+                assert (await upload([{**WEIZEN, "mash_in_temperature": 99}])).status == 400
                 assert (await upload([WEIZEN] * 10)).status == 400
                 await poll("6", "4006")
                 assert (await upload([WEIZEN])).status == 409  # only from the main menu

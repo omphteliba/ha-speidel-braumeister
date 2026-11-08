@@ -160,18 +160,26 @@ gone or `forward_to_cloud: false`. POST JSON to `/api/recipes`:
 {
   "device_id": "<long device ID>",
   "recipes": [
-    {"name": "Weizen", "mash_in": 40,
-     "rests": [[44, 20], [52, 20], [63, 35], [73, 35], [78, 10]],
-     "boil_time": 90, "hops": [90, 15]}
+    {"name": "Weizen", "mash_in_temperature": 40,
+     "rests": [{"temperature": 44, "minutes": 20}, {"temperature": 63, "minutes": 35},
+               {"temperature": 78, "minutes": 10}],
+     "boil_minutes": 90, "hop_additions": [90, 15]}
   ]
 }
 ```
 
+The format is the same as the `recipes` attribute of the integration's *Device
+Recipes* sensor, so a list can be copied, edited and written back. In Home
+Assistant, use the action **Speidel Braumeister: Upload recipes**
+(`speidel_braumeister.upload_recipes`) instead of calling the API yourself.
+
 - 1 to 9 recipes; they replace **all** recipes on the device, in this order.
-- `name`: 1 to 14 characters `A-Z a-z 0-9`, space, `_` or `-` (no umlauts yet).
-- `mash_in` and rest temperatures in °C (20–80), converted if the device is set
-  to °F. 1 to 5 `rests` as `[temperature, minutes]` (1–180 min).
-- `boil_time` 1–180 minutes; up to 6 `hops` in minutes before the end of the boil.
+- `name`: printable ASCII without `;` (no umlauts yet). Longer names are cut to
+  14 characters on transfer, as My Speidel does.
+- `mash_in_temperature` and rest temperatures in °C (20–80), converted if the
+  device is set to °F. 1 to 5 `rests` with `temperature` and `minutes` (1–180).
+- `boil_minutes` 1–180; up to 6 `hop_additions` in minutes before the end of the
+  boil. `boil_temperature` 95–105 °C (default 103); `slot` may be present and is ignored.
 
 The device must show the main menu with pump and heater off. The Bridge then
 replays what My Speidel does: it deletes all recipes (`$d=A`) and writes one slot

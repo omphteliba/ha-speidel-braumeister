@@ -156,5 +156,21 @@
         "name": "Geräteverbindung prüfen"
       }
     }
+  },
+  "services": {
+    "upload_recipes": {
+      "name": "Rezepte hochladen",
+      "description": "Ersetzt alle Rezepte im Braumeister über die Braumeister-Bridge-App (Option recipe_write_enabled). Das Gerät muss das Hauptmenü zeigen, Pumpe und Heizung aus. Gleiches Format wie das Attribut recipes des Sensors „Rezepte auf dem Gerät“.",
+      "fields": {
+        "recipes": {
+          "name": "Rezepte",
+          "description": "1 bis 9 Rezepte in Gerätereihenfolge: name (längere Namen werden auf 14 Zeichen gekürzt), mash_in_temperature, rests (1 bis 5 mit temperature und minutes), boil_minutes und optional hop_additions (Minuten vor Kochende). Temperaturen in °C."
+        },
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Nur bei mehr als einem Braumeister nötig."
+        }
+      }
+    }
   }
 }

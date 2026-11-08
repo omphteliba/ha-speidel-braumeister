@@ -21,6 +21,7 @@ from .const import (
 from .coordinator import SpeidelBraumeisterDataCoordinator
 from .web_auth import SpeidelWebAuth
 from .request_policy import PollingError, RequestPolicy
+from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ PLATFORMS: list[Platform] = [
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Speidel Braumeister integration."""
     hass.data.setdefault(DOMAIN, {})
+    async_setup_services(hass)
     return True
 
 

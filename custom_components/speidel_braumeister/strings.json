@@ -156,5 +156,21 @@
         "name": "Check device connection"
       }
     }
+  },
+  "services": {
+    "upload_recipes": {
+      "name": "Upload recipes",
+      "description": "Replaces all recipes on the Braumeister through the Braumeister Bridge app (option recipe_write_enabled). The device must show the main menu with pump and heater off. Use the same format as the recipes attribute of the Device Recipes sensor.",
+      "fields": {
+        "recipes": {
+          "name": "Recipes",
+          "description": "1 to 9 recipes in device order: name (longer names are cut to 14 characters), mash_in_temperature, rests (1 to 5 with temperature and minutes), boil_minutes and optional hop_additions (minutes before the end of the boil). Temperatures in °C."
+        },
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Only needed with more than one Braumeister."
+        }
+      }
+    }
   }
 }

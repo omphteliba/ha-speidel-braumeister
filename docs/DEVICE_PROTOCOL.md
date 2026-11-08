@@ -131,7 +131,7 @@ Each slot line has 20 `X`-separated numbers followed by `.` and the name:
 | 1 | `40` | Mash-in temperature °C |
 | 2–11 | `44 20 52 20 63 35 73 35 78 10` | 5 rests as (temperature °C, minutes); unused = `0 0` (or `40 0` on the device) |
 | 12 | `90` | Boil time, minutes |
-| 13 | `103` | *Hypothesis:* boil temperature °C (always 103) |
+| 13 | `103` | Boil temperature °C; usually 103, recipes with 100 and 102 seen |
 | 14–19 | `90 15 0 0 0 0` | Hop additions, minutes before end of boil; `0` = unused |
 
 The name is truncated to 14 characters (`Belgisches Gol…`).
