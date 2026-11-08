@@ -58,6 +58,7 @@ App option: `passthrough_url: http://127.0.0.1:8300`
 | `passthrough_url` | empty | Where other requests on port 80 go, e.g. `http://127.0.0.1:8300`. |
 | `api_port` | `8642` | Local status API for the integration (only reachable from the host). |
 | `log_level` | `info` | `debug` logs every message. |
+| `recipe_write_enabled` | `false` | Allow replacing the device's recipes via the local API (see *Recipe upload*). |
 
 
 ## Cloud DNS and AdGuard rewrites
@@ -147,3 +148,39 @@ additionally requires both `program_control_enabled: true` (default false) and
 heating-stage resume are unsupported. Commands are checked again before sending;
 a changed dialog cancels the queued command. First Cancel pauses, second Cancel
 from the pause dialog ends the program.
+
+
+### Recipe upload
+
+With `recipe_write_enabled: true` (default false), local API clients can replace
+all recipes on the Braumeister without My Speidel, for example when the cloud is
+gone or `forward_to_cloud: false`. POST JSON to `/api/recipes`:
+
+```json
+{
+  "device_id": "<long device ID>",
+  "recipes": [
+    {"name": "Weizen", "mash_in": 40,
+     "rests": [[44, 20], [52, 20], [63, 35], [73, 35], [78, 10]],
+     "boil_time": 90, "hops": [90, 15]}
+  ]
+}
+```
+
+- 1 to 9 recipes; they replace **all** recipes on the device, in this order.
+- `name`: 1 to 14 characters `A-Z a-z 0-9`, space, `_` or `-` (no umlauts yet).
+- `mash_in` and rest temperatures in °C (20–80), converted if the device is set
+  to °F. 1 to 5 `rests` as `[temperature, minutes]` (1–180 min).
+- `boil_time` 1–180 minutes; up to 6 `hops` in minutes before the end of the boil.
+
+The device must show the main menu with pump and heater off. The Bridge then
+replays what My Speidel does: it deletes all recipes (`$d=A`) and writes one slot
+per poll (`$rz=…`), each confirmed by the recipe count in the next status and
+resent up to three times. GET `/api/recipes` returns `queued`, `sending`,
+`confirmed`, `state_changed` (device left the main menu) or `unconfirmed`.
+
+If an upload stops halfway, the device has only the recipes written so far:
+simply upload again. The last recipe list the device reported is kept in
+`/data/recipes.json` (and in `/api/status`). Nothing is heated or started.
+With `forward_to_cloud: true`, My Speidel may later replace the list with the
+recipes of your account again.

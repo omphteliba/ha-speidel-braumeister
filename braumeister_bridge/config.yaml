@@ -25,6 +25,7 @@ options:
   program_control_enabled: false
   manual_pump_enabled: false
   allow_remote_heating: false
+  recipe_write_enabled: false
 schema:
   bridge_ip: str?
   cloud_host: str
@@ -42,3 +43,4 @@ schema:
   program_control_enabled: bool
   manual_pump_enabled: bool
   allow_remote_heating: bool
+  recipe_write_enabled: bool

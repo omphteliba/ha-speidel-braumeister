@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Recipe upload without My Speidel (`recipe_write_enabled`, off by default): replaces all
+  recipes on the device via the loopback API, replaying the cloud's observed delete-and-write
+  sync, each slot confirmed by the device's recipe count. Only from the main menu
+
 ## 0.5.0
 
 All new actions use the loopback API only, need `control_enabled`, a fresh matching

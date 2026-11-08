@@ -58,6 +58,7 @@ DEFAULTS: dict[str, Any] = {
     "manual_pump_enabled": False,
     "allow_remote_heating": False,
     "program_control_enabled": False,
+    "recipe_write_enabled": False,
     # Where device requests are forwarded; empty = http://<cloud_host> (for tests)
     "cloud_url": "",
     # Recipe lists are kept here so they survive restarts (empty = do not store)
@@ -117,6 +118,53 @@ ACTUATOR_OPTIONS = {
     "heater_on": "allow_remote_heating",
 }
 RECIPE_MOVES = {"recipe_down": 1, "recipe_up": -1}
+
+# Recipe upload replays the cloud's observed sync: "$d=A" (field 8 drops to 0), then one
+# "$rz=<slot line>" per slot (field 8 counts up by one each), resent until confirmed.
+RECIPE_SLOTS = 9
+RECIPE_ATTEMPTS = 3
+RECIPE_NAME = re.compile(r"[A-Za-z0-9 _-]{1,14}")
+RECIPE_KEYS = {"name", "mash_in", "rests", "boil_time", "hops"}
+BOIL_TEMPERATURE = 103  # the only value ever seen at position 13
+
+
+def _bounded(value: Any, low: int, high: int, what: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
+        raise ValueError(f"{what} must be a whole number from {low} to {high}")
+    return value
+
+
+def recipe_line(slot: int, recipe: Any, fahrenheit: bool = False) -> str:
+    """Build one slot line (20 X-separated numbers, '.', name) from a validated recipe.
+
+    Temperatures are given in °C and converted when the device is set to °F.
+    """
+    if not isinstance(recipe, dict) or not RECIPE_KEYS - {"hops"} <= set(recipe) <= RECIPE_KEYS:
+        raise ValueError("A recipe needs name, mash_in, rests and boil_time (hops optional)")
+    name = recipe["name"]
+    if not isinstance(name, str) or not RECIPE_NAME.fullmatch(name) or name != name.strip():
+        raise ValueError("Recipe name: 1 to 14 characters A-Z, a-z, 0-9, space, _ or -")
+
+    def temp(celsius: int) -> int:
+        return round(celsius * 9 / 5 + 32) if fahrenheit else celsius
+
+    numbers = [slot, temp(_bounded(recipe["mash_in"], 20, 80, "mash_in"))]
+    rests = recipe["rests"]
+    if not isinstance(rests, list) or not 1 <= len(rests) <= 5:
+        raise ValueError("rests: a list of 1 to 5 [temperature, minutes] pairs")
+    for rest in rests:
+        if not isinstance(rest, list) or len(rest) != 2:
+            raise ValueError("Each rest is [temperature, minutes]")
+        numbers += [temp(_bounded(rest[0], 20, 80, "Rest temperature")), _bounded(rest[1], 1, 180, "Rest minutes")]
+    numbers += [0, 0] * (5 - len(rests))
+    boil = _bounded(recipe["boil_time"], 1, 180, "boil_time")
+    numbers += [boil, temp(BOIL_TEMPERATURE)]
+    hops = recipe.get("hops", [])
+    if not isinstance(hops, list) or len(hops) > 6:
+        raise ValueError("hops: a list of up to 6 additions (minutes before the end of the boil)")
+    hops = [_bounded(hop, 1, boil, "Hop addition") for hop in hops]  # order as given, like the cloud
+    numbers += hops + [0] * (6 - len(hops))
+    return "X".join(str(number) for number in numbers) + "." + name
 HOP_BY_HOP = {
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
     "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length",
@@ -265,6 +313,7 @@ class Bridge:
         self.diagnostic_write: asyncio.Task | None = None
         self.diagnostic_missed = 0
         self.local_command: dict[str, Any] | None = None
+        self.recipe_job: dict[str, Any] | None = None
         self.state_file = Path(options["state_file"]) if options.get("state_file") else None
         self.load_recipes()
 
@@ -273,6 +322,46 @@ class Bridge:
         if command and command["result"] in ("queued", "sent") and time.monotonic() >= command["deadline"]:
             command["result"] = "expired" if command["result"] == "queued" else "unconfirmed"
         return command
+
+    def pending_recipe_job(self) -> dict[str, Any] | None:
+        job = self.recipe_job
+        if job and job["result"] in ("queued", "sending") and time.monotonic() >= job["deadline"]:
+            job["result"] = "unconfirmed"
+            _LOGGER.warning("Recipe upload to %s timed out after %d of %d steps",
+                            job["device_id"], job["step"], len(job["steps"]))
+        return job
+
+    def recipe_step(self, device: dict[str, Any], payload: str, can_send: bool) -> bytes | None:
+        """Advance the recipe upload on a device poll; return the command to send, if any."""
+        job = self.pending_recipe_job()
+        if not job or job["result"] not in ("queued", "sending") or job["device_id"] != device["device_id"]:
+            return None
+        screen, flags, _slot, count = self.control_screen(payload)
+        step = job["step"]
+        if job["sent_at"] is not None and count == str(job["counts"][step]):
+            step = job["step"] = step + 1
+            job.update(sent_at=None, attempts=0)
+            if step == len(job["steps"]):
+                job["result"] = "confirmed"
+                _LOGGER.info("Recipe upload to %s confirmed (%d recipes)", job["device_id"], step - 1)
+                return None
+        if (screen, flags) != ("101", "ph"):
+            job["result"] = "state_changed"
+            _LOGGER.warning("Recipe upload to %s stopped after %d of %d steps: device left the main menu",
+                            job["device_id"], step, len(job["steps"]))
+            return None
+        now = time.monotonic()
+        if job["sent_at"] is not None and now - job["sent_at"] < CONTROL_TIMEOUT:
+            return None  # wait for the device to report the new recipe count
+        if job["attempts"] >= RECIPE_ATTEMPTS:
+            job["result"] = "unconfirmed"
+            _LOGGER.warning("Recipe upload to %s unconfirmed at step %d of %d",
+                            job["device_id"], step + 1, len(job["steps"]))
+            return None
+        if not can_send:
+            return None
+        job.update(attempts=job["attempts"] + 1, sent_at=now, result="sending")
+        return job["steps"][step]
 
     def load_recipes(self) -> None:
         """Restore the last recipe list (rz) of every device."""
@@ -335,9 +424,11 @@ class Bridge:
         self.record(request.path, body, request.remote)
         device = self.device_for(body)
         sample = device.get("bm_stat_received") if device else None
-        message = self.split_message(body) if self.options.get("control_enabled") is True else None
+        control = self.options.get("control_enabled") is True
+        writing = self.options.get("recipe_write_enabled") is True
+        message = self.split_message(body) if control or writing else None
         poll = request.method == "POST" and request.path == "/braumeister/connect" and message and message[0] == "bm_stat"
-        command = self.pending_control() if poll and device else None
+        command = self.pending_control() if poll and device and control else None
         if command and command["device_id"] != device["device_id"]:
             command = None
         if command and command["result"] == "sent":
@@ -386,6 +477,11 @@ class Bridge:
                 source = "local_control"
                 command["result"] = "sending"
                 sending = command
+        if poll and device and writing and sending is None:
+            step = self.recipe_step(device, message[1], status == 200 and answer == LOCAL_ANSWER)
+            if step:
+                answer = b"Start\r\n" + step + b"\r\nOK\r\nDone\r\n"
+                source = "local_recipe"
         if device:
             device["last_response"] = answer.decode("latin-1", "replace")
             device["last_response_source"] = source
@@ -632,6 +728,9 @@ class Bridge:
         command = self.pending_control()
         if command and command["result"] in ("queued", "sending", "sent"):
             raise web.HTTPConflict(text="A local command is already pending")
+        job = self.pending_recipe_job()
+        if job and job["result"] in ("queued", "sending"):
+            raise web.HTTPConflict(text="A recipe upload is in progress")
         now = time.monotonic()
         self.local_command = {
             "device_id": device_id, "action": action, "result": "queued",
@@ -642,6 +741,60 @@ class Bridge:
             "source_indicator": source_indicator, "target_indicator": target_indicator,
             "deadline": now + CONTROL_TIMEOUT,
         }
+        return web.json_response({"result": "queued"}, status=202)
+
+    async def api_recipes(self, request: web.Request) -> web.Response:
+        """Replace all recipes on a device (GET: outcome of the last upload)."""
+        if self.options.get("recipe_write_enabled") is not True:
+            raise web.HTTPForbidden(text="Recipe upload is disabled")
+        if request.remote not in ("127.0.0.1", "::1") or "Origin" in request.headers:
+            raise web.HTTPForbidden(text="Local API clients only")
+        if request.method == "GET":
+            job = self.pending_recipe_job()
+            return web.json_response({
+                "device_id": job["device_id"], "result": job["result"],
+                "recipes": len(job["steps"]) - 1, "written": max(job["step"] - 1, 0),
+            } if job else {})
+        if request.content_type != "application/json":
+            raise web.HTTPUnsupportedMediaType()
+        try:
+            data = json.loads(await request.content.readexactly(request.content_length)) if (
+                request.content_length is not None and 0 < request.content_length <= 8192
+            ) else None
+        except (ValueError, asyncio.IncompleteReadError):
+            raise web.HTTPBadRequest(text="Invalid JSON") from None
+        if not isinstance(data, dict) or set(data) != {"device_id", "recipes"}:
+            raise web.HTTPBadRequest(text="Expected device_id and recipes")
+        device_id, recipes = data["device_id"], data["recipes"]
+        if not isinstance(device_id, str) or not isinstance(recipes, list) or not 1 <= len(recipes) <= RECIPE_SLOTS:
+            raise web.HTTPBadRequest(text=f"Expected a device_id and 1 to {RECIPE_SLOTS} recipes")
+        device = self.devices.get(device_id, {})
+        age = time.time() - device.get("bm_stat_received", 0)
+        if not 0 <= age < CONTROL_TIMEOUT:
+            raise web.HTTPConflict(text="Fresh device status required")
+        payload = device.get("bm_stat", "")
+        parts = payload.split(";", 4)
+        fields = parts[3].split("X") if len(parts) >= 4 else []
+        if len(fields) < 16 or fields[2] not in ("C", "F"):
+            raise web.HTTPConflict(text="Device status not readable")
+        try:
+            lines = [recipe_line(slot, recipe, fields[2] == "F") for slot, recipe in enumerate(recipes)]
+        except ValueError as err:
+            raise web.HTTPBadRequest(text=f"Recipe {err}") from None
+        if self.control_screen(payload)[:2] != ("101", "ph"):
+            raise web.HTTPConflict(text="The device must show the main menu with pump and heater off")
+        command = self.pending_control()
+        job = self.pending_recipe_job()
+        if (command and command["result"] in ("queued", "sending", "sent")) or (
+                job and job["result"] in ("queued", "sending")):
+            raise web.HTTPConflict(text="A local command or recipe upload is already pending")
+        steps = [b"$d=A"] + [b"$rz=" + line.encode("ascii") for line in lines]
+        self.recipe_job = {
+            "device_id": device_id, "result": "queued", "steps": steps,
+            "counts": list(range(len(steps))), "step": 0, "sent_at": None, "attempts": 0,
+            "deadline": time.monotonic() + 30 + 10 * len(steps),
+        }
+        _LOGGER.info("Recipe upload to %s queued (%d recipes)", device_id, len(lines))
         return web.json_response({"result": "queued"}, status=202)
 
     async def api_status(self, request: web.Request) -> web.Response:
@@ -667,6 +820,8 @@ def build_apps(bridge: Bridge) -> tuple[web.Application, web.Application]:
     api.router.add_get("/api/health", bridge.api_health)
     api.router.add_get("/api/control", bridge.api_control)
     api.router.add_post("/api/control", bridge.api_control)
+    api.router.add_get("/api/recipes", bridge.api_recipes)
+    api.router.add_post("/api/recipes", bridge.api_recipes)
     return port80, api
 
 

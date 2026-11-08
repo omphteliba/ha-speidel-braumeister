@@ -158,6 +158,11 @@ At most one command per response was observed.
 | `$d=A` | *Hypothesis:* delete/reset all recipe slots — field 8 dropped to 0 and was followed by `$rz` for all 5 slots |
 | `$rz=<slot line>` | Write one recipe slot, same format as the `rz` lines above. The device reports it back in its next `rz` message |
 
+A recipe sync from the cloud (in the sniffed capture) was `$d=A`, then `$rz` for slots 0, 1, 2, 3, 4 in order,
+one command per response about 2 s apart. Slots 2 and 4 were sent twice, so the cloud apparently
+resends until the device confirms. Hop additions keep the entered order (`10X11X11`). Writing a
+single slot without `$d=A` was never observed. The Bridge's recipe upload replays this sequence.
+
 What a `$k` key press does depends on the screen the device currently shows (field 3).
 
 ### Manual mode (4006)
