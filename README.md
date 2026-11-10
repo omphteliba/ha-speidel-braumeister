@@ -122,7 +122,56 @@ Since this integration is not in the default HACS store, you need to add it as a
 4. Enter your My Speidel credentials:
    - **Username**: Your My Speidel account username
    - **Password**: Your My Speidel account password
-5. Enter your Machine UUID (see below for how to find it)
+5. Enter the device settings:
+   - **Device Name**: the name of the device in Home Assistant, e.g. "Braumeister"
+   - **Machine UUID**: see [Finding Your Machine UUID](#finding-your-machine-uuid)
+   - **Scan Interval**: how often data is fetched, 10 to 3600 seconds (default 30)
+
+If the login fails, the dialog shows whether the credentials were wrong or My Speidel could not be reached, and you can try again. A Braumeister that is already set up cannot be added a second time.
+
+To change the scan interval later: **Settings** > **Devices & Services** > **Speidel Braumeister** > **Configure**.
+
+### Removing the Integration
+
+1. Go to **Settings** > **Devices & Services** > **Speidel Braumeister**
+2. Click the ⋮ menu of the entry and select **Delete**
+3. Optional: remove the files, either in HACS (⋮ > **Remove**) or by deleting the `custom_components/speidel_braumeister` folder, and restart Home Assistant
+
+Nothing is changed on the Braumeister or in your My Speidel account. If you use the Braumeister Bridge, uninstall the app under **Settings** > **Apps** and set the DNS server in the Braumeister's WiFi settings back to automatic.
+
+## Actions
+
+### Upload recipes (`speidel_braumeister.upload_recipes`)
+
+Replaces **all** recipes on the Braumeister with the list you pass, without My Speidel. It needs the [Braumeister Bridge](#local-mode-braumeister-bridge-optional) with the app option `recipe_write_enabled` turned on (off by default), and the Braumeister must show the main menu with pump and heater off.
+
+| Field | Meaning |
+|---|---|
+| `recipes` | 1 to 9 recipes in the order of the device slots |
+| `config_entry_id` | Only needed if you have more than one Braumeister |
+
+The format is the same as the `recipes` attribute of the **Device Recipes** sensor, so the easiest way is to copy that list (Settings > Developer tools > States), change it and upload it:
+
+```yaml
+action: speidel_braumeister.upload_recipes
+data:
+  recipes:
+    - name: Weizen
+      mash_in_temperature: 40
+      rests:
+        - {temperature: 44, minutes: 20}
+        - {temperature: 63, minutes: 35}
+        - {temperature: 78, minutes: 10}
+      boil_minutes: 90
+      hop_additions: [90, 15]
+```
+
+- `name`: letters, digits and punctuation without umlauts; longer names are cut to 14 characters
+- `mash_in_temperature` and rest temperatures: 20 to 80 °C; 1 to 5 `rests` of 1 to 180 minutes each
+- `boil_minutes`: 1 to 180; optional `boil_temperature`: 95 to 105 °C (default 103)
+- `hop_additions`: up to 6, in minutes before the end of the boil
+
+The action waits until the Braumeister has confirmed every recipe (about 2 seconds each) and fails with a message if it does not. If an upload stops halfway, the device holds only the recipes written so far; upload again. While the Bridge forwards to My Speidel, My Speidel can later replace the list with the recipes of your account again.
 
 ## Example Dashboard
 

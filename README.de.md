@@ -115,7 +115,56 @@ Da diese Integration nicht im Standard-HACS-Store enthalten ist, müssen Sie sie
 4. Geben Sie Ihre My Speidel-Anmeldedaten ein:
    - **Benutzername**: Ihr My Speidel-Kontobenutzername
    - **Passwort**: Ihr My Speidel-Kontopasswort
-5. Geben Sie Ihre Machine UUID ein (siehe unten, wie Sie diese finden)
+5. Geben Sie die Geräteeinstellungen ein:
+   - **Gerätename**: der Name des Geräts in Home Assistant, z. B. „Braumeister“
+   - **Machine UUID**: siehe [Finden Ihrer Machine UUID](#finden-ihrer-machine-uuid)
+   - **Aktualisierungsintervall**: wie oft Daten abgerufen werden, 10 bis 3600 Sekunden (Standard 30)
+
+Schlägt die Anmeldung fehl, zeigt der Dialog, ob die Zugangsdaten falsch waren oder My Speidel nicht erreichbar war, und Sie können es erneut versuchen. Ein bereits eingerichteter Braumeister lässt sich nicht ein zweites Mal hinzufügen.
+
+Das Aktualisierungsintervall ändern Sie später unter **Einstellungen** > **Geräte & Dienste** > **Speidel Braumeister** > **Konfigurieren**.
+
+### Integration entfernen
+
+1. Gehen Sie zu **Einstellungen** > **Geräte & Dienste** > **Speidel Braumeister**
+2. Klicken Sie auf das ⋮-Menü des Eintrags und wählen Sie **Löschen**
+3. Optional: Entfernen Sie die Dateien, entweder in HACS (⋮ > **Entfernen**) oder indem Sie den Ordner `custom_components/speidel_braumeister` löschen, und starten Sie Home Assistant neu
+
+Am Braumeister und in Ihrem My-Speidel-Konto ändert sich dadurch nichts. Wenn Sie die Braumeister Bridge nutzen, deinstallieren Sie die App unter **Einstellungen** > **Apps** und stellen Sie den DNS-Server in den WLAN-Einstellungen des Braumeisters wieder auf automatisch.
+
+## Aktionen
+
+### Rezepte hochladen (`speidel_braumeister.upload_recipes`)
+
+Ersetzt **alle** Rezepte im Braumeister durch die übergebene Liste, ohne My Speidel. Nötig ist die [Braumeister Bridge](#lokaler-modus-braumeister-bridge-optional) mit eingeschalteter App-Option `recipe_write_enabled` (standardmäßig aus), und der Braumeister muss das Hauptmenü zeigen, Pumpe und Heizung aus.
+
+| Feld | Bedeutung |
+|---|---|
+| `recipes` | 1 bis 9 Rezepte in der Reihenfolge der Geräteplätze |
+| `config_entry_id` | Nur nötig, wenn Sie mehr als einen Braumeister haben |
+
+Das Format ist dasselbe wie im Attribut `recipes` des Sensors **Rezepte auf dem Gerät**. Am einfachsten kopieren Sie diese Liste (Einstellungen > Entwicklerwerkzeuge > Zustände), ändern sie und laden sie hoch:
+
+```yaml
+action: speidel_braumeister.upload_recipes
+data:
+  recipes:
+    - name: Weizen
+      mash_in_temperature: 40
+      rests:
+        - {temperature: 44, minutes: 20}
+        - {temperature: 63, minutes: 35}
+        - {temperature: 78, minutes: 10}
+      boil_minutes: 90
+      hop_additions: [90, 15]
+```
+
+- `name`: Buchstaben, Ziffern und Satzzeichen ohne Umlaute; längere Namen werden auf 14 Zeichen gekürzt
+- `mash_in_temperature` und Rasttemperaturen: 20 bis 80 °C; 1 bis 5 `rests` mit je 1 bis 180 Minuten
+- `boil_minutes`: 1 bis 180; optional `boil_temperature`: 95 bis 105 °C (Standard 103)
+- `hop_additions`: bis zu 6, in Minuten vor Kochende
+
+Die Aktion wartet, bis der Braumeister jedes Rezept bestätigt hat (etwa 2 Sekunden pro Rezept), und meldet einen Fehler, wenn das ausbleibt. Bricht ein Upload mittendrin ab, enthält das Gerät nur die bis dahin geschriebenen Rezepte; laden Sie dann erneut hoch. Solange die Bridge an My Speidel weiterleitet, kann My Speidel die Liste später wieder durch die Rezepte Ihres Kontos ersetzen.
 
 ## Beispiel-Dashboard
 
