@@ -17,6 +17,9 @@ from .const import (
 from .coordinator import SpeidelBraumeisterDataCoordinator
 from .entity import SpeidelBraumeisterEntity
 
+# Entities only read the coordinator's data, no requests of their own
+PARALLEL_UPDATES = 0
+
 
 def _enum(value: Any, options: list[str]) -> str | None:
     """State of an enum sensor; values outside the options show as unknown."""

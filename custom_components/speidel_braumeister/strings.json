@@ -20,6 +20,13 @@
         "data_description": {
           "machine_uuid": "Find the 'data-machine' attribute in the HTML source. Example: 1234567890ABCDEF.123"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-enter password",
+        "description": "My Speidel rejected the stored password for {username}. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -28,7 +35,8 @@
       "unknown": "An unexpected error occurred"
     },
     "abort": {
-      "already_configured": "This Braumeister is already configured"
+      "already_configured": "This Braumeister is already configured",
+      "reauth_successful": "Password updated"
     }
   },
   "options": {

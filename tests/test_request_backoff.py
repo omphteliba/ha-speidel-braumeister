@@ -243,6 +243,7 @@ def load_coordinator(package, root):
     stubs = {
         "homeassistant.util": mod("util", dt=types.SimpleNamespace(now=lambda: datetime.now(timezone.utc))),
         "homeassistant.core": mod("core", HomeAssistant=object, callback=lambda fn: fn),
+        "homeassistant.exceptions": mod("exceptions", ConfigEntryAuthFailed=type("AuthFailed", (Exception,), {})),
         "homeassistant.helpers.aiohttp_client": mod("aiohttp", async_get_clientsession=lambda hass: None),
         "homeassistant.helpers.update_coordinator": mod(
             "coordinator", DataUpdateCoordinator=Base, UpdateFailed=RuntimeError

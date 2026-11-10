@@ -1,6 +1,7 @@
 """Config flow for Speidel Braumeister integration."""
 
 import logging
+from collections.abc import Mapping
 from typing import Any, Optional
 
 import voluptuous as vol
@@ -132,6 +133,37 @@ class SpeidelBraumeisterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "help_text": "Enter your Braumeister's Machine UUID. You can find this in the My Speidel app or web interface."
             },
+        )
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """The stored password was rejected: ask for a new one."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: Optional[dict[str, Any]] = None
+    ) -> FlowResult:
+        """Check the new password and reload the entry with it."""
+        entry = self._get_reauth_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                await validate_auth(self.hass, entry.data[CONF_USERNAME], user_input[CONF_PASSWORD])
+            except SpeidelAuthError:
+                errors["base"] = "invalid_auth"
+            except (SpeidelApiError, SpeidelConnectionError):
+                errors["base"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception during reauthentication")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]}
+                )
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            description_placeholders={"username": entry.data[CONF_USERNAME]},
+            errors=errors,
         )
 
     @staticmethod

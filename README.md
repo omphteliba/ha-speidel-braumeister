@@ -131,6 +131,8 @@ If the login fails, the dialog shows whether the credentials were wrong or My Sp
 
 To change the scan interval later: **Settings** > **Devices & Services** > **Speidel Braumeister** > **Configure**.
 
+If you change your My Speidel password, Home Assistant asks you under **Settings** > **Devices & Services** to re-authenticate the integration. Enter the new password there; the integration does not have to be removed and set up again.
+
 ### Removing the Integration
 
 1. Go to **Settings** > **Devices & Services** > **Speidel Braumeister**

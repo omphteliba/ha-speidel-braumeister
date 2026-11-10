@@ -20,6 +20,9 @@ from .coordinator import SpeidelBraumeisterDataCoordinator
 from .entity import SpeidelBraumeisterEntity
 from .connection_monitor import ConnectionMonitor
 
+# Entities only read the coordinator's data, no requests of their own
+PARALLEL_UPDATES = 0
+
 
 # Alarm states that trigger the alarm binary sensor
 ALARM_PHASES = [

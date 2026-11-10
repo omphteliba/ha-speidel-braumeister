@@ -124,6 +124,8 @@ Schlägt die Anmeldung fehl, zeigt der Dialog, ob die Zugangsdaten falsch waren 
 
 Das Aktualisierungsintervall ändern Sie später unter **Einstellungen** > **Geräte & Dienste** > **Speidel Braumeister** > **Konfigurieren**.
 
+Ändern Sie Ihr My-Speidel-Passwort, fordert Home Assistant Sie unter **Einstellungen** > **Geräte & Dienste** auf, die Integration erneut zu authentifizieren. Geben Sie dort das neue Passwort ein; die Integration muss nicht gelöscht und neu eingerichtet werden.
+
 ### Integration entfernen
 
 1. Gehen Sie zu **Einstellungen** > **Geräte & Dienste** > **Speidel Braumeister**

@@ -8,11 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Re-authentication: when My Speidel rejects the stored password, Home Assistant asks for the new one instead of the integration failing silently
+- The log says once when the Braumeister stops sending data and once when it is back, and why MySpeidel requests are paused (HTTP status and endpoint)
 - Braumeister Bridge 0.5.0: optional local pump and heater control in manual mode and program control (select recipe up to the water prompt, pause, abort, resume after a purge pause). Off by default, loopback API only; heating needs `allow_remote_heating` (thanks to DanielP-1337, #21, #24)
 - Recipe upload without My Speidel: action **Upload recipes** (`speidel_braumeister.upload_recipes`) with Braumeister Bridge option `recipe_write_enabled` (off by default). Replaces all recipes on the device from the main menu, the same way the cloud does, each slot confirmed by the device. Same format as the Device Recipes sensor attribute; names are cut to 14 characters. Tested on a Braumeister 20 L with nine recipes
 
 ### Changed
 - Following Home Assistant's integration quality scale (Bronze) as a guideline: the same Braumeister can no longer be set up twice, a connection error during setup is reported as "cannot connect" instead of "unknown", the coordinator is kept in `entry.runtime_data`, and the config flow, options flow, setup and unload are covered by tests that run against Home Assistant (`tests_ha/`)
+- Quality scale (Silver, partly): sensor platforms set `PARALLEL_UPDATES`; test coverage is not yet at the required 95 % per module
 - MySpeidel overload or server errors (HTTP 429/5xx) pause cloud and web requests, honoring `Retry-After` (otherwise 30 s up to 5 min), instead of trying further endpoints and logins. A timeout only ends the current refresh. If MySpeidel is unreachable at startup, Home Assistant retries the setup later (thanks to DanielP-1337, #14)
 
 ### Fixed

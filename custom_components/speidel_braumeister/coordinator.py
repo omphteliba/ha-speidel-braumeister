@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from aiohttp import ClientError, ClientTimeout
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -56,6 +57,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Last known recipe slots on the device, shown also while it is off
         self._recipes: list[dict[str, Any]] = []
         self._rtc_monitor = RTCMonitor()
+        # Last logged device connection ("online"/"offline"), to log each change once
+        self._logged_connection: Optional[str] = None
         # Bridge time of the previous successful poll, to catch alarms confirmed in between
         self._bridge_seen: Optional[float] = None
         # Cloud API v1.0 timeseries: last raw answer (for diagnostics) and retry backoff
@@ -287,7 +290,19 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 result["brew_name"] = step_name
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from the API."""
+        """Fetch data and log once when the Braumeister goes offline or comes back."""
+        data = await self._fetch_data()
+        status = data.get("connection_status")
+        if status in ("online", "offline") and status != self._logged_connection:
+            if status == "offline" and self._logged_connection is not None:
+                _LOGGER.info("Braumeister is not sending data (switched off or no WiFi)")
+            elif status == "online" and self._logged_connection == "offline":
+                _LOGGER.info("Braumeister is sending data again")
+            self._logged_connection = status
+        return data
+
+    async def _fetch_data(self) -> dict[str, Any]:
+        """Fetch data from the sources in priority order."""
         _LOGGER.debug("Starting data update for machine %s", self._machine_uuid)
         
         result: dict[str, Any] = self._mqtt_data.copy()
@@ -430,8 +445,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return self._get_offline_result()
             
         except SpeidelAuthError as err:
-            _LOGGER.error("Authentication error: %s", err)
-            raise UpdateFailed(f"Authentication error: {err}") from err
+            # Starts Home Assistant's reauthentication flow
+            raise ConfigEntryAuthFailed(f"Authentication error: {err}") from err
             
         except SpeidelApiError as err:
             _LOGGER.debug("API error (device may be offline): %s", err)

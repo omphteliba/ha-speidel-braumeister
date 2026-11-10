@@ -4,12 +4,12 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
-from .api import SpeidelBraumeisterAPI
+from .api import SpeidelAuthError, SpeidelBraumeisterAPI
 from .const import (
     DOMAIN,
     CONF_USERNAME,
@@ -71,6 +71,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("No subscription found - using XHR polling for real-time data")
     except PollingError as err:
         raise ConfigEntryNotReady(str(err)) from err
+    except SpeidelAuthError as err:
+        # Home Assistant asks the user for the new password (reauthentication flow)
+        raise ConfigEntryAuthFailed(str(err)) from err
     except Exception as err:
         _LOGGER.error("Failed to authenticate with cloud API: %s", err)
         return False
