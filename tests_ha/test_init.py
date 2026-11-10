@@ -18,7 +18,8 @@ DATA = {
 
 
 def clients(authenticate=None):
-    api = MagicMock(authenticate=AsyncMock(side_effect=authenticate), close=AsyncMock(), subscription_id=None)
+    api = MagicMock(authenticate=AsyncMock(side_effect=authenticate), close=AsyncMock(), subscription_id=None,
+                    probe_timeseries=AsyncMock())  # runs when debug logging is on (pytest -v)
     web = MagicMock(login=AsyncMock(return_value=True), close=AsyncMock(), machines=[])
     return (
         patch(f"{PACKAGE}.SpeidelBraumeisterAPI", return_value=api),
