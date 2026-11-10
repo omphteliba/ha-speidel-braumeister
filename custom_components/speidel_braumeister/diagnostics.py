@@ -75,7 +75,7 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     # Fetch the cloud timeseries now, so the file shows them even when another
     # source (Bridge, web interface) delivers the data and they are never polled.
     api = getattr(coordinator, "api", None)

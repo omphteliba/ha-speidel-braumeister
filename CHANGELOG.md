@@ -12,7 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recipe upload without My Speidel: action **Upload recipes** (`speidel_braumeister.upload_recipes`) with Braumeister Bridge option `recipe_write_enabled` (off by default). Replaces all recipes on the device from the main menu, the same way the cloud does, each slot confirmed by the device. Same format as the Device Recipes sensor attribute; names are cut to 14 characters. Tested on a Braumeister 20 L with nine recipes
 
 ### Changed
+- Following Home Assistant's integration quality scale (Bronze) as a guideline: the same Braumeister can no longer be set up twice, a connection error during setup is reported as "cannot connect" instead of "unknown", the coordinator is kept in `entry.runtime_data`, and the config flow, options flow, setup and unload are covered by tests that run against Home Assistant (`tests_ha/`)
 - MySpeidel overload or server errors (HTTP 429/5xx) pause cloud and web requests, honoring `Retry-After` (otherwise 30 s up to 5 min), instead of trying further endpoints and logins. A timeout only ends the current refresh. If MySpeidel is unreachable at startup, Home Assistant retries the setup later (thanks to DanielP-1337, #14)
+
+### Fixed
+- The scan interval changed under *Configure* was saved but never used; it now takes effect
+
+### Removed
+- Unused button and switch platforms from the project's start. They were never loaded and called functions that do not exist
 
 ## [3.2.0] - 2026-11-06
 

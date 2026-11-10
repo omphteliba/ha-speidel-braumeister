@@ -123,28 +123,6 @@
         "name": "RTC offset"
       }
     },
-    "switch": {
-      "pump": {
-        "name": "Pump"
-      },
-      "heating": {
-        "name": "Heating"
-      }
-    },
-    "button": {
-      "start_process": {
-        "name": "Start Process"
-      },
-      "stop_process": {
-        "name": "Stop Process"
-      },
-      "pause_process": {
-        "name": "Pause Process"
-      },
-      "next_phase": {
-        "name": "Next Phase"
-      }
-    },
     "binary_sensor": {
       "alarm": {
         "name": "Alarm"

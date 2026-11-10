@@ -14,6 +14,7 @@ from typing import Any
 import voluptuous as vol
 from aiohttp import ClientError, ClientTimeout
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -37,8 +38,9 @@ SCHEMA = vol.Schema({
 
 def _coordinator(hass: HomeAssistant, entry_id: str | None):
     coordinators = {
-        key: value for key, value in hass.data.get(DOMAIN, {}).items()
-        if hasattr(value, "async_request_refresh")
+        entry.entry_id: entry.runtime_data
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.state is ConfigEntryState.LOADED
     }
     if entry_id:
         if entry_id not in coordinators:

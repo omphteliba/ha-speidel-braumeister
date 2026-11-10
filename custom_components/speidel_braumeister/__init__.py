@@ -41,12 +41,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Speidel Braumeister from a config entry."""
     _LOGGER.info("Setting up Speidel Braumeister integration")
-    
+
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
     machine_uuid = entry.data[CONF_MACHINE_UUID]
-    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-    
+    # The options flow stores a changed interval in entry.options
+    scan_interval = entry.options.get(
+        CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    )
+
     _LOGGER.info("Machine UUID: %s, Scan interval: %s", machine_uuid, scan_interval)
 
     # Create API client for cloud API
@@ -60,7 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await api.authenticate()
         _LOGGER.info("Cloud API authentication successful, user_id: %s", api.user_id)
-        
+
         # Log subscription info
         if api.subscription_id:
             _LOGGER.info("Subscription found - ID: %s, End: %s", api.subscription_id, api.subscription_end)
@@ -79,11 +82,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         web_login_success = await web_auth.login()
     except PollingError as err:
         raise ConfigEntryNotReady(str(err)) from err
-    
+
     if web_login_success:
         _LOGGER.info("Web interface login successful - XHR polling available")
         _LOGGER.info("Discovered machines: %s", web_auth.machines)
-        
+
         # If user didn't specify a valid UUID, use the first discovered machine
         if not machine_uuid or machine_uuid == "":
             if web_auth.machines:
@@ -99,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         machine_uuid,
         scan_interval,
     )
-    
+
     # IMPORTANT: Set web_auth BEFORE first data refresh
     # This is needed for XHR polling to work
     coordinator.web_auth = web_auth
@@ -113,8 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, api.probe_timeseries(machine_uuid), "speidel_timeseries_probe"
         )
 
-    # Store coordinator in hass.data
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     # No real-time push client: the former MQTT client was based on a guessed
     # protocol and never received data. See docs/NEW_DEVICES.md for how owners of
@@ -133,20 +135,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    coordinator: SpeidelBraumeisterDataCoordinator = hass.data[DOMAIN][entry.entry_id]
-    
+    coordinator: SpeidelBraumeisterDataCoordinator = entry.runtime_data
+
     # Close web auth
     if hasattr(coordinator, 'web_auth') and coordinator.web_auth:
         await coordinator.web_auth.close()
-    
+
     await coordinator.api.close()
 
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:

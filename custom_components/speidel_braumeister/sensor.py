@@ -30,7 +30,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Speidel Braumeister sensors from a config entry."""
-    coordinator: SpeidelBraumeisterDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpeidelBraumeisterDataCoordinator = entry.runtime_data
 
     entities = []
     for description in SENSOR_TYPES:

@@ -14,7 +14,6 @@ from homeassistant.components.binary_sensor import (
 )
 
 from .const import (
-    DOMAIN,
     BINARY_SENSOR_TYPES,
 )
 from .coordinator import SpeidelBraumeisterDataCoordinator
@@ -35,7 +34,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Speidel Braumeister binary sensors from a config entry."""
-    coordinator: SpeidelBraumeisterDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpeidelBraumeisterDataCoordinator = entry.runtime_data
 
     entities = []
     for description in BINARY_SENSOR_TYPES:

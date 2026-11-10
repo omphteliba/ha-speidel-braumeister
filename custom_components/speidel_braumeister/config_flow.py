@@ -9,7 +9,7 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError
+from .api import SpeidelApiError, SpeidelAuthError, SpeidelBraumeisterAPI, SpeidelConnectionError
 from .const import (
     DOMAIN,
     CONF_USERNAME,
@@ -80,7 +80,7 @@ class SpeidelBraumeisterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except SpeidelAuthError as err:
                 _LOGGER.error("Auth error: %s", err)
                 errors["base"] = "invalid_auth"
-            except SpeidelApiError as err:
+            except (SpeidelApiError, SpeidelConnectionError) as err:
                 _LOGGER.error("API error: %s", err)
                 errors["base"] = "cannot_connect"
             except Exception:  # pylint: disable=broad-except
@@ -107,8 +107,12 @@ class SpeidelBraumeisterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            machine_uuid = user_input[CONF_MACHINE_UUID]
+            machine_uuid = user_input[CONF_MACHINE_UUID].strip()
             name = user_input.get("name", "Braumeister")
+            # Entries created before unique IDs existed are matched by their data
+            self._async_abort_entries_match({CONF_MACHINE_UUID: machine_uuid})
+            await self.async_set_unique_id(machine_uuid.lower())
+            self._abort_if_unique_id_configured()
             scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
             return self.async_create_entry(
@@ -157,7 +161,10 @@ class SpeidelBraumeisterOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
-                    default=self._config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                    default=self._config_entry.options.get(
+                        CONF_SCAN_INTERVAL,
+                        self._config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                    ),
                 ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
             }
         )

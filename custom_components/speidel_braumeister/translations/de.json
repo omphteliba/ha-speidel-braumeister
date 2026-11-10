@@ -123,28 +123,6 @@
         "name": "RTC-Abweichung"
       }
     },
-    "switch": {
-      "pump": {
-        "name": "Pumpe"
-      },
-      "heating": {
-        "name": "Heizung"
-      }
-    },
-    "button": {
-      "start_process": {
-        "name": "Prozess starten"
-      },
-      "stop_process": {
-        "name": "Prozess stoppen"
-      },
-      "pause_process": {
-        "name": "Prozess pausieren"
-      },
-      "next_phase": {
-        "name": "Nächste Phase"
-      }
-    },
     "binary_sensor": {
       "alarm": {
         "name": "Alarm"

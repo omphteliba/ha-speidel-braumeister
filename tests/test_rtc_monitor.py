@@ -190,8 +190,8 @@ async def test_diagnostic_entities_registration_and_unknown_states():
         sensors = importlib.import_module('rtc_entities.sensor')
         binaries = importlib.import_module('rtc_entities.binary_sensor')
         obj = SimpleNamespace(data={'rtc_offset': 30, 'rtc_warning': True})
-        hass = SimpleNamespace(data={'speidel_braumeister': {'test': obj}})
-        entry = SimpleNamespace(entry_id='test')
+        hass = SimpleNamespace()
+        entry = SimpleNamespace(entry_id='test', runtime_data=obj)
         entities = []
         await sensors.async_setup_entry(hass, entry, entities.extend)
         await binaries.async_setup_entry(hass, entry, entities.extend)
