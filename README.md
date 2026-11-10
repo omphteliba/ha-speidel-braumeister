@@ -93,19 +93,25 @@ Sensor names are automatically displayed in your Home Assistant language.
 
 ## Installation
 
-### HACS (Recommended)
-Since this integration is not in the default HACS store, you need to add it as a custom repository:
+### Marketplace (Home Assistant 2026.11 and newer, recommended)
 
-1. Open HACS in Home Assistant
-2. Go to Integrations
-3. Click the ⋮ (three dots) menu in the top right corner
-4. Select Custom repositories
-5. In the Repository field, paste: https://github.com/omphteliba/ha-speidel-braumeister
-6. In the Category dropdown, select Integration
-7. Click Add
-8. Now search for "Speidel Braumeister" and click on it
-9. Click Download
-10. Restart Home Assistant
+Since Home Assistant 2026.11, HACS is built in as the **Marketplace**. This integration is not in its default list, so add it by link:
+
+1. Go to **Settings** > **Marketplace**
+2. Select **Add from link** in the upper right corner
+3. Enter `omphteliba/ha-speidel-braumeister` (or the full GitHub URL) and select **Add**. If the Marketplace asks for the type, choose **Integration**
+4. The first time, the Marketplace asks you to connect GitHub: select **Continue**, open the link, enter the code shown and approve. No password is entered in Home Assistant
+5. Open **Speidel Braumeister** and select **Install**, then **Install** again
+6. Set it up as described under [Configuration](#configuration). If Home Assistant shows a repair asking for a restart, restart first
+
+Updates appear under **Settings** > **Updates**; after updating, restart Home Assistant.
+
+### HACS (Home Assistant 2026.10 and older)
+
+1. Open HACS, select the ⋮ menu in the upper right corner and then **Custom repositories**
+2. Enter `https://github.com/omphteliba/ha-speidel-braumeister`, choose the category **Integration** and select **Add**
+3. Search for "Speidel Braumeister", open it and select **Download**
+4. Restart Home Assistant
 
 ### Manual Installation
 
@@ -137,7 +143,7 @@ If you change your My Speidel password, Home Assistant asks you under **Settings
 
 1. Go to **Settings** > **Devices & Services** > **Speidel Braumeister**
 2. Click the ⋮ menu of the entry and select **Delete**
-3. Optional: remove the files, either in HACS (⋮ > **Remove**) or by deleting the `custom_components/speidel_braumeister` folder, and restart Home Assistant
+3. Optional: remove the files: in the Marketplace open **Speidel Braumeister**, ⋮ > **Uninstall** (on older versions in HACS ⋮ > **Remove**), or delete the `custom_components/speidel_braumeister` folder, and restart Home Assistant
 
 Nothing is changed on the Braumeister or in your My Speidel account. If you use the Braumeister Bridge, uninstall the app under **Settings** > **Apps** and set the DNS server in the Braumeister's WiFi settings back to automatic.
 
@@ -179,7 +185,7 @@ The action waits until the Braumeister has confirmed every recipe (about 2 secon
 
 [`examples/brewery-dashboard.yaml`](examples/brewery-dashboard.yaml) is a ready-made brewery dashboard: temperature gauge, pump/heater/timer chips, progress bar, a pulsing alarm banner with the alarm text, the temperature curve with the target, and the current recipe plus all recipes on the device.
 
-It needs these HACS frontend cards: **Mushroom**, **ApexCharts card**, **Bar Card** and **card-mod**.
+It needs these dashboard cards from the Marketplace (or HACS): **Mushroom**, **ApexCharts card**, **Bar Card** and **card-mod**.
 
 1. Settings → Dashboards → Add dashboard → New dashboard from scratch.
 2. Open it, ⋮ → Edit dashboard → ⋮ → Raw configuration editor, and paste the file.
@@ -354,7 +360,7 @@ This is an unofficial community project. It is not affiliated with, endorsed by 
 This project was developed with AI assistance: the first version (up to v2.0.3) with GLM 5.3 by Z.AI, later changes with Claude by Anthropic. AI-assisted commits are marked with an `Assisted-by:` trailer.
 
 [hacs]: https://github.com/custom-components/hacs
-[hacs-badge]: https://img.shields.io/badge/HACS-Default-blue.svg
+[hacs-badge]: https://img.shields.io/badge/Marketplace%20%2F%20HACS-Custom-orange.svg
 [release]: https://github.com/omphteliba/ha-speidel-braumeister/releases
 [release-badge]: https://img.shields.io/github/v/release/omphteliba/ha-speidel-braumeister
 [license]: LICENSE

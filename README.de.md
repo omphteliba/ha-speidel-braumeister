@@ -86,19 +86,25 @@ Sensor-Namen werden automatisch in Ihrer Home Assistant-Sprache angezeigt.
 
 ## Installation
 
-### HACS (Empfohlen)
-Da diese Integration nicht im Standard-HACS-Store enthalten ist, müssen Sie sie als benutzerdefiniertes Repository hinzufügen:
+### Marktplatz (Home Assistant 2026.11 und neuer, empfohlen)
 
-1. Öffnen Sie HACS in Home Assistant
-2. Gehen Sie zu Integrationen
-3. Klicken Sie auf das ⋮-Menü (drei Punkte) in der oberen rechten Ecke
-4. Wählen Sie Benutzerdefinierte Repositories
-5. Fügen Sie im Repository-Feld ein: https://github.com/omphteliba/ha-speidel-braumeister
-6. Wählen Sie im Dropdown-Menü Kategorie: Integration
-7. Klicken Sie auf Hinzufügen
-8. Suchen Sie nun nach "Speidel Braumeister" und klicken Sie darauf
-9. Klicken Sie auf Herunterladen
-10. Starten Sie Home Assistant neu
+Seit Home Assistant 2026.11 ist HACS als **Marktplatz** fest eingebaut. Diese Integration steht nicht in seiner Standardliste, Sie fügen sie daher über einen Link hinzu:
+
+1. Gehen Sie zu **Einstellungen** > **Marktplatz**
+2. Wählen Sie oben rechts das Hinzufügen über einen Link (englisch *Add from link*)
+3. Geben Sie `omphteliba/ha-speidel-braumeister` (oder die vollständige GitHub-Adresse) ein und bestätigen Sie. Fragt der Marktplatz nach dem Typ, wählen Sie **Integration**
+4. Beim ersten Mal bittet der Marktplatz darum, GitHub zu verbinden: Weiter wählen, den Link öffnen, den angezeigten Code eingeben und bestätigen. Ein Passwort wird in Home Assistant nicht eingegeben
+5. Öffnen Sie **Speidel Braumeister** und installieren Sie es (zweimal bestätigen)
+6. Richten Sie es wie unter [Konfiguration](#konfiguration) beschrieben ein. Zeigt Home Assistant eine Reparaturmeldung mit der Bitte um einen Neustart, starten Sie zuerst neu
+
+Updates erscheinen unter **Einstellungen** > **Updates**; starten Sie Home Assistant nach einem Update neu.
+
+### HACS (Home Assistant 2026.10 und älter)
+
+1. Öffnen Sie HACS, das ⋮-Menü oben rechts und dann **Benutzerdefinierte Repositories**
+2. Geben Sie `https://github.com/omphteliba/ha-speidel-braumeister` ein, wählen Sie die Kategorie **Integration** und klicken Sie auf **Hinzufügen**
+3. Suchen Sie nach "Speidel Braumeister", öffnen Sie es und klicken Sie auf **Herunterladen**
+4. Starten Sie Home Assistant neu
 
 ### Manuelle Installation
 
@@ -130,7 +136,7 @@ Das Aktualisierungsintervall ändern Sie später unter **Einstellungen** > **Ger
 
 1. Gehen Sie zu **Einstellungen** > **Geräte & Dienste** > **Speidel Braumeister**
 2. Klicken Sie auf das ⋮-Menü des Eintrags und wählen Sie **Löschen**
-3. Optional: Entfernen Sie die Dateien, entweder in HACS (⋮ > **Entfernen**) oder indem Sie den Ordner `custom_components/speidel_braumeister` löschen, und starten Sie Home Assistant neu
+3. Optional: Entfernen Sie die Dateien: im Marktplatz **Speidel Braumeister** öffnen, ⋮ > Deinstallieren (bei älteren Versionen in HACS ⋮ > **Entfernen**), oder den Ordner `custom_components/speidel_braumeister` löschen, und starten Sie Home Assistant neu
 
 Am Braumeister und in Ihrem My-Speidel-Konto ändert sich dadurch nichts. Wenn Sie die Braumeister Bridge nutzen, deinstallieren Sie die App unter **Einstellungen** > **Apps** und stellen Sie den DNS-Server in den WLAN-Einstellungen des Braumeisters wieder auf automatisch.
 
@@ -172,7 +178,7 @@ Die Aktion wartet, bis der Braumeister jedes Rezept bestätigt hat (etwa 2 Sekun
 
 [`examples/brewery-dashboard.yaml`](examples/brewery-dashboard.yaml) ist ein fertiges Brauerei-Dashboard: Temperatur-Tacho, Chips für Pumpe/Heizung/Restzeit, Fortschrittsbalken, ein pulsierendes Alarm-Banner mit dem Alarmtext, die Temperaturkurve mit Zielwert sowie das aktuelle Rezept und alle Rezepte auf dem Gerät. Die Texte im Dashboard sind englisch.
 
-Benötigt werden diese HACS-Frontend-Karten: **Mushroom**, **ApexCharts card**, **Bar Card** und **card-mod**.
+Benötigt werden diese Dashboard-Karten aus dem Marktplatz (oder HACS): **Mushroom**, **ApexCharts card**, **Bar Card** und **card-mod**.
 
 1. Einstellungen → Dashboards → Dashboard hinzufügen → Neues Dashboard von Grund auf.
 2. Öffnen, ⋮ → Dashboard bearbeiten → ⋮ → Rohkonfigurationseditor, und die Datei einfügen.
@@ -336,7 +342,7 @@ Danke an die gesamte Home Assistant Community für die Unterstützung und Inspir
 
 Dieses Projekt wurde mit KI-Unterstützung entwickelt: die erste Version (bis v2.0.3) mit GLM 5.3 von Z.AI, spätere Änderungen mit Claude von Anthropic. KI-unterstützte Commits sind mit einer `Assisted-by:`-Zeile gekennzeichnet.
 
-[hacs-badge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
+[hacs-badge]: https://img.shields.io/badge/Marketplace%20%2F%20HACS-Custom-orange.svg
 [hacs]: https://hacs.xyz
 [release-badge]: https://img.shields.io/github/v/release/omphteliba/ha-speidel-braumeister?style=for-the-badge
 [release]: https://github.com/omphteliba/ha-speidel-braumeister/releases
