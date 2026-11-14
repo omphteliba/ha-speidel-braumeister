@@ -157,6 +157,44 @@
           "description": "Nur bei mehr als einem Braumeister nötig."
         }
       }
+    },
+    "start_recipe_upload": {
+      "name": "Rezeptupload starten",
+      "description": "Ersetzt alle Geräterezepte asynchron und gibt eine Auftrags-ID zurück. Startet kein Brauprogramm.",
+      "fields": {
+        "recipes": {
+          "name": "Rezepte",
+          "description": "1 bis 9 Rezepte in Gerätereihenfolge: name (längere Namen werden auf 14 Zeichen gekürzt), mash_in_temperature, rests (1 bis 5 mit temperature und minutes), boil_minutes und optional hop_additions (Minuten vor Kochende). Temperaturen in °C."
+        },
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Nur bei mehr als einem Braumeister nötig."
+        }
+      }
+    },
+    "recipe_upload_readiness": {
+      "name": "Bereitschaft für Rezeptupload",
+      "description": "Prüft den aktuellen Gerätezustand. Reserviert das Gerät nicht.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Nur bei mehr als einem Braumeister nötig."
+        }
+      }
+    },
+    "recipe_upload_status": {
+      "name": "Rezeptupload-Status",
+      "description": "Liest einen Auftrag einschließlich eines verfügbaren Inhaltsvergleichs.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Nur bei mehr als einem Braumeister nötig."
+        },
+        "job_id": {
+          "name": "Auftrags-ID",
+          "description": "ID aus der Antwort von Rezeptupload starten."
+        }
+      }
     }
   }
 }

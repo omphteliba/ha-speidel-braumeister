@@ -157,6 +157,44 @@
           "description": "Only needed with more than one Braumeister."
         }
       }
+    },
+    "start_recipe_upload": {
+      "name": "Start recipe upload",
+      "description": "Replace all device recipes asynchronously; returns a job_id. No brewing program is started.",
+      "fields": {
+        "recipes": {
+          "name": "Recipes",
+          "description": "1 to 9 recipes in device order: name (longer names are cut to 14 characters), mash_in_temperature, rests (1 to 5 with temperature and minutes), boil_minutes and optional hop_additions (minutes before the end of the boil). Temperatures in °C."
+        },
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Only needed with more than one Braumeister."
+        }
+      }
+    },
+    "recipe_upload_readiness": {
+      "name": "Recipe upload readiness",
+      "description": "Read current device readiness. This does not reserve the device.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Only needed with more than one Braumeister."
+        }
+      }
+    },
+    "recipe_upload_status": {
+      "name": "Recipe upload status",
+      "description": "Read a specific upload job, including the available readback verification.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Braumeister",
+          "description": "Only needed with more than one Braumeister."
+        },
+        "job_id": {
+          "name": "Job ID",
+          "description": "ID returned by Start recipe upload."
+        }
+      }
     }
   }
 }
