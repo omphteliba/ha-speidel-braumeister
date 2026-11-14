@@ -84,7 +84,7 @@ def load_coordinator(package, root):
         "homeassistant.exceptions": mod("exceptions", ConfigEntryAuthFailed=type("AuthFailed", (Exception,), {})),
         "homeassistant.helpers.aiohttp_client": mod("aiohttp", async_get_clientsession=lambda hass: None),
         "homeassistant.helpers.update_coordinator": mod("coordinator", DataUpdateCoordinator=Base, UpdateFailed=RuntimeError),
-        f"{package}.const": mod("const", BRIDGE_MAX_AGE=10, BRIDGE_STATUS_URL="http://localhost", DEFAULT_SCAN_INTERVAL=30),
+        f"{package}.const": mod("const", BRIDGE_MAX_AGE=10, BRIDGE_STATUS_URL="http://localhost", DEFAULT_SCAN_INTERVAL=30, LOCAL_SCAN_INTERVAL=5),
         f"{package}.api": mod("api", SpeidelBraumeisterAPI=object,
             SpeidelAuthError=type("AuthError", (Exception,), {}),
             SpeidelApiError=type("ApiError", (Exception,), {}),

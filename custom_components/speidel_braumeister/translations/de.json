@@ -3,10 +3,11 @@
     "step": {
       "user": {
         "title": "Speidel Braumeister Einrichtung",
-        "description": "Geben Sie Ihre My Speidel Zugangsdaten ein, um Ihre Braumeister zu verbinden.",
+        "description": "Für lokalen Betrieb „Nur lokale Bridge“ aktivieren und die Zugangsdaten leer lassen. Für Cloud-Betrieb MySpeidel-Zugangsdaten eingeben.",
         "data": {
           "username": "Benutzername",
-          "password": "Passwort"
+          "password": "Passwort",
+          "local_only": "Nur lokale Bridge (ohne Cloud)"
         }
       },
       "machine": {
@@ -27,12 +28,21 @@
         "data": {
           "password": "Passwort"
         }
+      },
+      "local": {
+        "title": "Lokaler Braumeister",
+        "description": "Die Geräte-ID aus der Bridge verwenden. Kein MySpeidel-Konto erforderlich. Die Bridge-App muss forward_to_cloud: false verwenden. Lokales Abfrageintervall: 5 Sekunden.",
+        "data": {
+          "name": "Name",
+          "machine_uuid": "Geräte-ID / vorhandene Machine UUID"
+        }
       }
     },
     "error": {
       "invalid_auth": "Ungültiger Benutzername oder Passwort",
       "cannot_connect": "Verbindung zur Speidel Cloud API fehlgeschlagen",
-      "unknown": "Ein unerwarteter Fehler ist aufgetreten"
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten",
+      "invalid_machine": "Geräte-ID fehlt"
     },
     "abort": {
       "already_configured": "Diese Braumeister ist bereits konfiguriert",
@@ -44,9 +54,14 @@
       "init": {
         "title": "Speidel Braumeister Optionen",
         "data": {
-          "scan_interval": "Aktualisierungsintervall (Sekunden)"
-        }
+          "scan_interval": "Cloud-Abfrageintervall (Sekunden)",
+          "local_only": "Nur lokale Bridge (ohne Cloud)"
+        },
+        "description": "Im lokalen Modus wird die Bridge alle 5 Sekunden abgefragt, unabhängig vom Cloud-Intervall. Zusätzlich in der Bridge-App forward_to_cloud: false setzen."
       }
+    },
+    "error": {
+      "cloud_credentials_required": "Dieser Eintrag hat keine Cloud-Zugangsdaten. Für Cloud-Betrieb einen Eintrag mit MySpeidel-Anmeldung einrichten."
     }
   },
   "entity": {
