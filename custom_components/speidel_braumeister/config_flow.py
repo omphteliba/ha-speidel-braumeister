@@ -18,6 +18,7 @@ from .const import (
     CONF_MACHINE_UUID,
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
+    CONF_LOCAL_ONLY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,8 +26,9 @@ _LOGGER = logging.getLogger(__name__)
 # Schema for authentication
 STEP_AUTH_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
+        vol.Optional(CONF_LOCAL_ONLY, default=False): bool,
+        vol.Optional(CONF_USERNAME): str,
+        vol.Optional(CONF_PASSWORD): str,
     }
 )
 
@@ -73,8 +75,10 @@ class SpeidelBraumeisterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            username = user_input[CONF_USERNAME]
-            password = user_input[CONF_PASSWORD]
+            if user_input.get(CONF_LOCAL_ONLY):
+                return await self.async_step_local()
+            username = user_input.get(CONF_USERNAME, "")
+            password = user_input.get(CONF_PASSWORD, "")
 
             try:
                 auth_info = await validate_auth(self.hass, username, password)
@@ -100,6 +104,25 @@ class SpeidelBraumeisterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=STEP_AUTH_DATA_SCHEMA,
             errors=errors,
         )
+
+    async def async_step_local(self, user_input=None) -> FlowResult:
+        """Configure a local device without creating or authenticating a cloud client."""
+        errors = {}
+        if user_input is not None:
+            machine = user_input[CONF_MACHINE_UUID].strip()
+            if not machine:
+                errors["base"] = "invalid_machine"
+            else:
+                self._async_abort_entries_match({CONF_MACHINE_UUID: machine})
+                await self.async_set_unique_id(machine.lower())
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title=user_input.get("name", "Braumeister"), data={
+                    CONF_MACHINE_UUID: machine, CONF_LOCAL_ONLY: True,
+                })
+        return self.async_show_form(step_id="local", errors=errors, data_schema=vol.Schema({
+            vol.Required("name", default="Braumeister"): str,
+            vol.Required(CONF_MACHINE_UUID): str,
+        }))
 
     async def async_step_machine(
         self, user_input: Optional[dict[str, Any]] = None
@@ -186,11 +209,19 @@ class SpeidelBraumeisterOptionsFlow(config_entries.OptionsFlow):
         self, user_input: Optional[dict[str, Any]] = None
     ) -> FlowResult:
         """Handle options flow initialization."""
+        errors = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            if not user_input.get(CONF_LOCAL_ONLY, self._config_entry.data.get(CONF_LOCAL_ONLY, False)) and not (
+                self._config_entry.data.get(CONF_USERNAME) and self._config_entry.data.get(CONF_PASSWORD)
+            ):
+                errors["base"] = "cloud_credentials_required"
+            else:
+                return self.async_create_entry(title="", data=user_input)
 
         options_schema = vol.Schema(
             {
+                vol.Optional(CONF_LOCAL_ONLY, default=self._config_entry.options.get(
+                    CONF_LOCAL_ONLY, self._config_entry.data.get(CONF_LOCAL_ONLY, False))): bool,
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=self._config_entry.options.get(
@@ -204,4 +235,5 @@ class SpeidelBraumeisterOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=options_schema,
+            errors=errors,
         )

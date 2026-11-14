@@ -3,10 +3,11 @@
     "step": {
       "user": {
         "title": "Speidel Braumeister Setup",
-        "description": "Enter your My Speidel account credentials to connect to your Braumeister.",
+        "description": "Enable Local Bridge only and leave credentials empty for local operation. Otherwise enter your MySpeidel credentials.",
         "data": {
           "username": "Username",
-          "password": "Password"
+          "password": "Password",
+          "local_only": "Local Bridge only (no cloud)"
         }
       },
       "machine": {
@@ -27,12 +28,21 @@
         "data": {
           "password": "Password"
         }
+      },
+      "local": {
+        "title": "Local Braumeister",
+        "description": "Use the device ID reported by the Bridge. No MySpeidel account is required. Set forward_to_cloud: false in the Bridge app. Local polling interval: 5 seconds.",
+        "data": {
+          "name": "Name",
+          "machine_uuid": "Device ID / existing Machine UUID"
+        }
       }
     },
     "error": {
       "invalid_auth": "Invalid username or password",
       "cannot_connect": "Cannot connect to Speidel Cloud API",
-      "unknown": "An unexpected error occurred"
+      "unknown": "An unexpected error occurred",
+      "invalid_machine": "Device ID is required"
     },
     "abort": {
       "already_configured": "This Braumeister is already configured",
@@ -44,9 +54,14 @@
       "init": {
         "title": "Speidel Braumeister Options",
         "data": {
-          "scan_interval": "Scan Interval (seconds)"
-        }
+          "scan_interval": "Cloud polling interval (seconds)",
+          "local_only": "Local Bridge only (no cloud)"
+        },
+        "description": "Local mode polls the Bridge every 5 seconds, independently of the cloud interval. Also set forward_to_cloud: false in the Bridge app."
       }
+    },
+    "error": {
+      "cloud_credentials_required": "This entry has no cloud credentials. Set up a MySpeidel login entry to use cloud mode."
     }
   },
   "entity": {

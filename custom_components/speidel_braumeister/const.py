@@ -179,3 +179,6 @@ BINARY_SENSOR_TYPES: Final[tuple[BinarySensorEntityDescription, ...]] = (
         icon="mdi:alert-light",
     ),
 )
+
+CONF_LOCAL_ONLY: Final = "local_only"
+LOCAL_SCAN_INTERVAL: Final = 5

@@ -15,7 +15,7 @@ from homeassistant.util import dt as dt_util
 
 from .api import SpeidelBraumeisterAPI, SpeidelAuthError, SpeidelApiError, SpeidelPaymentRequiredError
 from .request_policy import PollingError
-from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL
+from .const import BRIDGE_MAX_AGE, BRIDGE_STATUS_URL, DEFAULT_SCAN_INTERVAL, LOCAL_SCAN_INTERVAL
 from .cloud_timeseries import from_timeseries
 from .device_protocol import brew_name_from_step, from_bridge, recipes_from_bridge
 from .rtc_monitor import RTCMonitor
@@ -32,17 +32,19 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(
         self,
         hass: HomeAssistant,
-        api: SpeidelBraumeisterAPI,
+        api: Optional[SpeidelBraumeisterAPI],
         machine_uuid: str,
         scan_interval: int = DEFAULT_SCAN_INTERVAL,
+        *, local_only: bool = False,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name="Speidel Braumeister",
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(seconds=LOCAL_SCAN_INTERVAL if local_only else scan_interval),
         )
+        self.local_only = local_only
         self._api = api
         self._machine_uuid = machine_uuid
         self._mqtt_data: dict[str, Any] = {}
@@ -257,7 +259,7 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("Braumeister Bridge not reachable: %s", err)
             return None
         self._remember_recipes(recipes_from_bridge(status, device_id))
-        data = from_bridge(status, device_id, BRIDGE_MAX_AGE, self._bridge_seen)
+        data = from_bridge(status, device_id, (10 if self.local_only else BRIDGE_MAX_AGE), self._bridge_seen)
         self._bridge_seen = status.get("now") if data is not None else None
         if data is None:
             _LOGGER.debug("Braumeister Bridge reachable, but no fresh data for %s", device_id)
@@ -305,12 +307,12 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch data from the sources in priority order."""
         _LOGGER.debug("Starting data update for machine %s", self._machine_uuid)
         
-        result: dict[str, Any] = self._mqtt_data.copy()
+        result: dict[str, Any] = {} if self.local_only else self._mqtt_data.copy()
         result["payment_required"] = False
         result["last_online"] = self._last_online
         
         # If we have MQTT data, device is online
-        if self._mqtt_data:
+        if self._mqtt_data and not self.local_only:
             result["elapsed_time"] = None
             result["connection_status"] = "online"
             self._update_last_online(result)
@@ -323,7 +325,8 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result.update(bridge_data)
             result["connection_status"] = "online"
             result["data_source"] = "bridge"
-            await self._add_web_texts(result)
+            if not self.local_only:
+                await self._add_web_texts(result)
             _LOGGER.debug(
                 "Bridge data: state=%s temp=%s target=%s pump=%s heating=%s alarm=%s progress=%s brew=%s step=%s recipes=%s",
                 result.get("state_code"), result.get("temperature"), result.get("target_temperature"),
@@ -333,6 +336,11 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._update_last_online(result)
             result["last_online"] = self._last_online
             return self._clean_data(result)
+
+        if self.local_only:
+            offline = self._get_offline_result()
+            offline["data_source"] = "bridge"
+            return offline
 
         # PRIORITY 2: XHR Polling
         if self.web_auth:
@@ -490,6 +498,6 @@ class SpeidelBraumeisterDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._machine_uuid
 
     @property
-    def api(self) -> SpeidelBraumeisterAPI:
+    def api(self) -> Optional[SpeidelBraumeisterAPI]:
         """Return the API client."""
         return self._api

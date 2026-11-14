@@ -95,4 +95,4 @@ async def test_options_flow_stores_scan_interval(hass: HomeAssistant, setup_entr
     assert result["step_id"] == "init"
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"scan_interval": 60})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {"scan_interval": 60}
+    assert entry.options == {"scan_interval": 60, "local_only": False}
