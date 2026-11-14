@@ -112,3 +112,14 @@ illustrates sensor data flowing through HA to Brewfather. That telemetry path ca
 coexist with recipe uploads. The [brewery ERP discussion](https://community.home-assistant.io/t/beer-brewery-erp-software/996597)
 illustrates an independent HA app for recipes, batches and inventory. Such apps
 can use the same response actions without becoming dependencies of this integration.
+
+## Hardware validation
+
+A user-operated test with fork integration 3.2.1-beta.5 and Bridge 0.5.1-beta.3
+on 15 November 2026 first reported not-ready outside the main menu, then ready
+in the idle main menu. A one-recipe upload returned `confirmed`, `written: 1`
+and `content_verification: matched`; the supplied dashboard screenshot showed
+the uploaded recipe in selection. The test client was HBAC, which is not a
+dependency of this API. This validates one successful hardware path, not all
+controllers or interruption recovery. See the
+[hardware evidence](https://github.com/DanielP-1337/ha-speidel-braumeister/blob/codex/generic-upload-beta/docs/recipe-upload-hardware-test-2026-11-15.md).
