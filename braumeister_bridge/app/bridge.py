@@ -351,6 +351,8 @@ class Bridge:
         step = job["step"]
         if (screen, flags) != ("101", "ph"):
             job["result"] = "state_changed"
+            _LOGGER.warning("Recipe upload to %s stopped after %d of %d steps: device left the main menu",
+                            job["device_id"], step, len(job["steps"]))
             return None
         if job["sent_at"] is not None and count == str(job["counts"][step]):
             step = job["step"] = step + 1
@@ -360,11 +362,6 @@ class Bridge:
                 job["confirmed_at"] = time.time()
                 _LOGGER.info("Recipe upload to %s confirmed (%d recipes)", job["device_id"], step - 1)
                 return None
-        if (screen, flags) != ("101", "ph"):
-            job["result"] = "state_changed"
-            _LOGGER.warning("Recipe upload to %s stopped after %d of %d steps: device left the main menu",
-                            job["device_id"], step, len(job["steps"]))
-            return None
         now = time.monotonic()
         if job["sent_at"] is not None and now - job["sent_at"] < CONTROL_TIMEOUT:
             return None  # wait for the device to report the new recipe count

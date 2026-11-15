@@ -1,26 +1,55 @@
 upload_recipes:
-  fields: &id001
+  fields:
     recipes:
       required: true
-      example: '[{"name": "Weizen", "mash_in_temperature": 40, "rests": [{"temperature":
-        44, "minutes": 20}, {"temperature": 63, "minutes": 35}, {"temperature": 78,
-        "minutes": 10}], "boil_minutes": 90, "hop_additions": [90, 15]}]'
+      example: >-
+        [{"name": "Weizen", "mash_in_temperature": 40,
+          "rests": [{"temperature": 44, "minutes": 20},
+                    {"temperature": 63, "minutes": 35},
+                    {"temperature": 78, "minutes": 10}],
+          "boil_minutes": 90, "hop_additions": [90, 15]}]
       selector:
-        object: null
-    config_entry_id: &id002
+        object:
+    config_entry_id:
       required: false
       selector:
         config_entry:
           integration: speidel_braumeister
+
 start_recipe_upload:
-  fields: *id001
+  fields:
+    recipes:
+      required: true
+      example: >-
+        [{"name": "Weizen", "mash_in_temperature": 40,
+          "rests": [{"temperature": 44, "minutes": 20},
+                    {"temperature": 63, "minutes": 35},
+                    {"temperature": 78, "minutes": 10}],
+          "boil_minutes": 90, "hop_additions": [90, 15]}]
+      selector:
+        object:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: speidel_braumeister
+
 recipe_upload_readiness:
   fields:
-    config_entry_id: *id002
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: speidel_braumeister
+
 recipe_upload_status:
   fields:
-    config_entry_id: *id002
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: speidel_braumeister
     job_id:
       required: true
       selector:
-        text: {}
+        text:

@@ -109,10 +109,14 @@ async def _recipe_request(hass: HomeAssistant, call: ServiceCall, operation: str
         async with session.request(method, url, **kwargs) as response:
             if response.status not in (200, 202):
                 detail = await response.text()
+                if operation == "start" and response.status == 400:
+                    raise ServiceValidationError(detail)
                 raise HomeAssistantError(f"Braumeister Bridge: {detail} (HTTP {response.status})")
             result = await response.json()
     except (ClientError, asyncio.TimeoutError) as err:
-        raise HomeAssistantError("Bridge request failed; an upload may have been accepted. Do not retry automatically.") from err
+        if operation == "start":
+            raise HomeAssistantError("Bridge request failed; an upload may have been accepted. Do not retry automatically.") from err
+        raise HomeAssistantError("Bridge not reachable") from err
     if result.get("device_id", "").lower() != device_id.lower():
         raise ServiceValidationError("Upload job belongs to another device")
     return result

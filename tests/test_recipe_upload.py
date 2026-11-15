@@ -152,7 +152,7 @@ async def test_recipe_upload_resends_then_gives_up(bridge_module, monkeypatch):
                 await bridge.close_session()
 
 
-async def test_recipe_upload_stops_when_device_leaves_menu(bridge_module):
+async def test_recipe_upload_stops_when_device_leaves_menu(bridge_module, caplog):
     app = web.Application()
 
     async def reply(request):
@@ -175,5 +175,6 @@ async def test_recipe_upload_stops_when_device_leaves_menu(bridge_module):
                 assert await poll("3") == b"Start\r\n$d=A\r\nOK\r\nDone\r\n"
                 assert await poll("0", "2015") == bridge_module.LOCAL_ANSWER
                 assert bridge.recipe_job["result"] == "state_changed"
+                assert "device left the main menu" in caplog.text
             finally:
                 await bridge.close_session()
