@@ -9,6 +9,17 @@ A Home Assistant integration for Speidel Braumeister brewing systems via the My 
 
 ## Features
 
+### Local-only Bridge mode
+
+Enable **Local Bridge only (no cloud)** in the integration options and set
+`forward_to_cloud: false` in the Bridge app. The integration then starts without
+cloud authentication and polls the local Bridge every five seconds, with no
+cloud metadata requests or cloud fallback. Existing entries and entity IDs are
+preserved. New local entries select a device discovered by the Bridge, without a
+MySpeidel account. Initial setup checks that the Bridge is reachable and knows
+the device; already configured entries can still start offline.
+See [setup, behavior and test coverage](docs/local-bridge-mode.md).
+
 ### Device connection warning
 
 The diagnostic **Check device connection** binary sensor warns after 120 seconds

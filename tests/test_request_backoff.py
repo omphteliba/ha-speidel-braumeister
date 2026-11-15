@@ -249,7 +249,7 @@ def load_coordinator(package, root):
             "coordinator", DataUpdateCoordinator=Base, UpdateFailed=RuntimeError
         ),
         f"{package}.const": mod(
-            "const", BRIDGE_MAX_AGE=10, BRIDGE_STATUS_URL="http://localhost", DEFAULT_SCAN_INTERVAL=30
+            "const", BRIDGE_MAX_AGE=10, BRIDGE_STATUS_URL="http://localhost", LOCAL_SCAN_INTERVAL=5, DEFAULT_SCAN_INTERVAL=30
         ),
         f"{package}.api": mod(
             "api",

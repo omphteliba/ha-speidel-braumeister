@@ -1,9 +1,12 @@
 # Braumeister Bridge
 
 Receives the data your Speidel Braumeister sends to the My Speidel cloud, directly in Home
-Assistant. The Speidel Braumeister integration then reads the status locally, about once per
-second instead of via the web interface. The data is still forwarded to My Speidel, so the
-app and the web interface keep working.
+Assistant. The Speidel Braumeister integration reads this status locally. In its
+local-only mode it polls every five seconds; otherwise it uses the configured scan
+interval. Forwarding to MySpeidel is enabled by default so the app and web interface
+keep working. To operate without MySpeidel, enable the integration's local-only mode
+and set this app's `forward_to_cloud` option to `false`. See
+[local-only setup and behavior](../docs/local-bridge-mode.md).
 
 Works with Braumeisters with the WiFi module and firmware 1.1.27.
 

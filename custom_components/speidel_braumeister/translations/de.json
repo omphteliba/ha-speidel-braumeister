@@ -3,10 +3,11 @@
     "step": {
       "user": {
         "title": "Speidel Braumeister Einrichtung",
-        "description": "Geben Sie Ihre My Speidel Zugangsdaten ein, um Ihre Braumeister zu verbinden.",
+        "description": "Für lokalen Betrieb wird die installierte und eingerichtete Braumeister Bridge-App benötigt. Aktivieren Sie „Nur lokale Bridge“ und lassen Sie die Zugangsdaten leer. Für Cloud-Betrieb geben Sie Ihre MySpeidel-Zugangsdaten ein.",
         "data": {
           "username": "Benutzername",
-          "password": "Passwort"
+          "password": "Passwort",
+          "local_only": "Nur lokale Bridge (ohne Cloud)"
         }
       },
       "machine": {
@@ -27,12 +28,22 @@
         "data": {
           "password": "Passwort"
         }
+      },
+      "local": {
+        "title": "Lokaler Braumeister",
+        "description": "Wählen Sie ein von der Bridge erkanntes Gerät. Falls noch keines gefunden wurde, schalten Sie den Braumeister ein, prüfen Sie die DNS-Weiterleitung zur Bridge und versuchen Sie es erneut. Eine manuell eingegebene ID wird vor dem Speichern geprüft. Kein MySpeidel-Konto erforderlich. In der Bridge-App forward_to_cloud: false setzen. Lokales Abfrageintervall: 5 Sekunden.",
+        "data": {
+          "name": "Name",
+          "machine_uuid": "Geräte-ID / vorhandene Machine UUID"
+        }
       }
     },
     "error": {
       "invalid_auth": "Ungültiger Benutzername oder Passwort",
-      "cannot_connect": "Verbindung zur Speidel Cloud API fehlgeschlagen",
-      "unknown": "Ein unerwarteter Fehler ist aufgetreten"
+      "cannot_connect": "Verbindung fehlgeschlagen. Im lokalen Modus prüfen Sie, ob die Braumeister Bridge-App läuft; im Cloud-Modus die Verbindung zu MySpeidel.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten",
+      "no_local_devices": "Die Bridge kennt noch kein Gerät. Braumeister einschalten, DNS-Weiterleitung prüfen und erneut versuchen.",
+      "unknown_local_device": "Diese Geräte-ID ist der Bridge nicht bekannt. Prüfen Sie die ID und die Verbindung vom Braumeister zur Bridge."
     },
     "abort": {
       "already_configured": "Diese Braumeister ist bereits konfiguriert",
@@ -44,9 +55,14 @@
       "init": {
         "title": "Speidel Braumeister Optionen",
         "data": {
-          "scan_interval": "Aktualisierungsintervall (Sekunden)"
-        }
+          "scan_interval": "Cloud-Abfrageintervall (Sekunden)",
+          "local_only": "Nur lokale Bridge (ohne Cloud)"
+        },
+        "description": "Im lokalen Modus wird die Bridge alle 5 Sekunden abgefragt, unabhängig vom Cloud-Intervall. Zusätzlich in der Bridge-App forward_to_cloud: false setzen."
       }
+    },
+    "error": {
+      "cloud_credentials_required": "Dieser Eintrag hat keine Cloud-Zugangsdaten. Für Cloud-Betrieb einen Eintrag mit MySpeidel-Anmeldung einrichten."
     }
   },
   "entity": {

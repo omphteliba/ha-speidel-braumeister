@@ -47,6 +47,7 @@ def build_diagnostics(coordinator: Any, entry_data: dict[str, Any], version: str
     machine = str(entry_data.get(CONF_MACHINE_UUID, ""))
     result = {
         "integration_version": version,
+        "local_only": getattr(coordinator, "local_only", False),
         "machine_id_format": (
             "combined" if "." in machine else "uuid" if len(machine) == 36
             else "short" if machine.isdigit() else "other"
