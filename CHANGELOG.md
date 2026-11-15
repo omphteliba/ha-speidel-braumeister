@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Local-only mode without MySpeidel: option **Local Bridge only (no cloud)** for existing entries, or credential-free setup that offers the devices the Braumeister Bridge knows. The integration then makes no cloud requests and polls the Bridge every 5 seconds; it also starts while the Braumeister is off. For fully cloud-free operation also set `forward_to_cloud: false` in the Bridge app. Starting the Braumeister while the internet is down is not yet confirmed to work (thanks to DanielP-1337, #29)
 - Re-authentication: when My Speidel rejects the stored password, Home Assistant asks for the new one instead of the integration failing silently
 - The log says once when the Braumeister stops sending data and once when it is back, and why MySpeidel requests are paused (HTTP status and endpoint)
 - Braumeister Bridge 0.5.0: optional local pump and heater control in manual mode and program control (select recipe up to the water prompt, pause, abort, resume after a purge pause). Off by default, loopback API only; heating needs `allow_remote_heating` (thanks to DanielP-1337, #21, #24)
