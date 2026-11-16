@@ -28,6 +28,7 @@ import socket
 import stat
 import struct
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote_plus
@@ -323,6 +324,7 @@ class Bridge:
         self.diagnostic_missed = 0
         self.local_command: dict[str, Any] | None = None
         self.recipe_job: dict[str, Any] | None = None
+        self.recipe_jobs: dict[str, dict[str, Any]] = {}
         self.state_file = Path(options["state_file"]) if options.get("state_file") else None
         self.load_recipes()
 
@@ -347,18 +349,19 @@ class Bridge:
             return None
         screen, flags, _slot, count = self.control_screen(payload)
         step = job["step"]
-        if job["sent_at"] is not None and count == str(job["counts"][step]):
-            step = job["step"] = step + 1
-            job.update(sent_at=None, attempts=0)
-            if step == len(job["steps"]):
-                job["result"] = "confirmed"
-                _LOGGER.info("Recipe upload to %s confirmed (%d recipes)", job["device_id"], step - 1)
-                return None
         if (screen, flags) != ("101", "ph"):
             job["result"] = "state_changed"
             _LOGGER.warning("Recipe upload to %s stopped after %d of %d steps: device left the main menu",
                             job["device_id"], step, len(job["steps"]))
             return None
+        if job["sent_at"] is not None and count == str(job["counts"][step]):
+            step = job["step"] = step + 1
+            job.update(sent_at=None, attempts=0)
+            if step == len(job["steps"]):
+                job["result"] = "confirmed"
+                job["confirmed_at"] = time.time()
+                _LOGGER.info("Recipe upload to %s confirmed (%d recipes)", job["device_id"], step - 1)
+                return None
         now = time.monotonic()
         if job["sent_at"] is not None and now - job["sent_at"] < CONTROL_TIMEOUT:
             return None  # wait for the device to report the new recipe count
@@ -614,6 +617,13 @@ class Bridge:
         changed = device.get(kind) != payload
         device[kind] = payload
         device[f"{kind}_received"] = time.time()
+        job = self.recipe_job
+        if (kind == "rz" and job and job["device_id"] == device_id and job["result"] == "confirmed"
+                and job.get("content_verification", "not_available") == "not_available"
+                and device["rz_received"] > job["confirmed_at"]):
+            actual = [line.strip() for line in self._recipes_part(payload).splitlines() if line.strip()]
+            expected = [step.decode("ascii")[4:] for step in job["steps"][1:]]
+            job["content_verification"] = "matched" if actual == expected else "mismatch"
         device["remote"] = remote
         _LOGGER.debug("%s from %s (%s)", kind, device_id, remote)
         if kind == "bm_stat" and len(parts) > 3:
@@ -752,6 +762,52 @@ class Bridge:
         }
         return web.json_response({"result": "queued"}, status=202)
 
+    def recipe_readiness(self, device_id: str) -> dict[str, Any]:
+        device = next((d for d in self.devices.values() if d["device_id"].lower() == device_id.lower()), {})
+        age = time.time() - device.get("bm_stat_received", 0)
+        fresh = bool(device) and 0 <= age < CONTROL_TIMEOUT
+        payload = device.get("bm_stat", "")
+        parts = payload.split(";", 4)
+        fields = parts[3].split("X") if len(parts) >= 4 else []
+        readable = len(fields) >= 16 and fields[2] in ("C", "F")
+        screen, flags, _, _ = self.control_screen(payload)
+        valid = fresh and readable
+        reasons = []
+        if self.options.get("recipe_write_enabled") is not True:
+            reasons.append("upload_disabled")
+        if not fresh:
+            reasons.append("device_status_stale")
+        elif not readable:
+            reasons.append("device_status_unreadable")
+        elif (screen, flags) != ("101", "ph"):
+            reasons.append("device_not_idle")
+        command, job = self.pending_control(), self.pending_recipe_job()
+        if (command and command["result"] in ("queued", "sending", "sent")) or (job and job["result"] in ("queued", "sending")):
+            reasons.append("busy")
+        return {
+            "device_id": device.get("device_id", device_id), "connected": fresh,
+            "status_age_seconds": max(0, age) if device.get("bm_stat_received") else None,
+            "main_menu": screen == "101" if valid else None,
+            "pump_on": flags[0] == "P" if valid and flags in ("ph", "Ph", "pH", "PH", "pi", "Pi") else None,
+            "heater_on": flags[1] in ("H", "i") if valid and flags in ("ph", "Ph", "pH", "PH", "pi", "Pi") else None,
+            "upload_enabled": self.options.get("recipe_write_enabled") is True,
+            "ready_for_upload": not reasons, "blocking_reasons": reasons,
+            "replaces_all_recipes": True,
+        }
+
+    async def api_recipe_readiness(self, request: web.Request) -> web.Response:
+        if request.remote not in ("127.0.0.1", "::1") or "Origin" in request.headers:
+            raise web.HTTPForbidden(text="Local API clients only")
+        device_id = request.query.get("device_id", "")
+        if not device_id:
+            raise web.HTTPBadRequest(text="device_id required")
+        return web.json_response(self.recipe_readiness(device_id))
+
+    def recipe_job_status(self, job: dict[str, Any]) -> dict[str, Any]:
+        return {"job_id": job["job_id"], "device_id": job["device_id"], "result": job["result"],
+                "recipes": len(job["steps"]) - 1, "written": max(job["step"] - 1, 0),
+                "content_verification": job.get("content_verification", "not_available")}
+
     async def api_recipes(self, request: web.Request) -> web.Response:
         """Replace all recipes on a device (GET: outcome of the last upload)."""
         if self.options.get("recipe_write_enabled") is not True:
@@ -760,6 +816,11 @@ class Bridge:
             raise web.HTTPForbidden(text="Local API clients only")
         if request.method == "GET":
             job = self.pending_recipe_job()
+            if "job_id" in request.query:
+                job = self.recipe_jobs.get(request.query["job_id"])
+                if job is None:
+                    raise web.HTTPNotFound(text="Unknown or expired upload job")
+                return web.json_response(self.recipe_job_status(job))
             return web.json_response({
                 "device_id": job["device_id"], "result": job["result"],
                 "recipes": len(job["steps"]) - 1, "written": max(job["step"] - 1, 0),
@@ -793,19 +854,21 @@ class Bridge:
             raise web.HTTPBadRequest(text=f"Recipe {err}") from None
         if self.control_screen(payload)[:2] != ("101", "ph"):
             raise web.HTTPConflict(text="The device must show the main menu with pump and heater off")
-        command = self.pending_control()
-        job = self.pending_recipe_job()
-        if (command and command["result"] in ("queued", "sending", "sent")) or (
-                job and job["result"] in ("queued", "sending")):
-            raise web.HTTPConflict(text="A local command or recipe upload is already pending")
+        readiness = self.recipe_readiness(device_id)
+        if not readiness["ready_for_upload"]:
+            raise web.HTTPConflict(text=", ".join(readiness["blocking_reasons"]))
         steps = [b"$d=A"] + [b"$rz=" + line.encode("ascii") for line in lines]
         self.recipe_job = {
+            "job_id": uuid.uuid4().hex,
             "device_id": device_id, "result": "queued", "steps": steps,
             "counts": list(range(len(steps))), "step": 0, "sent_at": None, "attempts": 0,
             "deadline": time.monotonic() + 30 + 10 * len(steps),
         }
         _LOGGER.info("Recipe upload to %s queued (%d recipes)", device_id, len(lines))
-        return web.json_response({"result": "queued"}, status=202)
+        self.recipe_jobs[self.recipe_job["job_id"]] = self.recipe_job
+        while len(self.recipe_jobs) > 32:
+            del self.recipe_jobs[next(iter(self.recipe_jobs))]
+        return web.json_response(self.recipe_job_status(self.recipe_job), status=202)
 
     async def api_status(self, request: web.Request) -> web.Response:
         device_id = request.query.get("device")
@@ -830,6 +893,7 @@ def build_apps(bridge: Bridge) -> tuple[web.Application, web.Application]:
     api.router.add_get("/api/health", bridge.api_health)
     api.router.add_get("/api/control", bridge.api_control)
     api.router.add_post("/api/control", bridge.api_control)
+    api.router.add_get("/api/recipes/readiness", bridge.api_recipe_readiness)
     api.router.add_get("/api/recipes", bridge.api_recipes)
     api.router.add_post("/api/recipes", bridge.api_recipes)
     return port80, api

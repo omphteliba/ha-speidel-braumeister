@@ -378,3 +378,5 @@ This project was developed with AI assistance: the first version (up to v2.0.3) 
 [license-badge]: https://img.shields.io/github/license/omphteliba/ha-speidel-braumeister
 [tests-badge]: https://github.com/omphteliba/ha-speidel-braumeister/actions/workflows/tests.yml/badge.svg
 [tests]: https://github.com/omphteliba/ha-speidel-braumeister/actions/workflows/tests.yml
+
+Generic asynchronous recipe uploads and readiness checks: [API contract](docs/recipe-upload-api.md).

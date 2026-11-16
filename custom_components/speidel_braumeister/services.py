@@ -65,11 +65,16 @@ async def _upload_recipes(hass: HomeAssistant, call: ServiceCall) -> ServiceResp
                 raise ServiceValidationError(text)
             if response.status != 202:
                 raise HomeAssistantError(f"Braumeister Bridge: {text} (HTTP {response.status})")
+            submitted = await response.json()
+        job_id = submitted.get("job_id")
         loop = asyncio.get_running_loop()
         deadline = loop.time() + UPLOAD_TIMEOUT
         while True:
             await asyncio.sleep(POLL_INTERVAL)
-            async with session.get(BRIDGE_RECIPES_URL, timeout=ClientTimeout(total=5)) as response:
+            async with session.get(BRIDGE_RECIPES_URL, params={"job_id": job_id} if job_id else None,
+                                   timeout=ClientTimeout(total=5)) as response:
+                if response.status != 200:
+                    raise HomeAssistantError(f"Upload status unavailable (HTTP {response.status})")
                 status: dict[str, Any] = await response.json()
             if status.get("result") not in ("queued", "sending") or loop.time() > deadline:
                 break
@@ -85,6 +90,38 @@ async def _upload_recipes(hass: HomeAssistant, call: ServiceCall) -> ServiceResp
     return {"result": status["result"], "recipes": status.get("recipes")}
 
 
+async def _recipe_request(hass: HomeAssistant, call: ServiceCall, operation: str) -> ServiceResponse:
+    coordinator = _coordinator(hass, call.data.get(ATTR_CONFIG_ENTRY))
+    device_id = coordinator._machine_uuid.split(".")[0]
+    session = async_get_clientsession(hass)
+    url = BRIDGE_RECIPES_URL
+    kwargs = {"timeout": ClientTimeout(total=5)}
+    method = "GET"
+    if operation == "readiness":
+        url += "/readiness"
+        kwargs["params"] = {"device_id": device_id}
+    elif operation == "status":
+        kwargs["params"] = {"job_id": call.data["job_id"]}
+    else:
+        method = "POST"
+        kwargs["json"] = {"device_id": device_id, "recipes": call.data[ATTR_RECIPES]}
+    try:
+        async with session.request(method, url, **kwargs) as response:
+            if response.status not in (200, 202):
+                detail = await response.text()
+                if operation == "start" and response.status == 400:
+                    raise ServiceValidationError(detail)
+                raise HomeAssistantError(f"Braumeister Bridge: {detail} (HTTP {response.status})")
+            result = await response.json()
+    except (ClientError, asyncio.TimeoutError) as err:
+        if operation == "start":
+            raise HomeAssistantError("Bridge request failed; an upload may have been accepted. Do not retry automatically.") from err
+        raise HomeAssistantError("Bridge not reachable") from err
+    if result.get("device_id", "").lower() != device_id.lower():
+        raise ServiceValidationError("Upload job belongs to another device")
+    return result
+
+
 def async_setup_services(hass: HomeAssistant) -> None:
     """Register the integration's actions (once, not per config entry)."""
 
@@ -94,3 +131,20 @@ def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_UPLOAD_RECIPES, handle, schema=SCHEMA, supports_response=SupportsResponse.OPTIONAL
     )
+
+    async def readiness(call: ServiceCall) -> ServiceResponse:
+        return await _recipe_request(hass, call, "readiness")
+
+    async def start(call: ServiceCall) -> ServiceResponse:
+        return await _recipe_request(hass, call, "start")
+
+    async def status(call: ServiceCall) -> ServiceResponse:
+        return await _recipe_request(hass, call, "status")
+
+    selection = {vol.Optional(ATTR_CONFIG_ENTRY): cv.string}
+    for name, handler, schema in (
+        ("recipe_upload_readiness", readiness, vol.Schema(selection)),
+        ("start_recipe_upload", start, SCHEMA),
+        ("recipe_upload_status", status, vol.Schema({**selection, vol.Required("job_id"): cv.string})),
+    ):
+        hass.services.async_register(DOMAIN, name, handler, schema=schema, supports_response=SupportsResponse.ONLY)
