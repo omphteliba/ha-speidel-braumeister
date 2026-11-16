@@ -5,6 +5,10 @@
 - Recipe upload without My Speidel (`recipe_write_enabled`, off by default): replaces all
   recipes on the device via the loopback API, replaying the cloud's observed delete-and-write
   sync, each slot confirmed by the device's recipe count. Only from the main menu
+- Recipe upload jobs: each upload gets a job ID (the last 32 are kept), `/api/recipes/readiness`
+  says whether an upload can start, and the job reports whether the device's recipe list
+  matches what was sent. The device state is checked again before the final step (thanks to
+  DanielP-1337, #30)
 
 ## 0.5.0
 

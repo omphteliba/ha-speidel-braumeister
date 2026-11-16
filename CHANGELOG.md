@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The log says once when the Braumeister stops sending data and once when it is back, and why MySpeidel requests are paused (HTTP status and endpoint)
 - Braumeister Bridge 0.5.0: optional local pump and heater control in manual mode and program control (select recipe up to the water prompt, pause, abort, resume after a purge pause). Off by default, loopback API only; heating needs `allow_remote_heating` (thanks to DanielP-1337, #21, #24)
 - Recipe upload without My Speidel: action **Upload recipes** (`speidel_braumeister.upload_recipes`) with Braumeister Bridge option `recipe_write_enabled` (off by default). Replaces all recipes on the device from the main menu, the same way the cloud does, each slot confirmed by the device. Same format as the Device Recipes sensor attribute; names are cut to 14 characters. Tested on a Braumeister 20 L with nine recipes
+- Recipe upload for other apps and automations: actions **Check recipe upload readiness** (`recipe_upload_readiness`), **Start recipe upload** (`start_recipe_upload`) and **Recipe upload status** (`recipe_upload_status`). The Bridge gives each upload a job ID (last 32 kept) and reports whether the device's recipe list afterwards matches what was sent. Interface described in `docs/recipe-upload-api.md` (thanks to DanielP-1337, #30)
 
 ### Changed
 - README: installation through the Home Assistant Marketplace (2026.11 and newer, replaces HACS); HACS steps kept for 2026.10 and older
