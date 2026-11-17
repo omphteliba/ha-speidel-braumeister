@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The state log line also shows the display buttons (field 13) and logs target changes, so
+  editing a target on the device (boil temperature, rests) is visible in the log
 - Recipe upload without My Speidel (`recipe_write_enabled`, off by default): replaces all
   recipes on the device via the loopback API, replaying the cloud's observed delete-and-write
   sync, each slot confirmed by the device's recipe count. Only from the main menu

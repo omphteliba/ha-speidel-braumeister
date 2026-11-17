@@ -648,20 +648,22 @@ class Bridge:
 
     @staticmethod
     def log_state_change(device: dict[str, Any], status: str) -> None:
-        """Log every change of state code, actuator flags or alarm indicator (fields 3, 14, 15).
+        """Log every change of state code, target, buttons, actuator flags or alarm indicator.
 
-        The device sends about once per second; this keeps short events such as a
-        hop-addition beep visible in the log even though the integration polls less often.
+        Fields 3, 4, 13, 14 and 15. The device sends about once per second; this keeps
+        short events such as a hop-addition beep or a target edited on the device visible
+        in the log even though the integration polls less often.
         """
         fields = status.split("X")
         if len(fields) < 16:
             return
-        key = (fields[0], fields[2], fields[3], fields[14], fields[15])
+        key = (fields[0], fields[2], fields[3], fields[4], fields[13], fields[14], fields[15])
         if device.get("last_state") != key:
             _LOGGER.info(
-                "state %s flags %s indicator %s (temp %s%s, target %s, step %s/%s s, rest %s, hop %s, language %s)",
-                fields[3], fields[14], fields[15], fields[5].strip(), fields[2], fields[4], fields[7], fields[6],
-                fields[10], fields[11], fields[0],
+                "state %s buttons %s flags %s indicator %s (temp %s%s, target %s, step %s/%s s, rest %s, "
+                "hop %s, language %s)",
+                fields[3], fields[13], fields[14], fields[15], fields[5].strip(), fields[2], fields[4], fields[7],
+                fields[6], fields[10], fields[11], fields[0],
             )
             device["last_state"] = key
 

@@ -201,6 +201,20 @@ def test_state_changes_logged_once(bridge_module, caplog):
     assert "indicator 020" in lines[1]
 
 
+def test_button_and_target_changes_logged(bridge_module, caplog):
+    """Opening the boil-target editor changes the buttons (field 13), editing the target (field 4)."""
+    device = {}
+    status = "0X10:04XCX3070X{}X 101.5X1200X100X4X0X5X0X256X{}XqHX000X0X0X0"
+    with caplog.at_level("INFO", logger="braumeister_bridge"):
+        bridge_module.Bridge.log_state_change(device, status.format("980", "A00S"))
+        bridge_module.Bridge.log_state_change(device, status.format("980", "ADUS"))
+        bridge_module.Bridge.log_state_change(device, status.format("950", "ADUS"))
+    lines = [r.getMessage() for r in caplog.records]
+    assert len(lines) == 3
+    assert "buttons ADUS" in lines[1]
+    assert "target 950" in lines[2]
+
+
 async def test_long_recipe_command_passed_through(bridge_module, caplog):
     answer = (
         "Start\r\n$rz=0X40X40X1X0X0X0X0X0X0X0X0X10X103X5X2X0X0X0X0.test 10 minuten\r\nOK\r\nDone\r\n"
