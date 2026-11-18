@@ -112,7 +112,8 @@ states can be missed (e.g. the moment of an abort).
 
 Cancel during a program first pauses it (pump and heater off, field 15 `120`); a second Cancel ends the program and the device goes back to `101`. Hop additions are state `3080` with a
 beep (seen second-by-second via the Braumeister Bridge; the 30 s web polling missed them).
-Field 15 can also be `00Z` for a few seconds during a rest or the boil (meaning unknown).
+Field 15 `00Z` was confirmed as the boil-time editor in state `3010` (see below).
+Its meaning in other contexts, including rests, is not established by that capture.
 
 The heater flag is often `i` near the target temperature and while holding a rest; MySpeidel's display
 shows it as inactive. Field 13 `A00S` is not an alarm marker: it holds the labels of the display buttons.
@@ -168,6 +169,51 @@ resends until the device confirms. Hop additions keep the entered order (`10X11X
 single slot without `$d=A` was never observed. The Bridge's recipe upload replays this sequence.
 
 What a `$k` key press does depends on the screen the device currently shows (field 3).
+
+### Boil editor and later program confirmations
+
+Observed on a Braumeister 20 L Plus, firmware `V1.1.27 Sep 12 2018`, on
+November 18, 2026. MySpeidel button presses were correlated with Bridge-recorded
+commands, subsequent status messages, and the displayed prompts. These are
+observations for this device/firmware, not a generic control allowlist.
+
+While heating to boil (`3010`), successive Select presses (`$k=4`) cycle through
+the normal view, temperature editor, time editor, and back to the normal view:
+
+| View | Field 13 | Field 15 | Observed arrow effect |
+|---|---|---|---|
+| Normal | `A00S` | `000` | No arrow buttons |
+| Temperature editor | `ADUS` | `00T` | `$k=2` / `$k=3`: field 4 changes by −10 / +10 (−1 / +1 °C) |
+| Time editor | `ADUS` | `00Z` | `$k=2` / `$k=3`: field 6 changes by −60 / +60 seconds |
+
+The live boil duration was changed from 10 to 12 minutes and later to 3 minutes.
+This is the running step's duration; it must not be confused with the stored
+recipe schedule. Cancellation, limits, held keys, and Fahrenheit behavior were
+not established by this trial. State, button labels, and field 15 must be read
+together: a lid warning was also seen as `0DT`, and acknowledging it left `00T`
+while the buttons changed from `ADUS` to `A00S`.
+
+The following exact transitions were also observed. Tuples are
+**field 3 / field 14 / field 15** (screen / actuator flags / indicator).
+
+| Prompt/action | Key | Before | After |
+|---|---|---|---|
+| Resume timed rest | `$k=4` | `2820/ph/120` | `2820/PH/000` |
+| Confirm remove-lid warning | `$k=4` | `3010/qH/0D0` | `3010/qH/000` |
+| Confirm editor-associated lid warning | `$k=4` | `3010/qH/0DT` | `3010/qH/00T` |
+| Pause hop prompt | `$k=1` | `3080/qH/010` | `3080/ph/120` |
+| Resume hop prompt | `$k=4` | `3080/ph/120` | `3080/qH/010` |
+| Acknowledge hop addition | `$k=4` | `3080/qH/010` | `3070/qH/000` |
+| Pause brewing-complete prompt | `$k=1` | `3450/ph/010` | `3450/ph/120` |
+| Resume brewing-complete prompt | `$k=4` | `3450/ph/120` | `3450/ph/010` |
+| Confirm brewing complete | `$k=4` | `3450/ph/010` | `3510/ph/000` |
+| Confirm "Start whirlpool now" | `$k=4` | `3510/ph/000` | `3610/ph/000` |
+| Confirm "Prost!" / Cheers | `$k=4` | `3610/ph/000` | `101/ph/000` |
+
+Resuming a paused hop or completion prompt returns to that prompt; it does not
+acknowledge it. At `3450`, field 13 was `A00S` normally and `A00F` while paused.
+Both `3510` and `3610` showed `000S` (Select only). Final Cancel from the paused
+hop/completion prompts was not verified in this trial.
 
 ### Manual mode (4006)
 
