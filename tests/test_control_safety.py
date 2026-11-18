@@ -59,10 +59,12 @@ async def test_local_control_through_device_poll(bridge_module):
                 assert await poll(2030) == ack
                 assert await result() == "state_changed"
                 for action in (
-                    "confirm_water_filled", "confirm_malt_pipe_removed",
+                    "confirm_water_filled",
                     "start_manual_heating", "$k=4",
                 ):
                     assert (await enqueue(action)).status == 400
+                # Known later-program action, but never valid at the water prompt.
+                assert (await enqueue("confirm_malt_pipe_removed")).status == 409
 
                 for action, before, after, key in (
                     ("open_manual", 101, 4006, 2),
