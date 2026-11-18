@@ -187,7 +187,7 @@ data:
 
 - `name`: letters, digits and punctuation without umlauts; longer names are cut to 14 characters
 - `mash_in_temperature` and rest temperatures: 20 to 80 °C; 1 to 5 `rests` of 1 to 180 minutes each
-- `boil_minutes`: 1 to 180; optional `boil_temperature`: 95 to 105 °C (default 103)
+- `boil_minutes`: 1 to 180; optional `boil_temperature`: 90 to 105 °C (default 103). The boil timer starts at this temperature; the heater stays on
 - `hop_additions`: up to 6, in minutes before the end of the boil
 
 The action waits until the Braumeister has confirmed every recipe (about 2 seconds each) and fails with a message if it does not. If an upload stops halfway, the device holds only the recipes written so far; upload again. While the Bridge forwards to My Speidel, My Speidel can later replace the list with the recipes of your account again.

@@ -180,7 +180,7 @@ data:
 
 - `name`: Buchstaben, Ziffern und Satzzeichen ohne Umlaute; längere Namen werden auf 14 Zeichen gekürzt
 - `mash_in_temperature` und Rasttemperaturen: 20 bis 80 °C; 1 bis 5 `rests` mit je 1 bis 180 Minuten
-- `boil_minutes`: 1 bis 180; optional `boil_temperature`: 95 bis 105 °C (Standard 103)
+- `boil_minutes`: 1 bis 180; optional `boil_temperature`: 90 bis 105 °C (Standard 103). Ab dieser Temperatur läuft die Kochzeit; die Heizung bleibt an
 - `hop_additions`: bis zu 6, in Minuten vor Kochende
 
 Die Aktion wartet, bis der Braumeister jedes Rezept bestätigt hat (etwa 2 Sekunden pro Rezept), und meldet einen Fehler, wenn das ausbleibt. Bricht ein Upload mittendrin ab, enthält das Gerät nur die bis dahin geschriebenen Rezepte; laden Sie dann erneut hoch. Solange die Bridge an My Speidel weiterleitet, kann My Speidel die Liste später wieder durch die Rezepte Ihres Kontos ersetzen.

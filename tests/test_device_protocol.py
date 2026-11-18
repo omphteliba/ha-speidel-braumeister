@@ -231,6 +231,25 @@ def test_fahrenheit_boil_stays_plausible(dp):
     assert result["target_temperature"] == 103.0
 
 
+@pytest.mark.parametrize(("data", "delay"), [
+    # Captured 2026-11-17: delay chosen (2111), then counting down (2120), 13 h left
+    ("0X18:38XCX2111X450X 26.5X4200X1561X2X0X0X0X0XADUSXphX000X0X0X0", None),
+    ("0X18:38XCX2120X450X 26.5X4200X1568X2X0X0X0X0XA00SXphX000X0X46800X0", 46800),
+])
+def test_delayed_start_is_waiting_with_countdown(dp, data, delay):
+    result = dp.parse_bm_stat(status(data))
+    assert result["process_status"] == "waiting"
+    assert result["start_delay_seconds"] == delay
+    assert result["remaining_seconds"] is None
+
+
+def test_start_delay_only_in_countdown_state(dp):
+    # Field 17 is 14 at the start of a boil: not a start delay
+    result = dp.parse_bm_stat(status("0X11:39XCX3070X900X 90.0X900X2X1X0X5X-1X294XA00SXqHX000X0X0X14"))
+    assert result["start_delay_seconds"] is None
+    assert result["process_status"] == "running"
+
+
 def test_celsius_unchanged(dp):
     result = dp.parse_bm_stat(status("0X11:33XCX2030X400X 33.0X300X7441X5X0X0X0X0XADUSXphX000X0X0X0"))
     assert (result["temperature"], result["target_temperature"], result["device_temperature_unit"]) == (33.0, 40.0, "°C")

@@ -46,6 +46,13 @@ def test_boil_temperature_is_kept(bridge_module):
                                                             "hop_additions": [60, 10]})
 
 
+def test_low_boil_temperature_matches_cloud(bridge_module):
+    # Sent by the real cloud: a Berliner Weisse with boil temperature 90 °C (2026-11-17)
+    recipe = {"name": "Berliner Weiss", "mash_in_temperature": 45, "rests": rests((64, 75), (78, 10)),
+              "boil_minutes": 15, "boil_temperature": 90}
+    assert bridge_module.recipe_line(0, recipe) == "0X45X64X75X78X10X0X0X0X0X0X0X15X90X0X0X0X0X0X0.Berliner Weiss"
+
+
 def test_long_names_are_cut_on_transfer(bridge_module):
     line = bridge_module.recipe_line(0, {**WEIZEN, "name": "Belgisches Goldenes Ale"})
     assert line.endswith(".Belgisches Gol")
@@ -58,7 +65,7 @@ def test_long_names_are_cut_on_transfer(bridge_module):
     {"mash_in_temperature": True},
     {"rests": []}, {"rests": rests((50, 10)) * 6}, {"rests": [[50, 10]]}, {"rests": rests((85, 10))},
     {"rests": rests((50, 0))},
-    {"boil_minutes": 0}, {"boil_minutes": 181}, {"boil_temperature": 94}, {"boil_temperature": 106},
+    {"boil_minutes": 0}, {"boil_minutes": 181}, {"boil_temperature": 89}, {"boil_temperature": 106},
     {"hop_additions": [91]}, {"hop_additions": [0]}, {"hop_additions": [10] * 7},
     {"extra": 1},
 ])

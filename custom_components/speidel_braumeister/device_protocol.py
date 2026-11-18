@@ -34,9 +34,13 @@ from .brew_display import brew_display
 NO_TARGET_TEMPERATURE = -1000
 STATE_MAIN_MENU = 101
 STATE_BREW_FINISHED = 3450
-# Recipe selected, program not started yet: recipe list (2015) and the start
-# screen "Wasser eingefüllt?" with its start delay (2030). Nothing heats here.
-PRE_START_STATES = {2015, 2030}
+# Recipe selected, program not started yet: recipe list (2015), the start screen
+# "Wasser eingefüllt?" (2030), choosing a delayed start (2111) and its countdown
+# (2120). Nothing heats here.
+PRE_START_STATES = {2015, 2030, 2111, 2120}
+# Delayed start counting down; field 17 holds the remaining seconds. The countdown
+# does not survive a power cut.
+STATE_START_DELAY = 2120
 PROGRESS_FULL = 318
 
 # An alarm is active while the device beeps, as in MySpeidel's own web display:
@@ -263,6 +267,7 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         "remaining_time": None,
         "remaining_seconds": None,
         "elapsed_time": None,
+        "start_delay_seconds": None,
     }
 
     state_code = result["state_code"]
@@ -278,6 +283,10 @@ def parse_bm_stat(data_string: str) -> dict[str, Any]:
         remaining = max(duration - elapsed, 0)
         result["remaining_seconds"] = remaining
         result["remaining_time"] = -(-remaining // 60)  # minutes, rounded up
+
+    if state_code == STATE_START_DELAY:
+        countdown = _int(fields, 17)
+        result["start_delay_seconds"] = countdown if countdown is not None and countdown > 0 else None
 
     # A target only exists while a program or manual mode runs. In menus (main menu,
     # settings 8xxx, 6010, 0) the device keeps the last program's value – after a

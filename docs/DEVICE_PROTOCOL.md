@@ -52,22 +52,24 @@ Payload is 19 fields separated by `X`:
 | Pos | Observed values | Meaning |
 |---|---|---|
 | 0 | `0` | Display language (MySpeidel `language`; `0` = German). Not used by the integration |
-| 1 | `18:12` | Device clock, HH:MM |
+| 1 | `18:12` | Device clock, HH:MM (as shown on the display) |
 | 2 | `C`, `F` | **Temperature unit** as set on the device. With `F`, fields 4 and 5 are in °F (seen live: 33.0 °C → `91.5`, target 40 °C → `1040`); the parser converts them to °C. The recipe list (`rz`) then is in °F too (e.g. mash-in `104`, boil `217`) although it carries no unit itself; it is converted with the unit from the status message |
 | 3 | `101`, `2xxx`, `3xxx`, `4006`, `4007`, `6010` | **State / screen code** (see below) |
 | 4 | `-1000`, `0`, `380`…`1030` | **Target temperature × 10**; `-1000` = none, `0` between steps (shown as 0 °C, like MySpeidel's web interface). Only meaningful during a program (2xxx/3xxx) or manual mode (4xxx); in menus (101, 8xxx, 6010, 0) it still holds the last program's target – after a °F→°C switch even in °F – and the parser ignores it |
 | 5 | ` 24.5` | **Current temperature** in °C (leading space, 0.5 °C steps) |
-| 6 | `4800`, `1200`, `60`, `0` | **Duration of the current program step in seconds**: rest (`60` for a 1-min rest), boil (`1200` for 20 min). Outside timed steps it keeps the boil time of the selected recipe. Remaining time = field 6 − field 7 during `2820` (rest) and `3070` (boil) |
+| 6 | `4800`, `4500`, `1200`, `900`, `60`, `0` | **Duration of the current program step in seconds**: rest (`60` for a 1-min rest, `4500` for 75 min), boil (`1200` for 20 min). Set when the step is entered (`2800`/`2810`, `3010`). Outside timed steps it keeps the boil time of the selected recipe. Remaining time = field 6 − field 7 during `2820` (rest) and `3070` (boil) |
 | 7 | `0`…`167` | **Seconds since the current state was entered**, resets on state change |
 | 8 | `0`…`9` | Number of recipes on the device (up to 9; seen with 6). Dropped to 0 after `$d=A`, then counted up by one per `$rz` |
 | 9 | `0`…`4` | **Recipe slot of the running program** (`0` for Weizen, `2` for the test recipe). Briefly `4` after entering manual mode, so only meaningful during a program |
 | 10 | `0`, `5` | Unknown; became `5` at rest end and stayed until the end |
 | 11 | `0`, `-1` | *Hypothesis:* hop addition state; changed from `0` to `-1` at the hop addition 10 min before the end of the boil |
 | 12 | `0`…`318` | Unknown, counts up during a program (about 3 per minute while boiling) |
-| 13 | `EMSR`, `APHT`, `ADUS`, `A000`, `A00F`, `A00S` | Screen/message code (see below) |
+| 13 | `EMSR`, `APHT`, `ADUS`, `A000`, `A00F`, `A00S`, `000S` | **Labels of the four display buttons**, one character per button from left to right; `0` = no button. `E`instellungen (settings), `M`anuell, Brau`s`tart, `R`ezept in the main menu; `A`bbrechen (cancel), `P`ump, `H`eater, `T`emperature in manual mode; `D`own, `U`p, `S`elect. A key command `$k=n` presses button n |
 | 14 | `ph`, `Ph`, `pH`, `PH`, `qh`, `qH`, `Pi`, `pi` | **Actuator flags**, as read by MySpeidel's own web display (`parseStatus`/`updateScreen` in `bm_controll.min.js`): 1st char pump, 2nd char heater. `P`/`H` = active, `q`/`i` = shown as inactive, `p`/`h` = unmarked. The parser maps `q`/`i` to off. `q` appears during the boil, `i` near the target temperature |
 | 15 | `000`, `010`, `0D0`, `00T`, `120` | **Alarm indicator** (middle character): `1` = alarm (mash-in temperature reached, rest end, brew finished), `D` = remove lid (from 99 °C while heating to boil). `00T` while editing the manual-mode target temperature, `120` together with `A00F` |
-| 16–18 | `0` | Unknown |
+| 16 | `0` | Unknown |
+| 17 | `0`, `46800`…`1`, `14` | **Delayed start: remaining seconds** while in `2120` (counts down once per second, `0` otherwise). The delay is chosen in 30-minute steps; the countdown does not survive a power cut. Seen as `14` once at the start of a boil (meaning unknown there) |
+| 18 | `0` | Unknown |
 
 #### State codes (field 3) — *hypotheses*
 
@@ -84,15 +86,19 @@ Payload is 19 fields separated by `X`:
 | `2410` | `A000` | Heating to mash-in (pump + heater on) |
 | `2510` | `A00S` | **Alarm:** mash-in temperature reached; web step text "… – Einmaischen Temp. erreicht" |
 | `2610` | `A00S` | Mash-in temperature reached, waiting for the user to add the malt (seen without beep) |
-| `2015` | | Program selected, before the start screen `2030` |
-| `2705` | | Briefly after mash-in temperature reached, before the first rest (*hypothesis:* "Malz eingefüllt?" confirmed) |
+| `2015` | `ADUS` | Recipe list, a recipe highlighted, before the start screen `2030` |
+| `2111` | `ADUS` | Choosing a delayed start (Up/Down = ±30 min, not reported while choosing). Select with a delay goes to `2120`, with no delay straight to `2300` |
+| `2120` | `A00S` | **Delayed start counting down** (field 17 = seconds left), pump and heater off. Cancel returns to `101`; Select starts at once (`2300`). The countdown did not survive a power cut |
+| `2705` | `ADUS` | "Malz eingefüllt?" (malt added?) after `2610`; Up/Down have no visible effect. Confirming goes to the first rest (`2810`) |
+| `2800` | `A00S` | About 2 s at the change to the next rest (new target and duration set), then `2810` |
+| `2801` | `A00S` | About 3 s during a rest with the pump off (`qi`) (*hypothesis:* pump pause), then back to `2820` |
 | `2810` | `A000` | Heating to the next rest (pump + heater on) |
 | `2820` | `A00S` | Holding a rest |
 | `2930`, `2960` | `A00S` | After rest end, waiting for the user (*hypothesis:* remove malt pipe). Target `0`, pump and heater off, no beep. Follows `2910` once the alarm is confirmed; after the next confirmation the device goes to `3010` |
 | `2030` | `ADUS` | Program start screen ("Automatik – <recipe> starten") |
 | `2910` | `A00S` | **Alarm:** rest end reached ("Rastende erreicht"), field 15 `010` |
-| `3010` | `A00S` | Heating to boil (target 103.0 °C). The pump flag changes from `P` to `q` at about 88 °C (pump switched off for the boil). From 99 °C field 15 is `0D0` = **alarm "Deckel entfernen"** until confirmed |
-| `3070` | `A00S` | Boiling; field 7 counts the boil time. Field 11 changes from `0` to `-1` at the hop addition. Hop additions set earlier than the boil time (e.g. 11 and 10 min before the end of a 5-min boil) are skipped: field 11 is `-1` right at the start of the boil, without a beep |
+| `3010` | `A00S` | Heating to boil (target = the recipe's boil temperature, e.g. 103.0 °C). The pump flag changes from `P` to `q` at about 88 °C (pump switched off for the boil). From 4 °C below the target (99 °C for 103, 86 °C for 90) field 15 is `0D0` = **alarm "Deckel entfernen"** until confirmed |
+| `3070` | `A00S` | Boiling; starts when the boil temperature is reached. The heater stays on: with a boil temperature of 90 °C the wort still rose to 99.5 °C, so the setting is the threshold for the boil timer, not a limit. Field 7 counts the boil time. Field 11 changes from `0` to `-1` at the hop addition. Hop additions set earlier than the boil time (e.g. 11 and 10 min before the end of a 5-min boil) are skipped: field 11 is `-1` right at the start of the boil, without a beep |
 | `3075` | `A00S` | Shown for about 3 s right before a hop addition (`3080`), at the hop time (e.g. field 7 `600` for a 60-min addition in a 70-min boil). A confirmed hop addition may last only a few seconds, shorter than a 30-s poll; the Bridge keeps the last alarm message (`alarm_bm_stat`) so it is not missed |
 | `3080` | `A00S` | **Alarm:** hop addition ("Hopfen zugeben"), field 15 `010`. The boil timer keeps running; after confirmation back to `3070`. Field 11 counts the hop additions and is `-1` when all are done |
 | `3450` | `A00S` | **Alarm:** brew finished ("Brauvorgang beendet"), pump and heater off, field 15 `010` |
@@ -104,7 +110,7 @@ MySpeidel's own display; `device_protocol.ALARM_STATES` only names it by state c
 `2410` on come from two live brews where the web interface was polled every 30 s, so short
 states can be missed (e.g. the moment of an abort).
 
-After an abort the device goes straight back to `101`. Hop additions are state `3080` with a
+Cancel during a program first pauses it (pump and heater off, field 15 `120`); a second Cancel ends the program and the device goes back to `101`. Hop additions are state `3080` with a
 beep (seen second-by-second via the Braumeister Bridge; the 30 s web polling missed them).
 Field 15 can also be `00Z` for a few seconds during a rest or the boil (meaning unknown).
 
@@ -131,7 +137,7 @@ Each slot line has 20 `X`-separated numbers followed by `.` and the name:
 | 1 | `40` | Mash-in temperature °C |
 | 2–11 | `44 20 52 20 63 35 73 35 78 10` | 5 rests as (temperature °C, minutes); unused = `0 0` (or `40 0` on the device) |
 | 12 | `90` | Boil time, minutes |
-| 13 | `103` | Boil temperature °C; usually 103, recipes with 100 and 102 seen |
+| 13 | `103` | Boil temperature °C: the boil timer starts when it is reached (the heater keeps heating). Usually 103; 90, 100 and 102 seen |
 | 14–19 | `90 15 0 0 0 0` | Hop additions, minutes before end of boil; `0` = unused |
 
 The name is truncated to 14 characters (`Belgisches Gol…`).
@@ -152,9 +158,7 @@ At most one command per response was observed.
 
 | Command | Observed effect — *hypotheses* |
 |---|---|
-| `$k=1` | Key press "back": 4006 → 101, 6010 → 101 |
-| `$k=2` | Key press "enter/select": 101 → 4006 (manual mode); inside 4006 it toggled the pump |
-| `$k=4` | Key press: 101 → 6010 |
+| `$k=1`…`$k=4` | **Press display button 1–4** (left to right); the effect is the button's label in field 13. Seen: `$k=2` in `EMSR` opens manual mode (`4006`); `$k=4` in `EMSR` opens the recipe menu (`6010`); `$k=2` in `APHT` toggles the pump; `$k=4` in `APHT` opens the target editor (`4007`); in `ADUS`/`4007` `$k=3` = +1 °C, `$k=2` = −1 °C, `$k=4` confirms (back to `4006`), `$k=1` cancels to `101`; `$k=1` in `APHT` or `6010` returns to `101` |
 | `$d=A` | *Hypothesis:* delete/reset all recipe slots — field 8 dropped to 0 and was followed by `$rz` for all 5 slots |
 | `$rz=<slot line>` | Write one recipe slot, same format as the `rz` lines above. The device reports it back in its next `rz` message |
 

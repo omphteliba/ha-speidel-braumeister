@@ -215,6 +215,20 @@ def test_button_and_target_changes_logged(bridge_module, caplog):
     assert "target 950" in lines[2]
 
 
+def test_counters_alone_are_not_logged(bridge_module, caplog):
+    """Clock, temperature, timers and the start countdown alone do not log; other fields do."""
+    device = {}
+    status = "0X{}XCX2120X450X {}X4200X{}X0X0X0X0X0XA00SXphX000X0X{}X0"
+    with caplog.at_level("INFO", logger="braumeister_bridge"):
+        bridge_module.Bridge.log_state_change(device, status.format("06:45", "26.5", "30", "46800"))
+        bridge_module.Bridge.log_state_change(device, status.format("06:45", "26.0", "31", "46799"))
+        bridge_module.Bridge.log_state_change(device, status.format("06:46", "26.0", "32", "46798"))
+        bridge_module.Bridge.log_state_change(device, status.format("06:46", "26.0", "33", "46797").replace("A00S", "ADUS"))
+    lines = [r.getMessage() for r in caplog.records]
+    assert len(lines) == 2
+    assert "fields 0X06:46XCX2120" in lines[1]
+
+
 async def test_long_recipe_command_passed_through(bridge_module, caplog):
     answer = (
         "Start\r\n$rz=0X40X40X1X0X0X0X0X0X0X0X0X10X103X5X2X0X0X0X0.test 10 minuten\r\nOK\r\nDone\r\n"

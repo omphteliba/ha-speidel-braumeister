@@ -129,7 +129,7 @@ RECIPE_NAME = re.compile(r"[ -:<-~]+")  # printable ASCII without ";" (ends a li
 # Same shape as the integration's recipe attributes, so a list can be read, edited and written back
 RECIPE_KEYS = {"name", "mash_in_temperature", "rests", "boil_minutes"}
 RECIPE_OPTIONAL = {"hop_additions", "slot", "boil_temperature"}
-BOIL_TEMPERATURE = 103  # default; recipes on the device also had 100 and 102
+BOIL_TEMPERATURE = 103  # default; recipes on the device also had 90, 100 and 102
 
 
 def _bounded(value: Any, low: int, high: int, what: str) -> int:
@@ -165,7 +165,7 @@ def recipe_line(slot: int, recipe: Any, fahrenheit: bool = False) -> str:
                     _bounded(rest["minutes"], 1, 180, "Rest minutes")]
     numbers += [0, 0] * (5 - len(rests))
     boil = _bounded(recipe["boil_minutes"], 1, 180, "boil_minutes")
-    boil_temperature = _bounded(recipe.get("boil_temperature", BOIL_TEMPERATURE), 95, 105, "boil_temperature")
+    boil_temperature = _bounded(recipe.get("boil_temperature", BOIL_TEMPERATURE), 90, 105, "boil_temperature")
     numbers += [boil, temp(boil_temperature)]
     hops = recipe.get("hop_additions", [])
     if not isinstance(hops, list) or len(hops) > 6:
@@ -648,22 +648,25 @@ class Bridge:
 
     @staticmethod
     def log_state_change(device: dict[str, Any], status: str) -> None:
-        """Log every change of state code, target, buttons, actuator flags or alarm indicator.
+        """Log every change of the status fields except the counters.
 
-        Fields 3, 4, 13, 14 and 15. The device sends about once per second; this keeps
-        short events such as a hop-addition beep or a target edited on the device visible
-        in the log even though the integration polls less often.
+        The display clock (1), temperature (5), seconds in state (7), progress (12) and
+        the delayed-start countdown (17) change all the time and do not trigger a line
+        on their own. The device sends about once per second; this
+        keeps short events such as a hop-addition beep or a value edited on the device
+        visible in the log even though the integration polls less often. The full field
+        list (no device ID or signature) shows which field changed.
         """
         fields = status.split("X")
         if len(fields) < 16:
             return
-        key = (fields[0], fields[2], fields[3], fields[4], fields[13], fields[14], fields[15])
+        key = tuple(value for index, value in enumerate(fields) if index not in (1, 5, 7, 12, 17))
         if device.get("last_state") != key:
             _LOGGER.info(
                 "state %s buttons %s flags %s indicator %s (temp %s%s, target %s, step %s/%s s, rest %s, "
-                "hop %s, language %s)",
+                "hop %s, language %s) fields %s",
                 fields[3], fields[13], fields[14], fields[15], fields[5].strip(), fields[2], fields[4], fields[7],
-                fields[6], fields[10], fields[11], fields[0],
+                fields[6], fields[10], fields[11], fields[0], "X".join(fields),
             )
             device["last_state"] = key
 

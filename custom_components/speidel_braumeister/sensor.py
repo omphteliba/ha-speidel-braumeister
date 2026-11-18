@@ -165,6 +165,7 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
         elif key == "process_status":
             return {
                 "remaining_seconds": data.get("remaining_seconds"),
+                "start_delay_seconds": data.get("start_delay_seconds"),
                 "heating": data.get("heating"),
                 "pump": data.get("pump"),
             }

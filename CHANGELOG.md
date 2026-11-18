@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recipe upload for other apps and automations: actions **Check recipe upload readiness** (`recipe_upload_readiness`), **Start recipe upload** (`start_recipe_upload`) and **Recipe upload status** (`recipe_upload_status`). The Bridge gives each upload a job ID (last 32 kept) and reports whether the device's recipe list afterwards matches what was sent. Interface described in `docs/recipe-upload-api.md` (thanks to DanielP-1337, #30)
 
 ### Changed
+- A delayed start chosen on the Braumeister (states 2111/2120) counts as waiting instead of running; the process status sensor has the attribute `start_delay_seconds` with the remaining time until the start (#28)
+- Recipe upload accepts a boil temperature from 90 °C (was 95 °C), as MySpeidel allows. The boil timer starts at this temperature, the heater keeps heating
 - README: installation through the Home Assistant Marketplace (2026.11 and newer, replaces HACS); HACS steps kept for 2026.10 and older
 - Following Home Assistant's integration quality scale (Bronze) as a guideline: the same Braumeister can no longer be set up twice, a connection error during setup is reported as "cannot connect" instead of "unknown", the coordinator is kept in `entry.runtime_data`, and the config flow, options flow, setup and unload are covered by tests that run against Home Assistant (`tests_ha/`)
 - Quality scale (Silver, partly): sensor platforms set `PARALLEL_UPDATES`; test coverage is not yet at the required 95 % per module
