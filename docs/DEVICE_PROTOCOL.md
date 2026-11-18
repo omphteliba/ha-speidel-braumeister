@@ -173,7 +173,7 @@ What a `$k` key press does depends on the screen the device currently shows (fie
 ### Boil editor and later program confirmations
 
 Observed on a Braumeister 20 L Plus, firmware `V1.1.27 Sep 12 2018`, on
-November 18, 2026. MySpeidel button presses were correlated with Bridge-recorded
+November 18, 2026. User-operated MySpeidel and HA button presses were correlated with Bridge-recorded
 commands, subsequent status messages, and the displayed prompts. These are
 observations for this device/firmware, not a generic control allowlist.
 
@@ -214,6 +214,54 @@ Resuming a paused hop or completion prompt returns to that prompt; it does not
 acknowledge it. At `3450`, field 13 was `A00S` normally and `A00F` while paused.
 Both `3510` and `3610` showed `000S` (Select only). Final Cancel from the paused
 hop/completion prompts was not verified in this trial.
+
+#### Rest-end confirmation and heating-stage Cancel
+
+Additional captures distinguish a normal heating screen (`000`), an active lid
+warning (`0D0`), and the paused dialog (`120`), even though all use screen `3010`.
+These are exact observed tuples, not combinations inferred from separate flags.
+HA denotes a key-bearing recorder entry with source `local_control`; subsequent
+status entries can still have source `cloud`.
+
+| Action | Key | Before | After | Command evidence |
+|---|---|---|---|---|
+| Confirm rest end | `$k=4` | `2910/Pi/010` | `2930/pi/000` | HA, 21:27:32–33 |
+| Confirm rest end | `$k=4` | `2910/Pi/010` | `2930/pH/000` | MySpeidel, 18:50:44–48 |
+| Confirm rest end | `$k=4` | `2910/PH/010` | `2930/pH/000` | HA, 21:00:05–06 |
+| Pause heating to boil | `$k=1` | `3010/PH/000` | `3010/ph/120` | HA, 20:02:59–20:03:01 |
+| Pause heating to boil | `$k=1` | `3010/qH/000` | `3010/ph/120` | HA, 20:36:36–38 |
+| Cancel active lid warning | `$k=1` | `3010/qH/0D0` | `3010/ph/120` | MySpeidel, 18:15:22–24; HA, 20:31:50–52 |
+| Resume heating to boil | `$k=4` | `3010/ph/120` | `3010/PH/000` | HA, 18:03:23–25 |
+| Resume heating to boil | `$k=4` | `3010/ph/120` | `3010/qH/000` | HA, 20:35:44–47 |
+| Final abort from heating-stage pause | `$k=1` | `3010/ph/120` | `101/ph/000` | MySpeidel, 18:15:27–29; HA, 20:03:39–41 |
+
+All times are November 18, 2026, Europe/Berlin (UTC+01:00). The pH target at
+21:00:06 changed to pi at 21:00:08 without another key press. Target actuator flags
+need not remain unchanged indefinitely. The Pi-source/pH-target row has cloud
+evidence; it is not the same HA test as the PH-source row.
+
+At `3010`, field 13 changed from `A00S` to `A00F` on pause, then to `EMSR` on
+final abort to `101`. Cancel at the normal lid warning first pauses; a separate
+Cancel from that pause ends the program. The HA permanent-abort confirmation
+dialog is user-reported UI behavior, not a separate device-protocol step.
+These observations do not establish Cancel at `0DT` or final abort from paused
+hop/completion states.
+
+A hot-water restart also reached `2910/qi/010`, where HA rejected acknowledgment.
+At 21:27:21 it changed to `2910/Pi/010`, before the successful HA key 4 at
+21:27:32. The user observed pump release below 84 °C; MySpeidel's pump-protection
+notice specified shutdown at 88 °C and release at 84 °C. This supports a
+temperature-protection interpretation of q in this context, but does not establish
+a universal meaning for q or a successful Select from `2910/qi/010`.
+That rare hot-start case remains an explicitly unverified follow-up.
+
+Evidence summaries (no raw captures or device identifiers):
+
+- [Editor cycle and time adjustments](https://github.com/DanielP-1337/braumeister-display-card/blob/f9db3d5/docs/boil-editor-followup-2026-11-18.md).
+- [HA heating pause and final abort](https://github.com/DanielP-1337/braumeister-display-card/blob/f9db3d5/docs/ha-heating-abort-2026-11-18.md).
+- [Lid Cancel and qH heating pause](https://github.com/DanielP-1337/braumeister-display-card/blob/f9db3d5/docs/lid-cancel-2026-11-18.md).
+- [Rest-end flags and hot-start limits](https://github.com/DanielP-1337/braumeister-display-card/blob/f9db3d5/docs/rest-end-qi-hot-start-2026-11-18.md).
+- [Pi-source/pH-target cloud observation](https://github.com/DanielP-1337/braumeister-display-card/blob/f9db3d5/docs/hardware-todo.md).
 
 ### Manual mode (4006)
 
