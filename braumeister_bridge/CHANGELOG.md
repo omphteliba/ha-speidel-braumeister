@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 - The state log line shows the display buttons and all status fields, and is written whenever
   a field other than the clock, temperature, timers and the start-delay countdown changes

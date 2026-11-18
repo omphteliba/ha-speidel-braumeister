@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-11-18
+
 ### Added
 - Local-only mode without MySpeidel: option **Local Bridge only (no cloud)** for existing entries, or credential-free setup that offers the devices the Braumeister Bridge knows. The integration then makes no cloud requests and polls the Bridge every 5 seconds; it also starts while the Braumeister is off. For fully cloud-free operation also set `forward_to_cloud: false` in the Bridge app. Starting the Braumeister while the internet is down is not yet confirmed to work (thanks to DanielP-1337, #29)
 - Re-authentication: when My Speidel rejects the stored password, Home Assistant asks for the new one instead of the integration failing silently
