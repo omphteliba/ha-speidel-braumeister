@@ -85,11 +85,55 @@ LOCAL_ACTIONS = {
     "recipe_up": ("2015", "2015", b"$k=3"),
     "select_recipe": ("2015", "2030", b"$k=4"),
 }
-PROGRAM_KEYS = {"request_program_pause": b"$k=1", "abort_program": b"$k=1", "resume_program": b"$k=4"}
+PROGRAM_KEYS = {
+    "request_program_pause": b"$k=1",
+    "abort_program": b"$k=1",
+    "resume_program": b"$k=4",
+    "acknowledge_rest_end": b"$k=4",
+    "confirm_malt_pipe_removed": b"$k=4",
+    "start_boil": b"$k=4",
+    "confirm_lid_removed": b"$k=4",
+    "acknowledge_hop_addition": b"$k=4",
+    "acknowledge_brew_complete": b"$k=4",
+    "confirm_whirlpool": b"$k=4",
+    "finish_brewing": b"$k=4",
+}
+PROGRAM_HEATING_ACTIONS = {"resume_program", "start_boil"}
+
+# Exact observed source tuples; do not expand to all flags for a screen.
+# Evidence: November 18, 2026, Braumeister 20 L Plus / firmware 1.1.27.
+# Target flags may change between polls (e.g. pH -> pi after rest end).
+PROGRAM_TRANSITIONS = {
+    ("acknowledge_rest_end", "2910", "Pi", "010"): ("2930", ("pi", "pH"), "000"),
+    ("acknowledge_rest_end", "2910", "PH", "010"): ("2930", ("pi", "pH"), "000"),
+    ("confirm_malt_pipe_removed", "2930", "pi", "000"): ("2960", ("pi",), "000"),
+    ("confirm_malt_pipe_removed", "2930", "pH", "000"): ("2960", ("pH",), "000"),
+    ("start_boil", "2960", "pi", "000"): ("3010", ("PH",), "000"),
+    ("start_boil", "2960", "pH", "000"): ("3010", ("PH",), "000"),
+    ("resume_program", "2820", "ph", "120"): ("2820", ("PH",), "000"),
+    ("request_program_pause", "3010", "PH", "000"): ("3010", ("ph",), "120"),
+    ("request_program_pause", "3010", "qH", "000"): ("3010", ("ph",), "120"),
+    ("request_program_pause", "3010", "qH", "0D0"): ("3010", ("ph",), "120"),
+    ("resume_program", "3010", "ph", "120"): ("3010", ("PH", "qH"), "000"),
+    ("abort_program", "3010", "ph", "120"): ("101", ("ph",), "000"),
+    ("confirm_lid_removed", "3010", "qH", "0D0"): ("3010", ("qH",), "000"),
+    ("confirm_lid_removed", "3010", "qH", "0DT"): ("3010", ("qH",), "00T"),
+    ("request_program_pause", "3080", "qH", "010"): ("3080", ("ph",), "120"),
+    ("resume_program", "3080", "ph", "120"): ("3080", ("qH",), "010"),
+    ("acknowledge_hop_addition", "3080", "qH", "010"): ("3070", ("qH",), "000"),
+    ("request_program_pause", "3450", "ph", "010"): ("3450", ("ph",), "120"),
+    ("resume_program", "3450", "ph", "120"): ("3450", ("ph",), "010"),
+    ("acknowledge_brew_complete", "3450", "ph", "010"): ("3510", ("ph",), "000"),
+    ("confirm_whirlpool", "3510", "ph", "000"): ("3610", ("ph",), "000"),
+    ("finish_brewing", "3610", "ph", "000"): ("101", ("ph",), "000"),
+}
 
 
 def program_transition(action, screen, flags, indicator):
     """Only individually evidenced stages; a pause is not a final abort."""
+    transition = PROGRAM_TRANSITIONS.get((action, screen, flags, indicator))
+    if transition is not None:
+        return transition
     if action == "request_program_pause" and indicator == "000":
         permitted = {"2300": {"ph", "Ph"}, "2410": {"ph", "Ph", "pH", "PH", "pi", "Pi", "qh", "qH", "qi"}}
         if flags in permitted.get(screen, set()):
@@ -476,7 +520,7 @@ class Bridge:
             action = command["action"]
             if action in ACTUATOR_OPTIONS and self.options.get(ACTUATOR_OPTIONS[action]) is not True:
                 command["result"] = "state_changed"
-            elif action == "resume_program" and not self.program_resume_allowed():
+            elif action in PROGRAM_HEATING_ACTIONS and not self.program_resume_allowed():
                 command["result"] = "state_changed"
             elif (screen, flags) != (before, command["source_flags"]) or (
                 command["source_slot"] is not None
@@ -722,8 +766,8 @@ class Bridge:
             raise web.HTTPForbidden(text="Manual actuator control is disabled")
         source_indicator = target_indicator = target_screen = None
         if action in PROGRAM_KEYS:
-            if action == "resume_program" and not self.program_resume_allowed():
-                raise web.HTTPForbidden(text="Program resume requires program_control_enabled and allow_remote_heating")
+            if action in PROGRAM_HEATING_ACTIONS and not self.program_resume_allowed():
+                raise web.HTTPForbidden(text="Program start/resume requires program_control_enabled and allow_remote_heating")
             source_indicator = self.control_indicator(device.get("bm_stat", ""))
             transition = program_transition(action, screen, flags, source_indicator)
             if transition is None:

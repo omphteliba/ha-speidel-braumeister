@@ -143,14 +143,48 @@ Stay near the device and follow Speidel's operating instructions.
 
 The loopback API accepts `select_recipe` from recipe selection, stopping at the
 water prompt. It validates the selected slot against field 8's recipe count.
-`request_program_pause` is available at 2300 (purging) and 2410 (heating).
-`abort_program` is available only from the matching pause dialog. These actions
-require `control_enabled`. `resume_program` is limited to the purge pause and
-additionally requires both `program_control_enabled: true` (default false) and
-`allow_remote_heating: true`. Water confirmation, delayed start, state 2310 and
-heating-stage resume are unsupported. Commands are checked again before sending;
-a changed dialog cancels the queued command. First Cancel pauses, second Cancel
-from the pause dialog ends the program.
+All actions require `control_enabled`. `resume_program` and `start_boil` also
+require both `program_control_enabled: true` (default false) and
+`allow_remote_heating: true`, at enqueue time and again before dispatch.
+Clients should ask for confirmation before starting/resuming or permanently
+aborting a program; a confirmation dialog is not a device-protocol command.
+
+Later program actions use exact observed screen/actuator/indicator combinations:
+
+| Action | Accepted context | Result |
+|---|---|---|
+| `acknowledge_rest_end` | `2910/Pi/010` or `2910/PH/010` | `2930/pi/000` or `2930/pH/000` |
+| `confirm_malt_pipe_removed` | `2930/pi/000` or `2930/pH/000` | `2960` with the same flags, indicator `000` |
+| `start_boil` | `2960/pi/000` or `2960/pH/000` | `3010/PH/000` |
+| `confirm_lid_removed` | `3010/qH/0D0` or `3010/qH/0DT` | `3010/qH/000` or `3010/qH/00T`, respectively |
+| `acknowledge_hop_addition` | `3080/qH/010` | `3070/qH/000` |
+| `acknowledge_brew_complete` | `3450/ph/010` | `3510/ph/000` |
+| `confirm_whirlpool` | `3510/ph/000` | `3610/ph/000` |
+| `finish_brewing` | `3610/ph/000` | `101/ph/000` |
+
+`request_program_pause` retains the existing 2300/2410 cases and also accepts
+`3010/PH/000`, `3010/qH/000`, `3010/qH/0D0`, `3080/qH/010`, and `3450/ph/010`.
+These later pauses keep the screen code and change flags/indicator to `ph/120`.
+`abort_program` accepts only the 2300, 2410, and 3010 `ph/120` pause dialogs.
+First Cancel pauses; a separate Cancel from an allowed pause ends the program.
+
+`resume_program` retains the purge pause and also accepts `2820/ph/120`,
+`3010/ph/120`, `3080/ph/120`, and `3450/ph/120`. Their targets are respectively
+`2820/PH/000`, `3010/PH/000` or `3010/qH/000`, `3080/qH/010`, and `3450/ph/010`.
+Resuming a hop/completion pause returns to that prompt; it does not acknowledge it.
+
+Fresh status is required. Source screen, flags, and indicator are checked again
+before sending; a changed context cancels the queued command. A command is
+confirmed only by the expected target screen, flags, and indicator. It is never
+retried or combined with a cloud command. A transient rest-end target of pH is
+accepted even if a later poll reports pi.
+
+Evidence is from user-operated Braumeister 20 L Plus tests with firmware 1.1.27;
+see the [protocol documentation PR](https://github.com/omphteliba/ha-speidel-braumeister/pull/31).
+These are protocol observations, not claims that every HA client has passed a
+hardware test. Water confirmation, delayed start, state 2310, boil-editor entry
+and adjustment, rest-end `2910/qi/010`, Cancel at `0DT`, and final abort from
+paused hop/completion prompts remain unsupported. No generic key-press API is added.
 
 
 ### Recipe upload
