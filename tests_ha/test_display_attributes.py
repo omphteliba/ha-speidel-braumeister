@@ -28,3 +28,10 @@ def test_current_step_exposes_display_context(code, flags):
     }
     coordinator.data = {}
     assert sensor.extra_state_attributes is None
+
+
+def test_fast_changing_attributes_are_not_recorded():
+    unrecorded = SpeidelBraumeisterSensor._unrecorded_attributes
+    assert {'display_clock', 'display_time_elapsed_seconds', 'display_start_delay_seconds',
+            'remaining_seconds', 'start_delay_seconds'} <= unrecorded
+    assert 'display_button_labels' not in unrecorded

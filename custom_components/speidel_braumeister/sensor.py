@@ -45,6 +45,16 @@ async def async_setup_entry(
 class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
     """Sensor for Speidel Braumeister."""
 
+    # Change with every update while brewing; keeping them out of the recorder
+    # lets each history row reuse the stored attributes instead of adding new ones.
+    _unrecorded_attributes = frozenset({
+        "display_clock",
+        "display_time_elapsed_seconds",
+        "display_start_delay_seconds",
+        "remaining_seconds",
+        "start_delay_seconds",
+    })
+
     def __init__(
         self,
         coordinator: SpeidelBraumeisterDataCoordinator,
