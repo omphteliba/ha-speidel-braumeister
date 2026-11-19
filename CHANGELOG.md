@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Braumeister Bridge: optional local control for the later brewing steps (confirm rest end, malt pipe removed, lid, hop addition, brew complete, whirlpool and "Prost"; start the boil; pause, resume and abort while heating to boil). Off by default; starting the boil and resuming need `program_control_enabled` and `allow_remote_heating` (thanks to DanielP-1337, #32)
+- `DEVICE_PROTOCOL.md`: boil editor (temperature and time) and the later program confirmations (thanks to DanielP-1337, #31)
+
 ## [3.3.0] - 2026-11-18
 
 ### Added

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Local control for the later brewing steps: confirm rest end, malt pipe removed, lid,
+  hop addition, brew complete, whirlpool and "Prost"; start the boil; pause, resume and
+  abort while heating to boil. Off by default; starting the boil and resuming need
+  `program_control_enabled` and `allow_remote_heating` (thanks to DanielP-1337, #32)
+
 ## 0.6.0
 
 - The state log line shows the display buttons and all status fields, and is written whenever
