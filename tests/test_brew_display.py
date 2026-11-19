@@ -55,6 +55,14 @@ def test_bridge_keeps_hop_alarm_recipes_and_timing():
     assert result['alarm'] == 'hop_addition'
     assert result['current_step'] == 'Hopfen zugeben – 1. Hopfengabe'
     assert result['pump'] == 'on' and result['heating'] == 'off'
+    assert result['display_clock'] == '17:42'
+    assert result['display_pump_flag'] == 'P'
+    assert result['display_heater_flag'] == 'i'
+    assert result['display_button_labels'] == 'A00S'
+    assert result['display_editor_flags'] == '010'
+    assert result['display_time_target_seconds'] is None
+    assert result['display_time_elapsed_seconds'] is None
+    assert result['display_start_delay_seconds'] is None
     assert result['brew_name'] == 'Test Ale'
     assert result['device_recipe_details'][0]['boil_minutes'] == 60
     assert device_protocol.recipes_from_bridge(state, 'TEST')[0]['name'] == 'Test Ale'
@@ -105,3 +113,88 @@ async def test_cloud_metadata_does_not_replace_local_step():
     assert result["current_step"] == "Pumpenpause"
     assert result["brew_name"] == "Test Ale"
     assert result["device_name"] == "Braumeister"
+
+
+@pytest.mark.parametrize(('clock', 'expected'), [
+    ('0:00', '0:00'), ('23:59', '23:59'), ('24:00', None), ('12:60', None),
+    ('1:2', None), ('123:00', None), ('１２:３０', None), ('', None),
+])
+def test_display_clock(clock, expected):
+    data = fields(3010)
+    data[1] = clock
+    assert brew_display(data)['display_clock'] == expected
+
+
+@pytest.mark.parametrize('actuators', ['PH', 'Pi', 'ph', 'pH', 'qi', 'qH'])
+def test_raw_actuator_flags(actuators):
+    data = fields(3010)
+    data[14] = actuators
+    result = brew_display(data)
+    assert result['display_pump_flag'] == actuators[0]
+    assert result['display_heater_flag'] == actuators[1]
+
+
+@pytest.mark.parametrize('actuators', ['', 'P', 'PHx', 'QH', 'px'])
+def test_invalid_actuator_flags(actuators):
+    data = fields(3010)
+    data[14] = actuators
+    result = brew_display(data)
+    assert result['display_pump_flag'] is None
+    assert result['display_heater_flag'] is None
+
+
+@pytest.mark.parametrize('flags', ['0D0', '0DT', '120', '000', '00T', '00Z'])
+def test_preserve_editor_context(flags):
+    data = fields(3010, indicator=flags)
+    data[13] = 'ADUS'
+    result = brew_display(data)
+    assert result['display_editor_flags'] == flags
+    assert result['display_button_labels'] == 'ADUS'
+
+
+@pytest.mark.parametrize('code', [2810, 2820, 2909, 3010])
+def test_display_timer_uses_live_values(code):
+    data = fields(code)
+    data[6:8] = ['720', '23']
+    assert brew_display(data)['display_time_target_seconds'] == 720
+    assert brew_display(data)['display_time_elapsed_seconds'] == 23
+    data[6:8] = ['180', '0']
+    assert brew_display(data)['display_time_target_seconds'] == 180
+    assert brew_display(data)['display_time_elapsed_seconds'] == 0
+    data[6:8] = ['bad', '-1']
+    assert brew_display(data)['display_time_target_seconds'] is None
+    assert brew_display(data)['display_time_elapsed_seconds'] is None
+
+
+@pytest.mark.parametrize('code', [101, 2120, 2910, 2930, 3070, 3080])
+def test_other_screens_do_not_reuse_display_timer(code):
+    result = brew_display(fields(code))
+    assert result['display_time_target_seconds'] is None
+    assert result['display_time_elapsed_seconds'] is None
+
+
+@pytest.mark.parametrize(('value', 'expected'), [
+    ('3599', 3599), ('0', 0), ('2147483647', 2147483647),
+    ('2147483648', None), ('-1', None), ('1.5', None), ('NaN', None), ('１２', None),
+])
+def test_display_countdown_requires_exact_context(value, expected):
+    data = fields(2120) + ['0', value]
+    assert brew_display(data)['display_start_delay_seconds'] == expected
+    data[15] = '120'
+    assert brew_display(data)['display_start_delay_seconds'] is None
+    data[15] = '000'
+    data[13] = 'ADUS'
+    assert brew_display(data)['display_start_delay_seconds'] is None
+    data[13] = 'A00S'
+    data[3] = '101'
+    assert brew_display(data)['display_start_delay_seconds'] is None
+
+
+def test_missing_display_context_is_not_fabricated():
+    result = brew_display([])
+    assert result['display_button_labels'] == ''
+    assert result['display_editor_flags'] == ''
+    for key in ('display_clock', 'display_pump_flag', 'display_heater_flag',
+                'display_time_target_seconds', 'display_time_elapsed_seconds',
+                'display_start_delay_seconds'):
+        assert result[key] is None

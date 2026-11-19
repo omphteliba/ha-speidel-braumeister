@@ -143,6 +143,9 @@ class SpeidelBraumeisterSensor(SpeidelBraumeisterEntity, SensorEntity):
             return {key: data.get(key) for key in (
                 "display_phase", "display_state_code", "display_interrupt",
                 "display_rest_number", "display_hop_number",
+                "display_clock", "display_pump_flag", "display_heater_flag",
+                "display_time_target_seconds", "display_time_elapsed_seconds",
+                "display_button_labels", "display_editor_flags", "display_start_delay_seconds",
             )}
 
         if key == "brew_name":
