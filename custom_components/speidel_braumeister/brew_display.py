@@ -72,7 +72,30 @@ def brew_display(fields):
             text = phase = "Einstellungen"
     if interrupt is not None and interrupt > 0:
         text = "Temperaturfehler" if interrupt > 1 else "Bitte Deckel entfernen." if cover else "Automatik angehalten"
+    # Raw display context is separate from canonical process/actuator states.
+    clock = field(1)
+    clock_parts = clock.split(":")
+    clock_valid = (len(clock_parts) == 2
+                   and all(part.isascii() and part.isdigit() for part in clock_parts)
+                   and len(clock_parts[0]) in (1, 2) and len(clock_parts[1]) == 2
+                   and int(clock_parts[0]) < 24 and int(clock_parts[1]) < 60)
+    actuators = field(14)
+    valid_actuators = (len(actuators) == 2 and actuators[0] in ("P", "p", "q")
+                       and actuators[1] in ("H", "h", "i"))
+    timed = code is not None and (2810 <= code < 2910 or code == 3010)
+    target_seconds, elapsed_seconds = number(6), number(7)
+    delay = number(17)
+    delay_valid = (code == 2120 and field(13) == "A00S" and flags == "000"
+                   and field(17).isascii() and field(17).isdigit()
+                   and delay is not None and 0 <= delay <= 2147483647)
     return {"current_step": text, "display_phase": phase,
+            "display_clock": clock if clock_valid else None,
+            "display_pump_flag": actuators[0] if valid_actuators else None,
+            "display_heater_flag": actuators[1] if valid_actuators else None,
+            "display_button_labels": field(13), "display_editor_flags": flags,
+            "display_time_target_seconds": target_seconds if timed and target_seconds is not None and target_seconds >= 0 else None,
+            "display_time_elapsed_seconds": elapsed_seconds if timed and elapsed_seconds is not None and elapsed_seconds >= 0 else None,
+            "display_start_delay_seconds": delay if delay_valid else None,
             "display_state_code": code, "display_interrupt": interrupt,
             "display_rest_number": rest + 1 if rest is not None and 0 <= rest < 5 else None,
             "display_hop_number": hop + 1 if hop is not None and hop >= 0 else None}
