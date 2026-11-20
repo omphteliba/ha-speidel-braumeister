@@ -216,7 +216,7 @@ Assistant, use the action **Speidel Braumeister: Upload recipes**
 - `mash_in_temperature` and rest temperatures in °C (20–80), converted if the
   device is set to °F. 1 to 5 `rests` with `temperature` and `minutes` (1–180).
 - `boil_minutes` 1–180; up to 6 `hop_additions` in minutes before the end of the
-  boil. `boil_temperature` 90–105 °C (default 103); `slot` may be present and is ignored.
+  boil. `boil_temperature` 90–103 °C (default 103); `slot` may be present and is ignored.
 
 The device must show the main menu with pump and heater off. The Bridge then
 replays what My Speidel does: it deletes all recipes (`$d=A`) and writes one slot
@@ -229,3 +229,13 @@ simply upload again. The last recipe list the device reported is kept in
 `/data/recipes.json` (and in `/api/status`). Nothing is heated or started.
 With `forward_to_cloud: true`, My Speidel may later replace the list with the
 recipes of your account again.
+
+### Early-program and manual-editor extension
+
+The additional Companion action names, exact contexts, permission gates and
+hardware-evidence limitations are documented in
+[early-program/editor controls](../docs/early-program-editor-controls.md).
+All existing control options remain off by default. Commands that can start the
+program, including delayed-start confirmation and malt-added confirmation,
+require both program-control and remote-heating permission. The manual editor
+requires inactive actuators. No additional pause/abort contexts are enabled.

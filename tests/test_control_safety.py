@@ -58,8 +58,8 @@ async def test_local_control_through_device_poll(bridge_module):
                 assert (await enqueue("close_settings")).status == 202
                 assert await poll(2030) == ack
                 assert await result() == "state_changed"
+                assert (await enqueue("confirm_water_filled")).status == 403
                 for action in (
-                    "confirm_water_filled",
                     "start_manual_heating", "$k=4",
                 ):
                     assert (await enqueue(action)).status == 400

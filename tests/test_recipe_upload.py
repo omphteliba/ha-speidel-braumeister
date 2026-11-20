@@ -65,7 +65,8 @@ def test_long_names_are_cut_on_transfer(bridge_module):
     {"mash_in_temperature": True},
     {"rests": []}, {"rests": rests((50, 10)) * 6}, {"rests": [[50, 10]]}, {"rests": rests((85, 10))},
     {"rests": rests((50, 0))},
-    {"boil_minutes": 0}, {"boil_minutes": 181}, {"boil_temperature": 89}, {"boil_temperature": 106},
+    {"boil_minutes": 0}, {"boil_minutes": 181}, {"boil_temperature": 89},
+    {"boil_temperature": 104}, {"boil_temperature": 105}, {"boil_temperature": 106},
     {"hop_additions": [91]}, {"hop_additions": [0]}, {"hop_additions": [10] * 7},
     {"extra": 1},
 ])
