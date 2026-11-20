@@ -17,6 +17,10 @@ def message(screen, labels, indicator="000", target="380", delay="0", flags="ph"
     ("start_now", (2120,"A00S","000","380","3531"), (2300,"A000","000","380","0","Ph"), 4, "confirmed"),
     ("open_temperature_editor", (4006,"APHT"), (4007,"ADUS","00T"), 4, "confirmed"),
     ("temperature_up", (4007,"ADUS","00T"), (4007,"ADUS","00T","390"), 3, "confirmed"),
+    ("temperature_up", (4007,"ADUS","00T","1000"), (4007,"ADUS","00T","1010"), 3, "confirmed"),
+    ("temperature_up", (4007,"ADUS","00T","1020"), (4007,"ADUS","00T","1030"), 3, "confirmed"),
+    ("temperature_down", (4007,"ADUS","00T","1030"), (4007,"ADUS","00T","1020"), 2, "confirmed"),
+    ("confirm_temperature", (4007,"ADUS","00T","1030"), (4006,"APHT","000","1030"), 4, "confirmed"),
     ("temperature_down", (4007,"ADUS","00T","390"), (4007,"ADUS","00T"), 2, "confirmed"),
     ("confirm_temperature", (4007,"ADUS","00T"), (4006,"APHT"), 4, "confirmed"),
     ("cancel_temperature", (4007,"ADUS","00T","390"), (101,"EMSR","00T","-1000"), 1, "confirmed"),
@@ -123,7 +127,7 @@ async def test_mapping_start_permissions_rechecked(bridge_module, option, action
 
 
 @pytest.mark.parametrize('action,target', [
-    ('temperature_up', '1000'), ('temperature_down', '0'),
+    ('temperature_up', '1030'), ('temperature_up', '1040'), ('temperature_down', '0'),
     ('temperature_up', '-10'), ('temperature_up', '385'),
     ('temperature_down', 'NaN'),
 ])

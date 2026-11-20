@@ -132,7 +132,8 @@ def mapping_rule(action, payload):
             if f[2] != "C" or not re.fullmatch(r"[0-9]{1,4}", f[4]) or int(f[4]) % 10:
                 return None
             target = int(f[4]) + (10 if action == "temperature_up" else -10)
-            if not 0 <= target <= 1000:
+            # Manual-mode maximum reported by the maintainer in PR #34.
+            if not 0 <= target <= 1030:
                 return None
             targets = {3: "4007", 4: str(target), 13: "ADUS", 15: "00T"}
         elif action == "confirm_temperature":
