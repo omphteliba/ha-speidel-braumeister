@@ -52,7 +52,8 @@ after cancellation restores the original target. The 103 °C upper limit follows
 [the maintainer's manual-mode hardware report](https://github.com/omphteliba/ha-speidel-braumeister/pull/34#issuecomment-7036018751).
 It replaces the initial conservative 100 °C software cap. The lower bound remains
 a conservative software guard; these captures do not validate hardware boundaries.
-The separate recipe-upload limit of 105 °C is not evidence for the manual editor.
+The recipe-upload maximum is also 103 °C, matching the user's MySpeidel recipe-editor
+observation on November 20, 2026. Values above the limit are rejected, not clamped.
 
 Delay evidence on November 17 includes 2373→2375 (Up from 2030), 2390→2392
 (Down), 2971→2973 (Select, field 17 = 3599), and 3057→3059 (countdown cancellation).

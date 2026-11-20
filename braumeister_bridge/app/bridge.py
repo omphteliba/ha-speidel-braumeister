@@ -284,7 +284,7 @@ def recipe_line(slot: int, recipe: Any, fahrenheit: bool = False) -> str:
                     _bounded(rest["minutes"], 1, 180, "Rest minutes")]
     numbers += [0, 0] * (5 - len(rests))
     boil = _bounded(recipe["boil_minutes"], 1, 180, "boil_minutes")
-    boil_temperature = _bounded(recipe.get("boil_temperature", BOIL_TEMPERATURE), 90, 105, "boil_temperature")
+    boil_temperature = _bounded(recipe.get("boil_temperature", BOIL_TEMPERATURE), 90, 103, "boil_temperature")
     numbers += [boil, temp(boil_temperature)]
     hops = recipe.get("hop_additions", [])
     if not isinstance(hops, list) or len(hops) > 6:

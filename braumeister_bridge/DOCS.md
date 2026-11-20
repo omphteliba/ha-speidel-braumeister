@@ -216,7 +216,7 @@ Assistant, use the action **Speidel Braumeister: Upload recipes**
 - `mash_in_temperature` and rest temperatures in °C (20–80), converted if the
   device is set to °F. 1 to 5 `rests` with `temperature` and `minutes` (1–180).
 - `boil_minutes` 1–180; up to 6 `hop_additions` in minutes before the end of the
-  boil. `boil_temperature` 90–105 °C (default 103); `slot` may be present and is ignored.
+  boil. `boil_temperature` 90–103 °C (default 103); `slot` may be present and is ignored.
 
 The device must show the main menu with pump and heater off. The Bridge then
 replays what My Speidel does: it deletes all recipes (`$d=A`) and writes one slot
