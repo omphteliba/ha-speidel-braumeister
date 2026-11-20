@@ -230,7 +230,7 @@ simply upload again. The last recipe list the device reported is kept in
 With `forward_to_cloud: true`, My Speidel may later replace the list with the
 recipes of your account again.
 
-### Draft early-program and manual-editor extension
+### Early-program and manual-editor extension
 
 The additional Companion action names, exact contexts, permission gates and
 hardware-evidence limitations are documented in

@@ -1,6 +1,6 @@
 # Early-program and manual-editor controls
 
-Draft port from the coordinated beta for Braumeister 20 L Plus, firmware 1.1.27.
+Port from the coordinated beta for Braumeister 20 L Plus, firmware 1.1.27.
 These are named Bridge `/api/control` actions used by Companion beta.24; no
 Companion installation or live Home Assistant configuration is changed here.
 
@@ -24,7 +24,7 @@ Existing cloud-command arbitration, pending-command exclusion and expiry apply.
 | `cancel_water_prompt` | 2030 or 2111/ADUS/000 | 1 | 101/EMSR/000 |
 | `cancel_start_delay` | 2120/A00S/000 | 1 | 101/EMSR/000, delay zero |
 | `start_now` | 2120/A00S/000, positive delay | 4 | 2300/A000/000/Ph, delay zero |
-| `confirm_water_filled` | 2030/ADUS/000 | 4 | 2300/A000/000/Ph, delay zero; hardware confirmation pending |
+| `confirm_water_filled` | 2030/ADUS/000 | 4 | 2300/A000/000/Ph, delay zero |
 
 The three additional program actions use exact screen/actuator/indicator tuples:
 
@@ -63,12 +63,29 @@ Mash-in cloud transitions are recorded on November 18 at 2675→2677 (Pi),
 at 18:20:26–27, records 3212→3214. This does not validate rest-end 2910/qi, which
 remains unsupported. Sequence numbers belong to their respective sessions.
 
-**Draft review gate:** the initial direct `confirm_water_filled` start is ported
-from beta but lacks a direct hardware-confirmed exchange in the available notes.
-Its automated tests establish implementation behavior only. Obtain that evidence
-or remove this route before marking the draft ready for merge. The other cloud-
-observed transitions are not all individually hardware-retested through this
-new upstream implementation.
+## Direct water-start hardware validation — November 20, 2026
+
+The previously missing direct `confirm_water_filled` transition is now recorded
+through both MySpeidel and the installed HA beta. Times are CET (UTC+01:00),
+from Bridge timestamps rather than the minute-resolution device clock.
+
+| Origin | Key-4 command | Source | First resulting status | Target |
+| --- | --- | --- | --- | --- |
+| MySpeidel (`cloud`) | 08:58:11.356, sequence 130673 | 2030/ph/ADUS/000 | 08:58:12.515, sequence 130675 | 2300/Ph/A000/000 |
+| HA (`local_control`) | 09:04:37.284, sequence 131150 | 2030/ph/ADUS/000 | 09:04:38.382, sequence 131152 | 2300/Ph/A000/000 |
+
+Field 17 is zero before and after both commands; all listed responses have HTTP
+status 200. No Up/Down commands, delay-editor state 2111, or countdown state 2120
+occur between entry into each water prompt and its confirmation. Earlier Down
+commands belonged to recipe selection 2015, before the water prompt.
+Sequence ranges 130614–130680 and 131121–131154 were checked and have no gaps.
+The raw diagnostic snapshots are retained locally and are not included in this PR.
+
+This closes the direct-start evidence gap and supports making the PR ready for
+review. The HA hardware run used the installed beta, not this new upstream build.
+The new implementation has automated coverage; not every ported route has been
+individually hardware-retested on the upstream build. No device operation was
+performed by the log inspection.
 
 The selected delay value in 2111 is not exposed in the captured status. Arrow
 commands that remain in 2111 therefore finish as `unconfirmed`, not a fabricated
