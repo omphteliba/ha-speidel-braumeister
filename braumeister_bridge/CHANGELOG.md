@@ -6,6 +6,11 @@
   hop addition, brew complete, whirlpool and "Prost"; start the boil; pause, resume and
   abort while heating to boil. Off by default; starting the boil and resuming need
   `program_control_enabled` and `allow_remote_heating` (thanks to DanielP-1337, #32)
+- Local control for mash-in (acknowledge mash temperature, confirm malt added), starting a
+  program (water filled, delayed start, start now, cancel) and the manual-mode temperature
+  editor (0–103 °C, only with pump and heater off). Off by default; everything that starts
+  the program needs `program_control_enabled` and `allow_remote_heating` (thanks to DanielP-1337, #34)
+- Recipe upload accepts a boil temperature up to 103 °C (was 105 °C), the device maximum
 
 ## 0.6.0
 

@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Braumeister Bridge: optional local control for the later brewing steps (confirm rest end, malt pipe removed, lid, hop addition, brew complete, whirlpool and "Prost"; start the boil; pause, resume and abort while heating to boil). Off by default; starting the boil and resuming need `program_control_enabled` and `allow_remote_heating` (thanks to DanielP-1337, #32)
 - `DEVICE_PROTOCOL.md`: boil editor (temperature and time) and the later program confirmations (thanks to DanielP-1337, #31)
 - *Current step* sensor: display attributes (device clock, pump/heater flags, rest timer, button labels, indicator, start-delay countdown) for display cards (thanks to DanielP-1337, #33)
+- Braumeister Bridge: optional local control for mash-in (acknowledge mash temperature, confirm malt added), starting a program (water filled, delayed start, start now, cancel) and the manual-mode temperature editor (0–103 °C, only with pump and heater off). Off by default; everything that starts the program needs `program_control_enabled` and `allow_remote_heating` (thanks to DanielP-1337, #34)
 
 ### Changed
 - Attributes that change with every update while brewing (display clock and timers, remaining time, start-delay countdown) are no longer stored in the recorder history
+- Recipe upload: boil temperature up to 103 °C (was 105 °C), the maximum the Braumeister accepts (#34)
 
 ## [3.3.0] - 2026-11-18
 
