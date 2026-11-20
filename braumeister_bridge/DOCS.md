@@ -229,3 +229,13 @@ simply upload again. The last recipe list the device reported is kept in
 `/data/recipes.json` (and in `/api/status`). Nothing is heated or started.
 With `forward_to_cloud: true`, My Speidel may later replace the list with the
 recipes of your account again.
+
+### Draft early-program and manual-editor extension
+
+The additional Companion action names, exact contexts, permission gates and
+hardware-evidence limitations are documented in
+[early-program/editor controls](../docs/early-program-editor-controls.md).
+All existing control options remain off by default. Commands that can start the
+program, including delayed-start confirmation and malt-added confirmation,
+require both program-control and remote-heating permission. The manual editor
+requires inactive actuators. No additional pause/abort contexts are enabled.
